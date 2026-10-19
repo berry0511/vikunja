@@ -117,6 +117,17 @@ func (w *Worklog) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
 	if old.UserID != a.GetID() || old.ProjectID != w.ProjectID {
 		return false, nil
 	}
+	// Moving a task later must not make its historical records impossible to
+	// correct. Only a deliberate change to a *different* task needs a new
+	// task-to-project membership check.
+	if w.TaskID == old.TaskID {
+		if err := ValidateWorklog(w); err != nil {
+			return false, err
+		}
+		p := &Project{ID: old.ProjectID}
+		canRead, _, err := p.CanRead(s, a)
+		return canRead, err
+	}
 	return w.CanCreate(s, a)
 }
 
