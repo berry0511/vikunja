@@ -107,6 +107,21 @@ func TestTimeEntry_CanCreate(t *testing.T) {
 	}
 }
 
+// Time entry creation cannot target a soft-deleted task, even if a stale
+// frontend autocomplete still holds the old task object.
+func TestTimeEntry_CannotCreateOnDeletedTask(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	_, err := s.ID(1).Delete(&Task{})
+	require.NoError(t, err)
+
+	can, err := (&TimeEntry{TaskID: 1}).CanCreate(s, &user.User{ID: 1})
+	assert.False(t, can)
+	require.Error(t, err, "soft-deleted tasks must not accept new work time")
+}
+
 // Entry 3 is authored by user3; user1 can read project 3 but is not the author,
 // so it can read but not modify.
 func TestTimeEntry_CanModify(t *testing.T) {
