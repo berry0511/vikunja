@@ -37,7 +37,10 @@
 					{{ showForm ? '收起' : '填写工时' }}
 				</button>
 				<button type="button" class="button" :disabled="!projectId || !validRange || exporting" @click="exportCSV">
-					{{ exporting ? '导出中…' : '导出 CSV' }}
+					{{ exporting ? '导出中…' : '导出明细 CSV' }}
+				</button>
+				<button type="button" class="button" :disabled="!projectId || !validRange || exporting" @click="exportCSV(true)">
+					导出每日汇总 CSV
 				</button>
 			</div>
 		</section>
@@ -143,6 +146,7 @@ import {useProjects} from '@/composables/useProjects'
 import {useAuthStore} from '@/stores/auth'
 import {
 	downloadWorklogs,
+	downloadWorklogSummary,
 	useWorklogs,
 	useWorklogSummary,
 	useCreateWorklog,
@@ -265,14 +269,14 @@ async function remove(entry: Worklog) {
 		deleting.value = false
 	}
 }
-async function exportCSV() {
+async function exportCSV(summary = false) {
 	exporting.value = true
 	try {
-		const file = await downloadWorklogs(filter.value)
+		const file = summary ? await downloadWorklogSummary(filter.value) : await downloadWorklogs(filter.value)
 		const url = URL.createObjectURL(file)
 		const link = document.createElement('a')
 		link.href = url
-		link.download = 'worklogs-' + fromDate.value + '-' + toDate.value + '.csv'
+		link.download = (summary ? 'worklogs-daily-' : 'worklogs-') + fromDate.value + '-' + toDate.value + '.csv'
 		document.body.appendChild(link)
 		link.click()
 		link.remove()
