@@ -45,7 +45,10 @@ const filteredProjects = computed(() => {
 	list-style-type: none;
 	display: grid;
 	grid-template-columns: repeat(var(--project-grid-columns), 1fr);
-	grid-auto-rows: var(--project-grid-item-height);
+	// Let projects without a picture use compact cards. The old fixed 150px
+	// track height left most of each plain card blank.
+	grid-auto-rows: auto;
+	align-items: start;
 	gap: var(--project-grid-gap);
 
 	@media screen and (min-width: $mobile) {
@@ -74,7 +77,7 @@ const filteredProjects = computed(() => {
 }
 
 .project-grid-item {
-	display: grid;
-	margin-block-start: 0; // remove padding coming form .content li + li
+	display: block;
+	margin-block-start: 0; // remove padding coming from .content li + li
 }
 </style>
