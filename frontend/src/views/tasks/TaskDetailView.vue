@@ -61,14 +61,6 @@
 				/>
 			</nav>
 
-			<RouterLink
-					v-if="task.project_id > 0 && !authStore.isLinkShareAuth"
-					:to="{name: 'daily-worklogs', query: {project_id: task.project_id, task_id: task.id}}"
-					class="button is-small is-outlined mbs-2"
-				>
-					<Icon :icon="['far', 'clock']" />
-					<span>记工时</span>
-				</RouterLink>
 			<ChecklistSummary :task="task" />
 
 			<!-- Content and buttons -->
@@ -376,6 +368,13 @@
 						/>
 					</div>
 
+					<!-- Daily work logs belong to the task and automatically inherit its IDs. -->
+					<TaskDailyWorklogs
+						v-if="task.id > 0 && task.project_id > 0 && !authStore.isLinkShareAuth"
+						:task-id="task.id"
+						:project-id="task.project_id"
+					/>
+
 					<!-- Time Tracking -->
 					<div
 						v-if="timeTrackingEnabled && activeFields.timeTracking"
@@ -679,6 +678,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 // partials
 import Attachments from '@/components/tasks/partials/Attachments.vue'
 import TaskTimeTracking from '@/components/time-tracking/TaskTimeTracking.vue'
+import TaskDailyWorklogs from '@/components/time-tracking/TaskDailyWorklogs.vue'
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import ColorPicker from '@/components/input/ColorPicker.vue'
 import Comments from '@/components/tasks/partials/Comments.vue'
