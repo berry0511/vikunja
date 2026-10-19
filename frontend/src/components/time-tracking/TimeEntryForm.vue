@@ -22,12 +22,14 @@
 					:loading="taskQuery.isFetching.value"
 					:search-results="foundTasks"
 					label="title"
+					@focusin="refreshTaskResults"
 					@search="findTasks"
 				>
 					<template #searchResult="{option}">
 						{{ option.title }}
 					</template>
 				</Multiselect>
+				<p v-if="taskSelectionError" class="help is-danger" role="alert">{{ taskSelectionError }}</p>
 			</div>
 		</div>
 
@@ -123,6 +125,7 @@ import {useTasks} from '@/composables/useTasks'
 import {ensureTask} from '@/client/queries/tasks'
 import {smartFillStart} from '@/helpers/time/smartFillStart'
 import {useCreateTimeEntryMutation, useUpdateTimeEntryMutation} from '@/client/queries/timeEntries'
+import {tasksRead} from '@/client/generated'
 import type {UpdateTimeEntryInput} from '@/client/queries/timeEntries'
 import type {TimeEntryWritable} from '@/client/generated'
 import {parseDateOrNull} from '@/helpers/parseDateOrNull'
@@ -180,7 +183,9 @@ const isSaving = ref(false)
 
 // Task and project are mutually exclusive (XOR) — selecting one clears the other,
 // so applyTarget never picks a stale target the user has since changed.
+const taskSelectionError = ref('')
 watch(selectedTask, task => {
+	taskSelectionError.value = ''
 	if (task !== null) {
 		selectedProject.value = null
 	}
@@ -196,8 +201,33 @@ const taskQuery = useTasks(
 	() => ({project: selectedProject.value?.id, params: {q: taskSearch.value, sort_by: ['done']}}),
 	{enabled: () => taskSearch.value !== ''},
 )
-const foundTasks = taskQuery.tasks
+// Soft-deleted tasks must never be offered as targets. The server's
+// soft-delete condition filters active searches, while this also protects
+// against stale cached results and tasks returned with deleted_at.
+const foundTasks = computed(() => taskQuery.tasks.value.filter(task => !task.deleted_at))
 function findTasks(query: string) { taskSearch.value = query }
+function refreshTaskResults() {
+	if (taskSearch.value !== '') void taskQuery.refetch()
+}
+
+// Search lists may have been cached before another user deleted the task.
+// Revalidate the chosen task against the server *before* creating an entry;
+// the backend permission check remains authoritative too.
+async function ensureSelectedTaskStillExists(): Promise<boolean> {
+	const task = selectedTask.value
+	if (task === null) return true
+	try {
+		const {data} = await tasksRead({path: {task: task.id}})
+		if (data?.id === task.id && !data.deleted_at) return true
+	} catch {
+		// Deleted, inaccessible or unavailable. Fail closed and ask to reselect.
+	}
+	if (selectedTask.value?.id === task.id) {
+		selectedTask.value = null
+		taskSelectionError.value = 'This task is no longer available. Please select an existing task.'
+	}
+	return false
+}
 
 
 const canSubmit = computed(() =>
@@ -305,6 +335,8 @@ async function submit(includeEnd: boolean) {
 	isSaving.value = true
 	const draft = draftIdentity()
 	try {
+		if (!(await ensureSelectedTaskStillExists())) return
+		if (draftIdentity() !== draft) return
 		const payload = buildPayload(includeEnd)
 		// An untouched start would otherwise be when the form loaded, not click time.
 		if (!includeEnd && !start.value.chosen) {
