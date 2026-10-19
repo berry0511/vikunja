@@ -444,6 +444,11 @@ const router = createRouter({
 			component: () => import('@/views/About.vue'),
 		},
 		{
+			path: '/daily-worklogs',
+			name: 'daily-worklogs',
+			component: () => import('@/views/time-tracking/DailyWorklogs.vue'),
+		},
+		{
 			path: '/time-tracking',
 			name: 'time-tracking',
 			component: () => import('@/views/time-tracking/TimeTracking.vue'),
