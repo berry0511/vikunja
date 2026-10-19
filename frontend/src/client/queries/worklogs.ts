@@ -22,6 +22,7 @@ export type WorklogWrite = Pick<Worklog, 'project_id' | 'task_id' | 'work_date' 
 
 export type WorklogFilter = {
 	project_id: number
+	task_id: number
 	user_id: number
 	from_date: string
 	to_date: string
