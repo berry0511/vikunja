@@ -32,6 +32,7 @@ func TestWorklogValidation(t *testing.T) {
 	require.NoError(t, ValidateWorklog(valid))
 	for name, mutate := range map[string]func(*Worklog){
 		"no project": func(w *Worklog) { w.ProjectID = 0 },
+		"missing task": func(w *Worklog) { w.TaskID = 0 },
 		"invalid task": func(w *Worklog) { w.TaskID = -1 },
 		"zero minutes": func(w *Worklog) { w.Minutes = 0 },
 		"too many minutes": func(w *Worklog) { w.Minutes = 1441 },
@@ -57,16 +58,16 @@ func TestWorklogPermissions(t *testing.T) {
 	allowed, err := worklogFixture(1, 1).CanCreate(s, &user.User{ID: 1})
 	require.NoError(t, err)
 	assert.True(t, allowed)
-	allowed, err = worklogFixture(3, 0).CanCreate(s, &user.User{ID: 2})
+	allowed, err = worklogFixture(3, 32).CanCreate(s, &user.User{ID: 2})
 	require.NoError(t, err)
 	assert.True(t, allowed)
-	allowed, err = worklogFixture(1, 0).CanCreate(s, &user.User{ID: 4})
+	allowed, err = worklogFixture(1, 1).CanCreate(s, &user.User{ID: 4})
 	require.NoError(t, err)
 	assert.False(t, allowed)
 	allowed, err = worklogFixture(3, 1).CanCreate(s, &user.User{ID: 1})
 	require.NoError(t, err)
 	assert.False(t, allowed, "task must belong to selected project")
-	allowed, err = worklogFixture(1, 0).CanCreate(s, &LinkSharing{ID: 1, ProjectID: 1})
+	allowed, err = worklogFixture(1, 1).CanCreate(s, &LinkSharing{ID: 1, ProjectID: 1})
 	require.NoError(t, err)
 	assert.False(t, allowed)
 
@@ -88,7 +89,7 @@ func TestWorklogSelfOnlyMutation(t *testing.T) {
 	db.LoadAndAssertFixtures(t)
 	s := db.NewSession()
 	defer s.Close()
-	w := worklogFixture(3, 0)
+	w := worklogFixture(3, 32)
 	w.UserID = 3
 	_, err := s.Insert(w)
 	require.NoError(t, err)
@@ -98,7 +99,7 @@ func TestWorklogSelfOnlyMutation(t *testing.T) {
 		_, err := clean.ID(w.ID).Delete(&Worklog{})
 		require.NoError(t, err)
 	})
-	edit := worklogFixture(3, 0)
+	edit := worklogFixture(3, 32)
 	edit.ID = w.ID
 	can, err := edit.CanUpdate(s, &user.User{ID: 3})
 	require.NoError(t, err)
