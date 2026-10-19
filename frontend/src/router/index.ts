@@ -453,7 +453,6 @@ const router = createRouter({
 			name: 'time-tracking',
 			component: () => import('@/views/time-tracking/TimeTracking.vue'),
 			meta: {
-				requiresTimeTracking: true,
 				title: 'timeTracking.title',
 			},
 		},
@@ -626,15 +625,6 @@ router.beforeEach(async (to, from) => {
 		await baseStore.appReady
 		const configStore = useConfigStore()
 		if (!configStore.isProFeatureEnabled(PRO_FEATURE.USER_INVITES)) {
-			return {name: 'not-found'}
-		}
-	}
-
-	if (to.meta?.requiresTimeTracking) {
-		const baseStore = useBaseStore()
-		await baseStore.appReady
-		const configStore = useConfigStore()
-		if (!configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING)) {
 			return {name: 'not-found'}
 		}
 	}
