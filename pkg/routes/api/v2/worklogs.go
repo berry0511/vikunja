@@ -90,6 +90,19 @@ func RegisterDailyWorklogRoutes(api huma.API) {
 		Method: http.MethodGet, Path: "/worklogs/summary", Tags: tags,
 	}, dailyWorklogsSummary)
 	Register(api, huma.Operation{
+		OperationID: "worklogs-export-summary",
+		Summary: "Export daily effort totals by person",
+		Description: "Downloads a CSV of each person's daily minutes and hours for the filtered project and date range; only project admins can export another person's data.",
+		Method: http.MethodGet, Path: "/worklogs/export-summary", Tags: tags,
+		Responses: map[string]*huma.Response{
+			"200": {Description: "Daily summary in UTF-8 CSV.",
+				Content: map[string]*huma.MediaType{
+					"text/csv": {Schema: &huma.Schema{Type: huma.TypeString, Format: "binary"}},
+				},
+			},
+		},
+	}, dailyWorklogsExportSummary)
+	Register(api, huma.Operation{
 		OperationID: "worklogs-export",
 		Summary: "Export daily worklogs to UTF-8 CSV",
 		Description: "Downloads full matching detail rows, not just the current page. Uses the same project and user permission rules as the list and summary.",
@@ -299,6 +312,30 @@ func dailyWorklogsExport(ctx context.Context, in *dailyWorklogFilterInput) (*hum
 				strconv.Itoa(r.Minutes),
 				fmt.Sprintf("%.2f", float64(r.Minutes)/60),
 				dailyWorklogCSVCell(r.Comment),
+			})
+		}
+		writer.Flush()
+	}}, nil
+}
+
+
+func dailyWorklogsExportSummary(ctx context.Context, in *dailyWorklogFilterInput) (*huma.StreamResponse, error) {
+	rows, err := dailyWorklogData(ctx, *in)
+	if err != nil { return nil, err }
+	sum := summarizeDailyWorklogs(rows)
+	return &huma.StreamResponse{Body: func(hctx huma.Context) {
+		c := humaecho.Unwrap(hctx)
+		w := (*c).Response()
+		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+		w.Header().Set("Content-Disposition", "attachment; filename=worklogs-daily-summary.csv")
+		_, _ = w.Write([]byte{0xef, 0xbb, 0xbf})
+		writer := csv.NewWriter(w)
+		_ = writer.Write([]string{"date", "username", "user_id", "minutes", "hours"})
+		for _, day := range sum.Days {
+			_ = writer.Write([]string{
+				day.WorkDate, dailyWorklogCSVCell(day.Username),
+				strconv.FormatInt(day.UserID, 10), strconv.Itoa(day.Minutes),
+				fmt.Sprintf("%.2f", float64(day.Minutes)/60),
 			})
 		}
 		writer.Flush()
