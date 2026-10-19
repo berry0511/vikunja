@@ -96,6 +96,14 @@ const textOnlyDescription = computed(() => {
 	display: flex;
 	justify-content: space-between;
 	flex-wrap: wrap;
+	align-items: center;
+	min-block-size: 4.75rem;
+
+	// Photo cards keep their original spacious presentation; plain cards
+	// no longer reserve a photo-sized empty area.
+	&.has-background {
+		min-block-size: 150px;
+	}
 
 	&:hover {
 		box-shadow: var(--shadow-md);
@@ -134,7 +142,7 @@ const textOnlyDescription = computed(() => {
 }
 
 .project-title {
-	align-self: flex-end;
+	align-self: center;
 	font-family: $vikunja-font;
 	font-weight: 400;
 	font-size: 1.5rem;
@@ -157,6 +165,7 @@ const textOnlyDescription = computed(() => {
 }
 
 .has-background .project-title {
+	align-self: flex-end;
 	text-shadow:
 		0 0 10px var(--black),
 		1px 1px 5px var(--grey-700),
