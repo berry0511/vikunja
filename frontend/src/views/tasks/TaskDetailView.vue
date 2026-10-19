@@ -1440,16 +1440,34 @@ h2 .button {
 }
 
 .action-buttons {
+	// Use compact paired actions instead of a tall full-width button stack.
+	// The primary completion action and headings remain full-width.
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-content: start;
+	gap: .5rem;
+
+	@media screen and (max-width: $tablet) {
+		grid-template-columns: 1fr;
+	}
+
 	@media screen and (min-width: $tablet) {
 		position: sticky;
 		inset-block-start: $navbar-height + 1.5rem;
 		align-self: flex-start;
 	}
 
+	> .action-heading,
+	> .button--mark-done {
+		grid-column: 1 / -1;
+	}
+
 	.button {
 		inline-size: 100%;
-		margin-block-end: .5rem;
-		justify-content: left;
+		min-inline-size: 0;
+		margin-block-end: 0;
+		justify-content: flex-start;
+		text-align: start;
 
 		&.has-light-text {
 			color: var(--white);
@@ -1500,6 +1518,15 @@ h2 .button {
 	@media print {
 		inline-size: 100% !important;
 	}
+}
+
+// The editor remains a large writing surface when content exists, but an
+// empty task description or comment should not create a tall blank spacer.
+.task-view :deep(.description .tiptap__editor-is-edit-enabled) {
+	min-block-size: 5.5rem;
+}
+.task-view :deep(.comments-container .tiptap__editor-is-edit-enabled) {
+	min-block-size: 5.5rem;
 }
 
 .action-heading {
