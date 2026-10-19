@@ -45,7 +45,7 @@ func TestDailyWorklogsSummaryAndSpreadsheetEscaping(t *testing.T) {
 	assert.Equal(t, 90, out.Days[1].Minutes)
 	assert.Equal(t, 120, out.Days[2].Minutes)
 
-	for _, raw := range []string{"=cmd()", "+1+2", "-3+5", "@sum(1)", "\t=cmd()", "\r=cmd()"} {
+	for _, raw := range []string{"=cmd()", "+1+2", "-3+5", "@sum(1)", "\t=cmd()", "\r=cmd()", "  =cmd()", "\n=cmd()"} {
 		assert.Equal(t, "'"+raw, dailyWorklogCSVCell(raw))
 	}
 	assert.Equal(t, "regular text", dailyWorklogCSVCell("regular text"))
