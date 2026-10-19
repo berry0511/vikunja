@@ -1,276 +1,201 @@
 <template>
-	<div class="daily-worklogs">
-		<h1 class="title">每日工时</h1>
-		<p class="has-text-grey mbs-2">每天填写实际工时，按项目和人员统计，支持 CSV 导出。</p>
-		<p class="has-text-grey mbs-2">提示：本页面仅统计每日手工工时；Vikunja 原版计时器记录在另一个模块中，暂不合并计算。</p>
+	<div class="daily-report">
+		<header class="report-header">
+			<div>
+				<h1 class="title is-3">工时统计</h1>
+				<p class="report-muted">按项目、人员和日期核对每日投入。工时请在对应任务中记录。</p>
+			</div>
+			<XButton variant="secondary" icon="download" :disabled="!projectId || !validRange || exporting" :loading="exporting" @click="exportCSV()">
+				导出明细
+			</XButton>
+		</header>
 
-		<section class="box">
-			<div class="worklog-grid">
+		<Card title="筛选条件">
+			<div class="report-filters">
 				<div class="field">
-					<label class="label" for="worklog-project">项目</label>
-					<div class="select is-fullwidth">
-						<select id="worklog-project" v-model.number="projectId">
-							<option :value="0" disabled>请选择项目</option>
-							<option v-for="p in availableProjects" :key="p.id" :value="p.id">{{ p.title }}</option>
-						</select>
-					</div>
+					<label class="label" for="daily-report-project">项目</label>
+					<FormSelect id="daily-report-project" v-model.number="projectId" :options="projectOptions" />
 				</div>
 				<div class="field">
-					<label class="label" for="worklog-from">开始日期</label>
-					<input id="worklog-from" v-model="fromDate" type="date" class="input">
+					<label class="label" for="daily-report-from">开始日期</label>
+					<FormInput id="daily-report-from" v-model="fromDate" type="date" />
 				</div>
 				<div class="field">
-					<label class="label" for="worklog-to">结束日期</label>
-					<input id="worklog-to" v-model="toDate" type="date" class="input">
+					<label class="label" for="daily-report-to">结束日期</label>
+					<FormInput id="daily-report-to" v-model="toDate" type="date" />
 				</div>
 				<div class="field">
-					<label class="label" for="worklog-person">人员</label>
-					<div class="select is-fullwidth">
-						<select id="worklog-person" v-model.number="userId">
-							<option :value="0">全部（普通成员仅自己）</option>
-							<option v-for="p in people" :key="p.id" :value="p.id">{{ p.name }}</option>
-						</select>
-					</div>
+					<label class="label" for="daily-report-user">人员</label>
+					<FormSelect id="daily-report-user" v-model.number="userId" :options="peopleOptions" />
 				</div>
 			</div>
-			<div class="buttons">
-				<button type="button" class="button is-primary" :disabled="!projectId" @click="toggleForm">
-					{{ showForm ? '收起' : '填写工时' }}
-				</button>
-				<button type="button" class="button" :disabled="!projectId || !validRange || exporting" @click="exportCSV">
-					{{ exporting ? '导出中…' : '导出明细 CSV' }}
-				</button>
-				<button type="button" class="button" :disabled="!projectId || !validRange || exporting" @click="exportCSV(true)">
-					导出每日汇总 CSV
-				</button>
+			<div class="report-filter-footer">
+				<p class="report-muted">所有工时均关联真实任务；项目成员只能查询自己的记录。</p>
+				<XButton type="button" variant="tertiary" @click="resetFilters">重置筛选</XButton>
 			</div>
-		</section>
+		</Card>
 
-		<section v-if="showForm && projectId" class="box">
-			<h2 class="subtitle">{{ editingId ? '编辑工时' : '新增工时' }}</h2>
-			<form @submit.prevent="save">
-				<div class="worklog-grid">
-					<div class="field">
-						<label class="label" for="worklog-date">工作日期</label>
-						<input id="worklog-date" v-model="workDate" type="date" class="input" required>
-					</div>
-					<div class="field">
-						<label class="label" for="worklog-hours">实际小时数</label>
-						<input id="worklog-hours" v-model.number="hours" type="number" inputmode="decimal" class="input" min="0.01" max="24" step="any" required>
-					</div>
-					<div class="field">
-						<label class="label" for="worklog-task">任务 ID（可不填）</label>
-						<input id="worklog-task" v-model.number="taskId" type="number" min="0" inputmode="numeric" class="input" placeholder="直接记在项目上">
-					</div>
-				</div>
-				<div class="field">
-					<label class="label" for="worklog-description">今天做了什么</label>
-					<textarea id="worklog-description" v-model="comment" class="textarea" rows="2" maxlength="2000" placeholder="例如：通信协议联调与回归测试" />
-				</div>
-				<p v-if="formError" role="alert" class="has-text-danger mbs-2">{{ formError }}</p>
-				<div class="buttons">
-					<button type="submit" class="button is-primary" :disabled="saving">{{ saving ? '保存中…' : '保存' }}</button>
-					<button type="button" class="button" @click="resetForm">取消</button>
-				</div>
-			</form>
-		</section>
+		<div v-if="!validRange" class="report-feedback" role="alert">结束日期不能早于开始日期。</div>
+		<div v-else-if="!projectId" class="report-empty">
+			<Icon icon="layer-group" />
+			<h2>先选择一个项目</h2>
+			<p>查看这个项目中每个任务和每位成员的实际投入。</p>
+		</div>
+		<template v-else>
+			<div class="report-metrics">
+				<Card>
+					<p class="metric-label">累计投入</p>
+					<strong class="metric-value">{{ formatMinutes(summaryQuery.data.value?.total_minutes ?? 0) }}</strong>
+				</Card>
+				<Card>
+					<p class="metric-label">工时记录</p>
+					<strong class="metric-value">{{ summaryQuery.data.value?.record_count ?? 0 }} <small>条</small></strong>
+				</Card>
+				<Card>
+					<p class="metric-label">参与人员</p>
+					<strong class="metric-value">{{ participantCount }} <small>人</small></strong>
+				</Card>
+			</div>
 
-		<p v-if="!validRange" class="has-text-danger">请选择有效的日期范围。</p>
-		<template v-else-if="projectId">
-			<section class="box">
-				<h2 class="subtitle">每日汇总</h2>
-				<p v-if="summaryQuery.isPending.value">正在载入汇总…</p>
-				<template v-if="summaryQuery.data.value">
-					<p>累计 <strong>{{ formatMinutes(summaryQuery.data.value.total_minutes) }}</strong>，
-						共 {{ summaryQuery.data.value.record_count }} 条工时。</p>
-					<div class="table-container">
-						<table class="table is-fullwidth is-striped">
-							<thead><tr><th>日期</th><th>人员</th><th class="has-text-right">投入</th></tr></thead>
-							<tbody>
-								<tr v-for="d in summaryQuery.data.value.days" :key="d.work_date + '-' + d.user_id">
-									<td>{{ d.work_date }}</td>
-									<td>{{ d.username || '#' + d.user_id }}</td>
-									<td class="has-text-right">{{ formatMinutes(d.minutes) }}</td>
-								</tr>
-								<tr v-if="summaryQuery.data.value.days.length === 0">
-									<td colspan="3">这个时间段还没有记录。</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</template>
-			</section>
+			<Card title="每日投入">
+				<div v-if="summaryQuery.isPending.value" class="report-loading">正在获取每日汇总…</div>
+				<div v-else-if="!summaryQuery.data.value?.days.length" class="report-empty report-empty--in-card">
+					当前范围没有工时记录。请打开对应任务，在任务详情填写工时。
+				</div>
+				<div v-else class="report-table-scroll">
+					<table class="report-table">
+						<thead>
+							<tr><th>日期</th><th>人员</th><th class="report-number">投入工时</th></tr>
+						</thead>
+						<tbody>
+							<tr v-for="d in summaryQuery.data.value.days" :key="d.work_date + '-' + d.user_id">
+								<td>{{ d.work_date }}</td>
+								<td>{{ d.username || '#' + d.user_id }}</td>
+								<td class="report-number"><strong>{{ formatMinutes(d.minutes) }}</strong></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="report-actions">
+					<XButton variant="secondary" icon="download" :disabled="exporting" :loading="exporting" @click="exportCSV(true)">导出每日汇总</XButton>
+				</div>
+			</Card>
 
-			<section class="box">
-				<h2 class="subtitle">工时明细</h2>
-				<p v-if="listQuery.isPending.value">正在载入明细…</p>
-				<div class="table-container">
-					<table class="table is-fullwidth is-striped">
-						<thead><tr><th>日期</th><th>人员</th><th>任务</th><th>工作内容</th><th class="has-text-right">投入</th><th>操作</th></tr></thead>
+			<Card title="工时明细">
+				<div v-if="listQuery.isPending.value" class="report-loading">正在获取工时明细…</div>
+				<div v-else-if="entries.length === 0" class="report-empty report-empty--in-card">没有匹配的工时记录。</div>
+				<div v-else class="report-table-scroll">
+					<table class="report-table">
+						<thead>
+							<tr><th>日期</th><th>人员</th><th>关联任务</th><th>工作内容</th><th class="report-number">投入工时</th><th>操作</th></tr>
+						</thead>
 						<tbody>
 							<tr v-for="entry in entries" :key="entry.id">
 								<td>{{ entry.work_date.slice(0, 10) }}</td>
 								<td>{{ entry.username || '#' + entry.user_id }}</td>
 								<td>
-									<RouterLink v-if="entry.task_id" :to="{name: 'task.detail', params: {id: entry.task_id}}">
-										#{{ entry.task_id }}
+									<RouterLink :to="{name: 'task.detail', params: {id: entry.task_id}}" class="report-task-link">
+										#{{ entry.task_id }} <Icon icon="external-link-alt" />
 									</RouterLink>
-									<span v-else>项目工作</span>
 								</td>
-								<td class="worklog-description">{{ entry.comment }}</td>
-								<td class="has-text-right">{{ formatMinutes(entry.minutes) }}</td>
+								<td class="report-comment">{{ entry.comment || '—' }}</td>
+								<td class="report-number"><strong>{{ formatMinutes(entry.minutes) }}</strong></td>
 								<td>
-									<div v-if="entry.user_id === currentUserId" class="buttons are-small">
-										<button type="button" class="button" @click="edit(entry)">修改</button>
-										<button type="button" class="button is-danger is-light" :disabled="deleting" @click="remove(entry)">删除</button>
-									</div>
+									<RouterLink v-if="entry.user_id === currentUserId" :to="{name: 'task.detail', params: {id: entry.task_id}}" class="report-task-link">在任务中编辑</RouterLink>
+									<span v-else>—</span>
 								</td>
 							</tr>
-							<tr v-if="entries.length === 0"><td colspan="6">没有匹配记录。</td></tr>
 						</tbody>
 					</table>
 				</div>
-				<div v-if="(listQuery.data.value?.total_pages ?? 0) > 1" class="buttons">
-					<button type="button" class="button" :disabled="page <= 1" @click="page--">上一页</button>
-					<span class="button is-static">{{ page }} / {{ listQuery.data.value?.total_pages }}</span>
-					<button type="button" class="button" :disabled="page >= (listQuery.data.value?.total_pages ?? 0)" @click="page++">下一页</button>
+				<div v-if="(listQuery.data.value?.total_pages ?? 0) > 1" class="report-pagination">
+					<XButton variant="secondary" :disabled="page <= 1" @click="page--">上一页</XButton>
+					<span>{{ page }} / {{ listQuery.data.value?.total_pages }}</span>
+					<XButton variant="secondary" :disabled="page >= (listQuery.data.value?.total_pages ?? 0)" @click="page++">下一页</XButton>
 				</div>
-			</section>
+			</Card>
+			<p v-if="reportError" class="report-feedback" role="alert">{{ reportError }}</p>
 		</template>
 	</div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue'
+import {computed, ref, watch, onMounted} from 'vue'
 import {useRoute} from 'vue-router'
+import Card from '@/components/misc/Card.vue'
+import FormSelect from '@/components/input/FormSelect.vue'
+import FormInput from '@/components/input/FormInput.vue'
 import {useProjects} from '@/composables/useProjects'
 import {useAuthStore} from '@/stores/auth'
+import {useBaseStore} from '@/stores/base'
+import {useTitle} from '@/composables/useTitle'
 import {
 	downloadWorklogs,
 	downloadWorklogSummary,
 	useWorklogs,
 	useWorklogSummary,
-	useCreateWorklog,
-	useUpdateWorklog,
-	useDeleteWorklog,
-	type Worklog,
 } from '@/client/queries/worklogs'
 
 function dateString(date: Date): string {
 	return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }
-
+const today = dateString(new Date())
+const defaultFrom = dateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 const route = useRoute()
 const projects = useProjects()
 const auth = useAuthStore()
-const availableProjects = computed(() => projects.projectsArray.filter(p => p.id > 0 && !p.is_archived))
+const baseStore = useBaseStore()
+useTitle('工时统计')
+
 const projectId = ref(Number(route.query.project_id) || 0)
 const taskId = ref(Number(route.query.task_id) || 0)
-const today = dateString(new Date())
-const fromDate = ref(dateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1)))
+const fromDate = ref(defaultFrom)
 const toDate = ref(today)
 const userId = ref(0)
 const page = ref(1)
 const validRange = computed(() => !!fromDate.value && !!toDate.value && fromDate.value <= toDate.value)
+const projectOptions = computed(() => [
+	{value: 0, label: '选择项目'},
+	...projects.projectsArray
+		.filter(p => p.id > 0 && !p.is_archived)
+		.map(p => ({value: p.id, label: p.title})),
+])
 const filter = computed(() => ({
 	project_id: validRange.value ? projectId.value : 0,
+	task_id: taskId.value,
 	user_id: userId.value,
 	from_date: fromDate.value,
 	to_date: toDate.value,
 }))
-const peopleFilter = computed(() => ({...filter.value, user_id: 0}))
+const everyoneFilter = computed(() => ({...filter.value, user_id: 0}))
 const listQuery = useWorklogs(filter, page)
 const summaryQuery = useWorklogSummary(filter)
-const everyoneQuery = useWorklogSummary(peopleFilter)
+const peopleQuery = useWorklogSummary(everyoneFilter)
 const entries = computed(() => listQuery.data.value?.items ?? [])
 const currentUserId = computed(() => auth.info?.id ?? 0)
-const people = computed(() => {
+const peopleOptions = computed(() => {
 	const names = new Map<number, string>()
-	for (const d of everyoneQuery.data.value?.days ?? []) {
-		names.set(d.user_id, d.username || '#' + d.user_id)
-	}
-	return [...names].map(([id, name]) => ({id, name})).sort((a, b) => a.name.localeCompare(b.name))
+	for (const day of peopleQuery.data.value?.days ?? []) names.set(day.user_id, day.username || '#' + day.user_id)
+	return [{value: 0, label: '全部人员 / 仅本人'}, ...[...names].map(([value, label]) => ({value, label}))]
 })
-watch([projectId, fromDate, toDate, userId], () => {page.value = 1})
-watch(projectId, () => {userId.value = 0})
-
-const showForm = ref(!!route.query.task_id)
-const editingId = ref(0)
-const workDate = ref(today)
-const hours = ref(1)
-const comment = ref('')
-const formError = ref('')
-const saving = ref(false)
-const deleting = ref(false)
+const participantCount = computed(() => new Set((summaryQuery.data.value?.days ?? []).map(day => day.user_id)).size)
 const exporting = ref(false)
-const create = useCreateWorklog()
-const update = useUpdateWorklog()
-const del = useDeleteWorklog()
+const reportError = ref('')
+watch([projectId, taskId, fromDate, toDate, userId], () => {page.value = 1; reportError.value = ''})
+watch(projectId, () => {userId.value = 0; taskId.value = 0})
+onMounted(() => {baseStore.setCurrentProject(null)})
 
 function formatMinutes(minutes: number): string {
 	return (minutes / 60).toFixed(2) + ' 小时'
 }
-function toggleForm() {
-	if (showForm.value) resetForm()
-	else showForm.value = true
-}
-function resetForm() {
-	showForm.value = false
-	editingId.value = 0
+function resetFilters() {
+	fromDate.value = defaultFrom
+	toDate.value = today
+	userId.value = 0
 	taskId.value = 0
-	hours.value = 1
-	workDate.value = today
-	comment.value = ''
-	formError.value = ''
-}
-function edit(entry: Worklog) {
-	projectId.value = entry.project_id
-	editingId.value = entry.id
-	workDate.value = entry.work_date.slice(0, 10)
-	taskId.value = entry.task_id
-	hours.value = entry.minutes / 60
-	comment.value = entry.comment
-	formError.value = ''
-	showForm.value = true
-}
-async function save() {
-	formError.value = ''
-	const minutes = Math.round(Number(hours.value) * 60)
-	if (!workDate.value || !Number.isFinite(minutes) || minutes < 1 || minutes > 1440 ||
-		!Number.isInteger(Number(taskId.value)) || taskId.value < 0) {
-		formError.value = '请填写有效的日期、任务 ID 和 0～24 小时的投入时间。'
-		return
-	}
-	const body = {
-		project_id: projectId.value,
-		task_id: taskId.value || 0,
-		work_date: workDate.value + 'T00:00:00Z',
-		minutes,
-		comment: comment.value,
-	}
-	saving.value = true
-	try {
-		if (editingId.value) await update.mutateAsync({id: editingId.value, ...body})
-		else await create.mutateAsync(body)
-		resetForm()
-	} catch {
-		formError.value = '保存失败。请确认任务属于所选项目且你具有访问权限。'
-	} finally {
-		saving.value = false
-	}
-}
-async function remove(entry: Worklog) {
-	if (!confirm('确定删除这条工时记录吗？')) return
-	deleting.value = true
-	try {
-		await del.mutateAsync(entry.id)
-	} catch {
-		formError.value = '删除失败，请重试。'
-	} finally {
-		deleting.value = false
-	}
 }
 async function exportCSV(summary = false) {
+	reportError.value = ''
 	exporting.value = true
 	try {
 		const file = summary ? await downloadWorklogSummary(filter.value) : await downloadWorklogs(filter.value)
@@ -283,7 +208,7 @@ async function exportCSV(summary = false) {
 		link.remove()
 		URL.revokeObjectURL(url)
 	} catch {
-		formError.value = '导出失败，请确认所选日期和项目权限。'
+		reportError.value = '工时导出失败，请检查项目权限和日期范围。'
 	} finally {
 		exporting.value = false
 	}
@@ -291,19 +216,36 @@ async function exportCSV(summary = false) {
 </script>
 
 <style scoped lang="scss">
-.daily-worklogs {
-	max-inline-size: 1200px;
-	margin-inline: auto;
-	padding: 1rem;
-}
-.worklog-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-	gap: 1rem;
-	margin-block-end: 1rem;
-}
-.worklog-description {
-	max-inline-size: 22rem;
-	overflow-wrap: anywhere;
+.daily-report {max-inline-size: 1200px; margin-inline: auto; padding: clamp(.8rem, 3vw, 1.75rem);}
+.report-header {display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-block-end: 1.5rem;}
+.report-header .title {margin: 0 0 .5rem; color: var(--text-strong);}
+.report-muted {color: var(--text-light); font-size: .9rem; line-height: 1.5;}
+.report-filters {display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 1rem;}
+.report-filters .field {min-inline-size: 0;}
+.report-filter-footer {display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-block-start: .6rem;}
+.report-metrics {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.25rem;}
+.report-metrics :deep(.card) {block-size: 100%;}
+.metric-label {font-size: .9rem; color: var(--text-light); margin-block-end: .65rem;}
+.metric-value {display: block; color: var(--text-strong); font-size: clamp(1.3rem, 2.5vw, 2rem); line-height: 1.3;}
+.metric-value small {font-size: .8rem; color: var(--text-light); font-weight: 400;}
+.report-table-scroll {max-inline-size: 100%; overflow-x: auto;}
+.report-table {inline-size: 100%; border-collapse: collapse; min-inline-size: 520px; font-size: .9rem;}
+.report-table thead {background: var(--grey-50); color: var(--text-light);}
+.report-table th {font-weight: 600; text-align: start; padding: .75rem .8rem; white-space: nowrap;}
+.report-table td {border-block-start: 1px solid var(--card-border-color); padding: .85rem .8rem; color: var(--text); vertical-align: top;}
+.report-table tbody tr:hover {background-color: var(--grey-50);}
+.report-table .report-number {text-align: end; white-space: nowrap;}
+.report-table .report-comment {min-inline-size: 180px; overflow-wrap: anywhere;}
+.report-task-link {white-space: nowrap;}
+.report-actions {display: flex; justify-content: flex-end; padding-block-start: 1rem;}
+.report-pagination {display: flex; align-items: center; justify-content: center; gap: 1rem; margin-block-start: 1rem;}
+.report-loading {padding: 1.25rem 0; color: var(--text-light);}
+.report-feedback {padding: .8rem; margin-block: .75rem; color: var(--danger); border-radius: $radius;}
+.report-empty {padding: 3rem 1rem; text-align: center; color: var(--text-light);}
+.report-empty h2 {font-size: 1.1rem; font-weight: 600; margin-block: .65rem;}
+.report-empty--in-card {padding: 1.5rem;}
+@media (max-width: 640px) {
+	.report-header {align-items: flex-start; flex-direction: column;}
+	.report-metrics {grid-template-columns: 1fr;}
 }
 </style>
