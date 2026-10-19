@@ -2,6 +2,7 @@
 	<div class="daily-worklogs">
 		<h1 class="title">每日工时</h1>
 		<p class="has-text-grey mbs-2">每天填写实际工时，按项目和人员统计，支持 CSV 导出。</p>
+		<p class="has-text-grey mbs-2">提示：本页面仅统计每日手工工时；Vikunja 原版计时器记录在另一个模块中，暂不合并计算。</p>
 
 		<section class="box">
 			<div class="worklog-grid">
