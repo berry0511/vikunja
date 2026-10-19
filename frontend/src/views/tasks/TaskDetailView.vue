@@ -672,7 +672,6 @@ import type {ProjectResponse} from '@/client/queries/projects'
 
 import {PRIORITIES} from '@/constants/priorities'
 import {PERMISSIONS} from '@/constants/permissions'
-import {PRO_FEATURE} from '@/constants/proFeatures'
 import {SHORTCUTS} from '@/constants/shortcuts'
 
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -719,7 +718,6 @@ import {
 import {useProjects} from '@/composables/useProjects'
 import {useAuthStore} from '@/stores/auth'
 import {useBaseStore} from '@/stores/base'
-import {useConfigStore} from '@/stores/config'
 
 import {useTitle} from '@/composables/useTitle'
 import {useTaskDetailShortcuts} from '@/composables/useTaskDetailShortcuts'
@@ -756,10 +754,8 @@ const taskMutating = computed(() => [
 	duplicateTask,
 	markTaskRead,
 ].some(mutation => mutation.isPending.value))
-const configStore = useConfigStore()
 const authStore = useAuthStore()
-const timeTrackingEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING)
-	&& !authStore.isLinkShareAuth)
+const timeTrackingEnabled = computed(() => !authStore.isLinkShareAuth)
 const baseStore = useBaseStore()
 
 const taskQuery = useTask(
