@@ -77,7 +77,7 @@
 				<li v-if="!authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'daily-worklogs'}">
 						<span class="menu-item-icon icon"><Icon :icon="['far', 'clock']" /></span>
-						每日工时
+						工时统计
 					</RouterLink>
 				</li>
 				<li v-if="timeTrackingEnabled">
