@@ -422,7 +422,14 @@ async function uploadFilesFromComment(event: Event) {
 			const url = generateAttachmentUrl(taskId, attachment.id)
 			const link = '<p><a href="' + escapeCommentHTML(url) + '">' +
 				escapeCommentHTML(file.name) + '</a></p>'
-			newCommentText.value += link
+			// The TipTap component switches external model changes to preview mode.
+			// Use its existing exposed method to preserve draft + edit focus.
+			const html = newCommentText.value + link
+			if (newCommentEditor.value) {
+				await newCommentEditor.value.setReplyContent(html)
+			} else {
+				newCommentText.value = html
+			}
 		}
 	} catch {
 		if (props.taskId === taskId) commentUploadError.value = '附件上传失败，请检查权限、容量和网络。'
