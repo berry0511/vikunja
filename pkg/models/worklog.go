@@ -29,7 +29,7 @@ type Worklog struct {
 	ID        int64     `xorm:"bigint autoincr not null unique pk" json:"id" readOnly:"true" doc:"Unique worklog id."`
 	UserID    int64     `xorm:"bigint not null index" json:"user_id" readOnly:"true" doc:"Person who logged the work; assigned by the server."`
 	ProjectID int64     `xorm:"bigint not null index" json:"project_id" doc:"Historical project attribution. Cannot be changed after creation."`
-	TaskID    int64     `xorm:"bigint not null default 0 index" json:"task_id" doc:"Optional task id in the project; zero is project-level work."`
+	TaskID    int64     `xorm:"bigint not null default 0 index" json:"task_id" minimum:"1" doc:"Required task id in this project; every new worklog must be attached to a real task."`
 	WorkDate  time.Time `xorm:"not null index" json:"work_date" doc:"Work day, stored as midnight UTC. Clients should send a UTC midnight timestamp for the selected calendar day."`
 	Minutes   int       `xorm:"int not null" json:"minutes" minimum:"1" maximum:"1440" doc:"Actual minutes spent on the selected day, from 1 to 1440 per record."`
 	Comment   string    `xorm:"text" json:"comment" doc:"Optional note of what was done, up to 2000 Unicode characters."`
@@ -43,7 +43,7 @@ func (*Worklog) TableName() string { return "worklogs" }
 var ErrWorklogInvalid = errors.New("invalid daily worklog")
 
 func ValidateWorklog(w *Worklog) error {
-	if w.ProjectID <= 0 || w.TaskID < 0 || w.Minutes < 1 || w.Minutes > 1440 ||
+	if w.ProjectID <= 0 || w.TaskID <= 0 || w.Minutes < 1 || w.Minutes > 1440 ||
 		w.WorkDate.IsZero() || w.WorkDate.Location() != time.UTC ||
 		w.WorkDate.Hour() != 0 || w.WorkDate.Minute() != 0 ||
 		w.WorkDate.Second() != 0 || w.WorkDate.Nanosecond() != 0 ||
@@ -96,7 +96,7 @@ func (w *Worklog) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
 	}
 	p := &Project{ID: w.ProjectID}
 	ok, _, err := p.CanRead(s, a)
-	if err != nil || !ok || w.TaskID == 0 {
+	if err != nil || !ok {
 		return ok, err
 	}
 	task, err := GetTaskByIDSimple(s, w.TaskID)
@@ -147,10 +147,13 @@ func (w *Worklog) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 // ListProjectWorklogs fetches a project/date-scoped data set. All callers must
 // first resolve WorklogScope, and pass that resolved user id (0=all).
 // Date bounds use [from, to) so reporting never depends on server timezone.
-func ListProjectWorklogs(s *xorm.Session, projectID, userID int64, from, to time.Time) ([]*Worklog, error) {
+func ListProjectWorklogs(s *xorm.Session, projectID, userID, taskID int64, from, to time.Time) ([]*Worklog, error) {
 	query := s.Where("project_id = ? AND work_date >= ? AND work_date < ?", projectID, from, to)
 	if userID > 0 {
 		query = query.And("user_id = ?", userID)
+	}
+	if taskID > 0 {
+		query = query.And("task_id = ?", taskID)
 	}
 	rows := make([]*Worklog, 0)
 	err := query.OrderBy("work_date ASC, id ASC").Find(&rows)
