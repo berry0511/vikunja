@@ -134,3 +134,13 @@ export async function downloadWorklogs(filter: WorklogFilter): Promise<Blob> {
 	})
 	return expectBlob(data, 'daily worklogs CSV')
 }
+
+export async function downloadWorklogSummary(filter: WorklogFilter): Promise<Blob> {
+	const {data} = await client.get<{200: Blob}, unknown, true>({
+		url: '/worklogs/export-summary',
+		query: filter,
+		parseAs: 'blob',
+		throwOnError: true,
+	})
+	return expectBlob(data, 'daily worklogs summary CSV')
+}
