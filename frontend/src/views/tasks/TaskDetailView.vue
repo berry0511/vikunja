@@ -62,7 +62,7 @@
 			</nav>
 
 			<RouterLink
-					v-if="task.project_id > 0"
+					v-if="task.project_id > 0 && !authStore.isLinkShareAuth"
 					:to="{name: 'daily-worklogs', query: {project_id: task.project_id, task_id: task.id}}"
 					class="button is-small is-outlined mbs-2"
 				>
