@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/models"
@@ -285,7 +286,8 @@ func summarizeDailyWorklogs(rows []*models.Worklog) dailyWorklogSummary {
 // csvCell prefixes spreadsheet formula starters so exported user text cannot
 // become an executable spreadsheet formula upon opening the CSV in Excel.
 func dailyWorklogCSVCell(value string) string {
-	if value != "" && strings.ContainsRune("=+-@\t\r", rune(value[0])) {
+	trimmed := strings.TrimLeftFunc(value, unicode.IsSpace)
+	if trimmed != "" && strings.ContainsRune("=+-@", []rune(trimmed)[0]) {
 		return "'" + value
 	}
 	return value
