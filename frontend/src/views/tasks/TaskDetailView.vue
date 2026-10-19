@@ -61,6 +61,14 @@
 				/>
 			</nav>
 
+			<RouterLink
+					v-if="task.project_id > 0"
+					:to="{name: 'daily-worklogs', query: {project_id: task.project_id, task_id: task.id}}"
+					class="button is-small is-outlined mbs-2"
+				>
+					<Icon :icon="['far', 'clock']" />
+					<span>记工时</span>
+				</RouterLink>
 			<ChecklistSummary :task="task" />
 
 			<!-- Content and buttons -->
