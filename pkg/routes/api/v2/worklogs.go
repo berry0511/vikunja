@@ -54,6 +54,7 @@ type dailyWorklogSummaryBody struct {
 type dailyWorklogFilterInput struct {
 	ProjectID int64  `query:"project_id" required:"true" minimum:"1" doc:"Project whose historical daily worklogs to read."`
 	UserID    int64  `query:"user_id" doc:"Filter by person. Zero means everyone for project admins, or self for other members."`
+	TaskID    int64  `query:"task_id" minimum:"0" doc:"Optional task id to filter this project's worklogs; zero includes every task."`
 	FromDate  string `query:"from_date" required:"true" doc:"First included calendar day, YYYY-MM-DD."`
 	ToDate    string `query:"to_date" required:"true" doc:"Last included calendar day, YYYY-MM-DD."`
 }
@@ -69,7 +70,7 @@ func RegisterDailyWorklogRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "worklogs-create",
 		Summary: "Log minutes of work on a calendar date",
-		Description: "Creates a dated manual work record under a project and optionally a task. Authenticated user is always the author; one record can cover up to 24 hours.",
+		Description: "Creates a dated manual work record under a required task in the project. Authenticated user is always the author; one record can cover up to 24 hours.",
 		Method: http.MethodPost, Path: "/worklogs", Tags: tags,
 	}, dailyWorklogsCreate)
 	Register(api, huma.Operation{
@@ -147,13 +148,14 @@ func dailyWorklogDates(from, to string) (time.Time, time.Time, error) {
 func dailyWorklogData(ctx context.Context, in dailyWorklogFilterInput) ([]*models.Worklog, error) {
 	a, err := authFromCtx(ctx)
 	if err != nil { return nil, err }
+	if in.TaskID < 0 { return nil, dailyWorklogError(models.ErrWorklogInvalid) }
 	start, end, err := dailyWorklogDates(in.FromDate, in.ToDate)
 	if err != nil { return nil, dailyWorklogError(err) }
 	s := db.NewSession()
 	defer s.Close()
 	visibleUserID, err := models.WorklogScope(s, a, in.ProjectID, in.UserID)
 	if err != nil { return nil, dailyWorklogError(err) }
-	rows, err := models.ListProjectWorklogs(s, in.ProjectID, visibleUserID, start, end)
+	rows, err := models.ListProjectWorklogs(s, in.ProjectID, visibleUserID, in.TaskID, start, end)
 	if err != nil { return nil, translateDomainError(err) }
 
 	// We deliberately keep author IDs on deleted-user records rather than
@@ -176,12 +178,13 @@ func dailyWorklogData(ctx context.Context, in dailyWorklogFilterInput) ([]*model
 func dailyWorklogsList(ctx context.Context, in *struct {
 	ProjectID int64  `query:"project_id" required:"true" minimum:"1"`
 	UserID    int64  `query:"user_id"`
+	TaskID    int64  `query:"task_id" minimum:"0"`
 	FromDate  string `query:"from_date" required:"true"`
 	ToDate    string `query:"to_date" required:"true"`
 	ListParams
 }) (*dailyWorklogListBody, error) {
 	rows, err := dailyWorklogData(ctx, dailyWorklogFilterInput{
-		ProjectID: in.ProjectID, UserID: in.UserID, FromDate: in.FromDate, ToDate: in.ToDate,
+		ProjectID: in.ProjectID, UserID: in.UserID, TaskID: in.TaskID, FromDate: in.FromDate, ToDate: in.ToDate,
 	})
 	if err != nil { return nil, err }
 	total := len(rows)
