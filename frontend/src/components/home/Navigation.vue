@@ -156,18 +156,15 @@ import Loading from '@/components/misc/Loading.vue'
 
 import {useBaseStore} from '@/stores/base'
 import {useProjects} from '@/composables/useProjects'
-import {useConfigStore} from '@/stores/config'
 import {useAuthStore} from '@/stores/auth'
-import {PRO_FEATURE} from '@/constants/proFeatures'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import {useSidebarResize} from '@/composables/useSidebarResize'
 
 const baseStore = useBaseStore()
 const authStore = useAuthStore()
 const projectList = useProjects()
-const configStore = useConfigStore()
 
-const timeTrackingEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING))
+const timeTrackingEnabled = computed(() => !authStore.isLinkShareAuth)
 
 const {sidebarWidthStyle, isResizing, startResize, isMobile} = useSidebarResize()
 
