@@ -74,6 +74,12 @@
 						{{ $t('team.title') }}
 					</RouterLink>
 				</li>
+				<li>
+					<RouterLink :to="{name: 'daily-worklogs'}">
+						<span class="menu-item-icon icon"><Icon :icon="['far', 'clock']" /></span>
+						每日工时
+					</RouterLink>
+				</li>
 				<li v-if="timeTrackingEnabled">
 					<RouterLink :to="{ name: 'time-tracking'}">
 						<span class="menu-item-icon icon">
