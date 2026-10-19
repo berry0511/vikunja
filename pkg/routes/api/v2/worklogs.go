@@ -330,11 +330,12 @@ func dailyWorklogsExportSummary(ctx context.Context, in *dailyWorklogFilterInput
 		w.Header().Set("Content-Disposition", "attachment; filename=worklogs-daily-summary.csv")
 		_, _ = w.Write([]byte{0xef, 0xbb, 0xbf})
 		writer := csv.NewWriter(w)
-		_ = writer.Write([]string{"date", "username", "user_id", "minutes", "hours"})
+		_ = writer.Write([]string{"date", "username", "user_id", "project_id", "minutes", "hours"})
 		for _, day := range sum.Days {
 			_ = writer.Write([]string{
 				day.WorkDate, dailyWorklogCSVCell(day.Username),
-				strconv.FormatInt(day.UserID, 10), strconv.Itoa(day.Minutes),
+				strconv.FormatInt(day.UserID, 10), strconv.FormatInt(in.ProjectID, 10),
+				strconv.Itoa(day.Minutes),
 				fmt.Sprintf("%.2f", float64(day.Minutes)/60),
 			})
 		}
