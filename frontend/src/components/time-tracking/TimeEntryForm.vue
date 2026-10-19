@@ -30,6 +30,7 @@
 					</template>
 				</Multiselect>
 				<p v-if="taskSelectionError" class="help is-danger" role="alert">{{ taskSelectionError }}</p>
+				<p v-if="!isEditing && selectedTask === null" class="help">请选择对应任务，新工时将直接关联该任务。</p>
 			</div>
 		</div>
 
@@ -181,17 +182,12 @@ const to = ref<Date | null>(null)
 const comment = ref('')
 const isSaving = ref(false)
 
-// Task and project are mutually exclusive (XOR) — selecting one clears the other,
-// so applyTarget never picks a stale target the user has since changed.
+// The project field narrows search results; it is not a direct target
+// when creating new time entries. Historical project-only rows remain editable.
 const taskSelectionError = ref('')
-watch(selectedTask, task => {
-	taskSelectionError.value = ''
-	if (task !== null) {
-		selectedProject.value = null
-	}
-})
+watch(selectedTask, () => { taskSelectionError.value = '' })
 watch(selectedProject, project => {
-	if (project !== null) {
+	if (project !== null && selectedTask.value?.project_id !== project.id) {
 		selectedTask.value = null
 	}
 })
@@ -231,9 +227,9 @@ async function ensureSelectedTaskStillExists(): Promise<boolean> {
 
 
 const canSubmit = computed(() =>
-	// In edit mode the entry already has a valid container; an update that sends
-	// neither keeps it, so don't block submit if the prefill lookup failed.
-	isEditing.value || props.taskId !== undefined || selectedTask.value !== null || selectedProject.value !== null,
+	// New records must be linked to a task. Existing project-only records
+	// remain editable without silently changing their historical target.
+	isEditing.value || props.taskId !== undefined || selectedTask.value !== null,
 )
 
 function smartFill() {
@@ -245,14 +241,15 @@ function smartFill() {
 	to.value = new Date()
 }
 
-// Whichever of task / project is set lands on the payload (XOR — enforced by canSubmit).
+// New hours always belong to a task. Only editing an old project-level
+// entry can preserve the legacy direct-project target.
 function applyTarget(payload: TimeEntryWritable) {
 	if (props.taskId !== undefined) {
 		payload.task_id = props.taskId
 	} else if (selectedTask.value !== null) {
 		payload.task_id = selectedTask.value.id
-	} else if (selectedProject.value !== null) {
-		payload.project_id = selectedProject.value.id
+	} else if (isEditing.value && props.entry?.project_id) {
+		payload.project_id = props.entry.project_id
 	}
 }
 
