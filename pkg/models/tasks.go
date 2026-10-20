@@ -1305,7 +1305,7 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 
 	// Snapshot before mutating ot so the durable journal records the real
 	// stored values, not the incoming API body or a merged partial task.
-	historyBefore := *ot
+	historyBefore := ot
 
 	// Get the stored reminders
 	reminders, err := getRemindersForTasks(s, []int64{t.ID})
