@@ -1277,6 +1277,43 @@ function setRelatedTasksActive() {
 
 <style lang="scss" scoped>
 
+/* Issue properties: lightweight GitHub-style sidebar sections. */
+.task-view .action-buttons {
+	background: transparent;
+}
+.task-view .action-buttons :deep(.detail-title),
+.task-view .action-buttons :deep(.action-button-label) {
+	color: var(--text-light);
+	font-size: .78rem;
+	font-weight: 650;
+}
+.task-view .action-buttons :deep(.button) {
+	min-block-size: 2.15rem;
+	border: 1px solid var(--card-border-color);
+	background: var(--white);
+	color: var(--text);
+	font-size: .83rem;
+	font-weight: 550;
+	justify-content: flex-start;
+	padding-inline: .65rem;
+	transition: background-color .12s ease, border-color .12s ease;
+}
+.task-view .action-buttons :deep(.button:hover),
+.task-view .action-buttons :deep(.button:focus-visible) {
+	border-color: var(--grey-400);
+	background: var(--grey-50);
+}
+.task-view .action-buttons .task-delete-action {
+	border-color: var(--danger) !important;
+	color: var(--danger) !important;
+}
+.task-view .action-buttons .task-delete-action:hover,
+.task-view .action-buttons .task-delete-action:focus-visible {
+	background: var(--danger) !important;
+	color: var(--white) !important;
+}
+
+
 /* GitHub issue-style detail layout. Keep existing task interactions and permissions. */
 .task-view {
 	max-inline-size: 1500px;
