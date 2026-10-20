@@ -1311,8 +1311,8 @@ function setRelatedTasksActive() {
 	border: 1px solid var(--card-border-color);
 	background: var(--white);
 	color: var(--text);
-	font-size: .83rem;
-	font-weight: 550;
+	font-size: .8rem;
+	font-weight: 450;
 	justify-content: flex-start;
 	padding-inline: .65rem;
 	transition: background-color .12s ease, border-color .12s ease;
@@ -1340,7 +1340,7 @@ function setRelatedTasksActive() {
 }
 .task-view :deep(.task-section-title) {
 	font-size: 1rem;
-	font-weight: 650;
+	font-weight: 550;
 	border-bottom: 1px solid var(--card-border-color);
 	padding-block-end: .7rem;
 	margin-block-end: 1rem;
