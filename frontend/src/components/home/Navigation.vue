@@ -80,14 +80,7 @@
 						工时统计
 					</RouterLink>
 				</li>
-				<li v-if="timeTrackingEnabled">
-					<RouterLink :to="{ name: 'time-tracking'}">
-						<span class="menu-item-icon icon">
-							<Icon :icon="['far', 'clock']" />
-						</span>
-						{{ $t('timeTracking.title') }}
-					</RouterLink>
-				</li>
+
 			</menu>
 		</nav>
 
@@ -163,8 +156,6 @@ import {useSidebarResize} from '@/composables/useSidebarResize'
 const baseStore = useBaseStore()
 const authStore = useAuthStore()
 const projectList = useProjects()
-
-const timeTrackingEnabled = computed(() => !authStore.isLinkShareAuth)
 
 const {sidebarWidthStyle, isResizing, startResize, isMobile} = useSidebarResize()
 
