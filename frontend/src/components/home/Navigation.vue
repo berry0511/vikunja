@@ -82,6 +82,12 @@
 					</RouterLink>
 				</li>
 				<li v-if="!authStore.isLinkShareAuth">
+					<RouterLink :to="{name: 'issues.index'}">
+						<span class="menu-item-icon icon"><Icon icon="clipboard-list" /></span>
+						工单与缺陷
+					</RouterLink>
+				</li>
+				<li v-if="!authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'daily-worklogs'}">
 						<span class="menu-item-icon icon"><Icon :icon="['far', 'clock']" /></span>
 						工时统计
