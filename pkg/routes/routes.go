@@ -447,17 +447,16 @@ var v2SessionRenewalPaths = unauthenticatedPathSet(
 
 const v2AdminPathPrefix = "/api/v2/admin"
 
-// gateV2AdminRoutes reuses v1's RequireFeature/RequireInstanceAdmin gate, both
-// of which 404 on failure.
+// Instance-admin routes remain protected by a fresh DB-backed is_admin
+// check. No commercial entitlement is required for this self-hosted fork.
 func gateV2AdminRoutes() echo.MiddlewareFunc {
-	feature := RequireFeature(license.FeatureAdminPanel)
 	admin := RequireInstanceAdmin()
 	invites := pathScoped(func(p string) bool {
 		return p == v2AdminPathPrefix+"/teams" || p == v2AdminPathPrefix+"/invite-links" || strings.HasPrefix(p, v2AdminPathPrefix+"/invite-links/")
 	}, RequireFeature(license.FeatureUserInvites))
 	return pathScoped(
 		func(p string) bool { return strings.HasPrefix(p, v2AdminPathPrefix) },
-		func(next echo.HandlerFunc) echo.HandlerFunc { return feature(admin(invites(next))) },
+		func(next echo.HandlerFunc) echo.HandlerFunc { return admin(invites(next)) },
 	)
 }
 
@@ -972,7 +971,6 @@ func registerAPIRoutes(a *echo.Group, noAuthRateLimit, refreshRateLimit echo.Mid
 	a.POST("/projects/:project/views/:view/buckets/:bucket/tasks", taskBucketProvider.UpdateWeb)
 
 	admin := a.Group("/admin",
-		RequireFeature(license.FeatureAdminPanel),
 		RequireInstanceAdmin(),
 	)
 	adminProjectListHandler := &handler.WebHandler{
