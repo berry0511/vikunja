@@ -131,6 +131,51 @@ func TestTaskAttachment_NewAttachment(t *testing.T) {
 	// Extra test for max size test
 }
 
+// Upload and delete events are recorded in the immutable task history.
+// The delete event must retain metadata after the underlying file is removed.
+func TestTaskAttachment_ImmutableHistory(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	files.InitTestFileFixtures(t)
+	actor := &user.User{ID: 1}
+	content := []byte("audit attachment bytes")
+
+	s := db.NewSession()
+	attachment := &TaskAttachment{TaskID: 1, Source: "task"}
+	require.NoError(t, attachment.NewAttachment(s, bytes.NewReader(content), "audit-archive.zip", uint64(len(content)), actor))
+	require.NoError(t, s.Commit())
+	require.NoError(t, s.Close())
+
+	reader := db.NewSession()
+	rows, total, err := ListHistory(reader, "task", 1, 1, 50)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "upload", rows[0].Action)
+	assert.Equal(t, "attachment", rows[0].Field)
+	assert.Equal(t, actor.ID, rows[0].ActorID)
+	assert.Contains(t, rows[0].NewValue, "audit-archive.zip")
+	assert.Contains(t, rows[0].NewValue, "来源：task")
+	assert.NotEmpty(t, rows[0].Created)
+	require.NoError(t, reader.Close())
+
+	remove := db.NewSession()
+	require.NoError(t, (&TaskAttachment{ID: attachment.ID, TaskID: 1}).Delete(remove, actor))
+	require.NoError(t, remove.Commit())
+	require.NoError(t, remove.Close())
+
+	reader = db.NewSession()
+	defer reader.Close()
+	rows, total, err = ListHistory(reader, "task", 1, 1, 50)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, "delete", rows[0].Action)
+	assert.Equal(t, "attachment", rows[0].Field)
+	assert.Contains(t, rows[0].OldValue, "audit-archive.zip")
+	assert.Empty(t, rows[0].NewValue)
+	assert.Equal(t, "upload", rows[1].Action)
+}
+
 func TestTaskAttachment_ReadAll(t *testing.T) {
 	db.LoadAndAssertFixtures(t)
 	s := db.NewSession()
