@@ -58,7 +58,7 @@ const fieldNames: Record<string, string> = {
 	percent_done: '任务进度', repeat_after: '重复周期', repeat_mode: '重复模式',
 	hex_color: '颜色', bucket_id: '任务分组', cover_image_attachment_id: '封面附件',
 	is_archived: '归档状态', identifier: '项目标识', parent_project_id: '父项目',
-	position: '排序位置', deleted: '删除操作',
+	position: '排序位置', assignee: '负责人', label: '标签', deleted: '删除操作',
 }
 function formatDate(input: string): string {
 	const date = new Date(input)
