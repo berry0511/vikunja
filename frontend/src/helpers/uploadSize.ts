@@ -16,9 +16,14 @@ export function uploadLimitBytes(raw: string): number | null {
 	return Number.isSafeInteger(Math.floor(bytes)) ? Math.floor(bytes) : null
 }
 
+const VIDEO_EXTENSION = /\.(mp4|m4v|mov|avi|mkv|webm|wmv|flv|mpeg|mpg|3gp|ts)$/i
+const GIB = 1024 ** 3
+
 export function uploadSizeError(file: Pick<File, 'size' | 'name'>, maxSize: string): string | null {
-	const bytes = uploadLimitBytes(maxSize)
-	if (bytes === null || file.size <= bytes) return null
-	const fileMB = (file.size / 1024 ** 2).toFixed(1)
-	return `文件「${file.name}」大小约 ${fileMB} MB，超过服务器允许的单文件上限 ${maxSize}。请联系管理员调高 files.maxsize 并重新启动服务。`
+	const isVideo = VIDEO_EXTENSION.test(file.name)
+	const desired = isVideo ? 5 * GIB : GIB
+	const server = uploadLimitBytes(maxSize)
+	const limit = server === null ? desired : Math.min(server, desired)
+	if (file.size <= limit) return null
+	return `文件「${file.name}」超过允许上传大小（${isVideo ? '视频 5 GiB' : '普通文件 1 GiB'}）。当前服务配置上限为 ${maxSize}，请同时检查 files.maxsize 和反向代理限制。`
 }
