@@ -5,7 +5,7 @@ describe('issue workflow mapped onto existing tasks', () => {
 	it('classifies by reserved labels without confusing normal tasks', () => {
 		expect(issueKind({labels: []})).toBeNull()
 		expect(issueKind({labels: [{title: ISSUE_LABELS.bug}]})).toBe('bug')
-		expect(issueKind({labels: [{title: ISSUE_LABELS.work}]})).toBe('work')
+		expect(issueKind({labels: [{title: '工单·任务'}]})).toBeNull()
 	})
 	it('maps workflow stages into persisted task completion and progress', () => {
 		for (const status of ['open', 'working', 'review', 'resolved'] as const) {
