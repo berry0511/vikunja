@@ -2,28 +2,22 @@
 	<section class="issue-center">
 		<header class="issue-header">
 			<div>
-				<p class="issue-overline">WORKFLOW / ISSUE TRACKING</p>
-				<h1>工单与缺陷</h1>
-				<p>统一登记、分派和跟踪 Bug 与工作工单；处理记录、附件和实际工时保存在原有任务中。</p>
+				<p class="issue-overline">QUALITY / BUG TRACKING</p>
+				<h1>Bug 管理</h1>
+				<p>统一登记、分派、复现与验证项目缺陷；评论、附件、工时和操作历史与对应项目关联。</p>
 			</div>
 			<XButton :disabled="!writableProjects.length" icon="plus" @click="showCreate = !showCreate">
-				{{ showCreate ? '收起登记表' : '新建工单' }}
+				{{ showCreate ? '收起登记表' : '报告 Bug' }}
 			</XButton>
 		</header>
 
-		<Card v-if="showCreate" title="登记新工单">
+		<Card v-if="showCreate" title="报告 Bug">
 			<form class="issue-form" @submit.prevent="createIssue">
 				<div class="issue-fields">
 					<label>归属项目
 						<select v-model.number="createProjectId" required>
 							<option :value="0" disabled>选择项目</option>
 							<option v-for="p in writableProjects" :key="p.id" :value="p.id">{{ getProjectTitle(p) }}</option>
-						</select>
-					</label>
-					<label>工单类型
-						<select v-model="kind">
-							<option value="bug">Bug / 缺陷</option>
-							<option value="work">工作工单</option>
 						</select>
 					</label>
 					<label>优先级
@@ -42,7 +36,7 @@
 			<label>详细说明
 					<textarea v-model="details" rows="3" placeholder="背景、影响范围及补充说明" />
 				</label>
-			<template v-if="kind === 'bug'">
+			<template>
 				<label>环境 / 版本
 					<input v-model.trim="environment" type="text" placeholder="例如：Android 15 / App 1.2.3 / H743 V2" />
 				</label>
@@ -54,28 +48,21 @@
 					<label>实际结果<textarea v-model="actual" rows="2" /></label>
 				</div>
 			</template>
-			<p class="issue-help">保存后打开工单详情，继续添加负责人、附件、评论和工时。</p>
+			<p class="issue-help">提交后可在 Bug 详情继续添加负责人、附件、评论和工时。</p>
 			<p v-if="createError" class="issue-error" role="alert">{{ createError }}</p>
 			<div class="issue-actions">
-				<XButton type="submit" :disabled="creating || !createProjectId || !title" :loading="creating">提交工单</XButton>
+				<XButton type="submit" :disabled="creating || !createProjectId || !title" :loading="creating">提交 Bug</XButton>
 				<XButton type="button" variant="secondary" @click="showCreate = false">取消</XButton>
 			</div>
 			</form>
 		</Card>
 
-		<Card title="工单列表">
+		<Card title="Bug 列表">
 			<div class="issue-filter-bar">
 				<label>项目
 					<select v-model.number="projectId">
 						<option :value="0">全部可访问项目</option>
 						<option v-for="p in readableProjects" :key="p.id" :value="p.id">{{ getProjectTitle(p) }}</option>
-					</select>
-				</label>
-				<label>类型
-					<select v-model="kindFilter">
-						<option value="all">全部类型</option>
-						<option value="bug">Bug / 缺陷</option>
-						<option value="work">工作工单</option>
 					</select>
 				</label>
 				<label>状态
@@ -85,21 +72,21 @@
 					</select>
 				</label>
 				<label>搜索
-					<input v-model.trim="searchText" type="search" placeholder="标题或工单编号" />
+					<input v-model.trim="searchText" type="search" placeholder="标题或Bug编号" />
 				</label>
 			</div>
 			<div class="issue-metrics">
-				<div><strong>{{ allIssues.length }}</strong><span>总工单</span></div>
-				<div><strong>{{ allIssues.filter(t => issueKind(t) === 'bug').length }}</strong><span>Bug</span></div>
+				<div><strong>{{ allIssues.length }}</strong><span>Bug 总数</span></div>
+				<div><strong>{{ allIssues.filter(t => issueStatus(t) === 'working').length }}</strong><span>处理中</span></div>
 				<div><strong>{{ allIssues.filter(t => !t.done).length }}</strong><span>未完成</span></div>
 				<div><strong>{{ allIssues.filter(t => t.done).length }}</strong><span>已完成</span></div>
 			</div>
-			<p v-if="issuesQuery.isPending.value" class="issue-help">正在读取工单…</p>
-			<p v-else-if="issuesQuery.isError.value" class="issue-error">工单查询失败：{{ getErrorText(issuesQuery.error.value) }}</p>
-			<p v-else-if="!shownIssues.length" class="issue-empty">当前条件没有工单。可以点击右上角「新建工单」。</p>
+			<p v-if="issuesQuery.isPending.value" class="issue-help">正在读取Bug…</p>
+			<p v-else-if="issuesQuery.isError.value" class="issue-error">Bug 查询失败：{{ getErrorText(issuesQuery.error.value) }}</p>
+			<p v-else-if="!shownIssues.length" class="issue-empty">当前条件没有 Bug，可以点击「报告 Bug」登记。</p>
 			<div v-else class="issue-table-wrap">
 				<table class="issue-table">
-					<thead><tr><th>编号 / 标题</th><th>项目</th><th>类型</th><th>优先级</th><th>负责人</th><th>状态</th></tr></thead>
+					<thead><tr><th>Bug 编号 / 标题</th><th>项目</th><th>优先级</th><th>负责人</th><th>状态</th></tr></thead>
 					<tbody>
 						<tr v-for="item in shownIssues" :key="item.id">
 							<td>
@@ -107,11 +94,11 @@
 								<span class="issue-id">#{{ item.id }}</span>
 							</td>
 							<td>{{ projectName(item.project_id) }}</td>
-							<td><span class="issue-type" :class="{'is-bug': issueKind(item) === 'bug'}">{{ issueKind(item) === 'bug' ? 'Bug' : '工单' }}</span></td>
+							
 							<td>{{ priorityName(item.priority) }}</td>
 							<td>{{ item.assignees.map(a => a.name || a.username).join('、') || '待分派' }}</td>
 							<td>
-								<select :value="issueStatus(item)" :aria-label="'修改工单 #' + item.id + ' 状态'" :disabled="changingId === item.id" @change="setIssueStatus(item, $event)">
+								<select :value="issueStatus(item)" :aria-label="'修改 Bug #' + item.id + ' 状态'" :disabled="changingId === item.id" @change="setIssueStatus(item, $event)">
 									<option v-for="(label, value) in ISSUE_STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
 								</select>
 							</td>
@@ -120,7 +107,7 @@
 				</table>
 			</div>
 			<p v-if="statusError" class="issue-error" role="alert">{{ statusError }}</p>
-			<p class="issue-help">此页面使用项目已有的权限。修改状态需要任务编辑权限；工单本身仍能在对应项目的任务视图中找到。</p>
+			<p class="issue-help">Bug 使用项目已有权限。修改状态需要任务编辑权限，详情继续复用任务评论、附件与历史。</p>
 		</Card>
 	</section>
 </template>
@@ -128,7 +115,7 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue'
 import {useQuery} from '@tanstack/vue-query'
-import {useRouter} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import Card from '@/components/misc/Card.vue'
 import {useProjects} from '@/composables/useProjects'
 import {getProjectTitle} from '@/helpers/getProjectTitle'
@@ -144,20 +131,23 @@ import {
 	issueStatus,
 	statusTaskPatch,
 	issueDescription,
-	type IssueKind,
 	type IssueStatus,
 } from '@/helpers/issues'
 
 const router = useRouter()
+const route = useRoute()
+const selectedProjectId = computed(() => {
+	const id = Number(route.query.project_id)
+	return Number.isSafeInteger(id) && id > 0 ? id : 0
+})
 const projects = useProjects()
 const readableProjects = computed(() => projects.projectsArray.filter(p => p.id > 0 && !p.is_archived))
 const writableProjects = computed(() => readableProjects.value.filter(p => (p.max_permission ?? 0) > 0))
-const projectId = ref(0)
-const createProjectId = ref(0)
+const projectId = ref(selectedProjectId.value)
+const createProjectId = ref(selectedProjectId.value)
 watch(writableProjects, value => {
 	if (!createProjectId.value && value.length) createProjectId.value = value[0].id
 }, {immediate: true})
-const kind = ref<IssueKind>('bug')
 const priority = ref(2)
 const title = ref('')
 const details = ref('')
@@ -168,8 +158,12 @@ const actual = ref('')
 const creating = ref(false)
 const createError = ref('')
 const statusError = ref('')
-const showCreate = ref(false)
-const kindFilter = ref('all')
+const showCreate = ref(route.query.create === '1')
+watch(selectedProjectId, id => {
+	projectId.value = id
+	if (id > 0) createProjectId.value = id
+	showCreate.value = route.query.create === '1'
+})
 const statusFilter = ref('all')
 const searchText = ref('')
 const changingId = ref(0)
@@ -178,9 +172,8 @@ const scope = computed(() => ({
 	params: {sort_by: ['created', 'id'], order_by: ['desc', 'desc'], filter: ''},
 }))
 const issuesQuery = useQuery(() => allTasksQuery(scope.value))
-const allIssues = computed(() => (issuesQuery.data.value ?? []).filter(item => issueKind(item) !== null))
+const allIssues = computed(() => (issuesQuery.data.value ?? []).filter(item => issueKind(item) === 'bug'))
 const shownIssues = computed(() => allIssues.value.filter(item => {
-	if (kindFilter.value !== 'all' && issueKind(item) !== kindFilter.value) return false
 	if (statusFilter.value !== 'all' && issueStatus(item) !== statusFilter.value) return false
 	if (!searchText.value) return true
 	const q = searchText.value.toLowerCase()
@@ -199,28 +192,28 @@ async function createIssue() {
 	createError.value = ''
 	let createdId = 0
 	try {
-		const labelTitle = ISSUE_LABELS[kind.value]
+		const labelTitle = ISSUE_LABELS.bug
 		const labels = await ensureLabels()
 		let label = labels.find(item => item.title === labelTitle)
 		if (!label) {
 			label = (await labelsCreate({body: {
 				title: labelTitle,
-				description: '工单中心内部使用的类型标签',
-				hex_color: kind.value === 'bug' ? 'dc4c53' : '4775cc',
+				description: 'Bug中心内部使用的类型标签',
+				hex_color: 'dc4c53',
 			}})).data
 			await queryClient.invalidateQueries({queryKey: labelKeys.all})
 		}
-		if (!label?.id) throw new Error('无法创建工单类型标签')
+		if (!label?.id) throw new Error('无法创建Bug类型标签')
 		const created = (await tasksCreate({path: {project: createProjectId.value}, body: {
 			title: title.value,
 			description: issueDescription({
-				kind: kind.value, details: details.value, environment: environment.value,
+				kind: 'bug', details: details.value, environment: environment.value,
 				steps: steps.value, expected: expected.value, actual: actual.value,
 			}),
 			priority: priority.value,
 			done: false,
 		}})).data
-		if (!created.id) throw new Error('工单已保存，但没有返回任务编号')
+		if (!created.id) throw new Error('Bug已保存，但没有返回任务编号')
 		createdId = created.id
 		await taskLabelsCreate({path: {task: createdId}, body: {label_id: label.id}})
 		await queryClient.invalidateQueries({queryKey: taskKeys.all})
@@ -228,7 +221,7 @@ async function createIssue() {
 		await router.push({name: 'task.detail', params: {id: createdId}})
 	} catch (reason) {
 		createError.value = createdId
-			? `任务 #${createdId} 已创建，但工单类型标签关联失败。请打开该任务检查标签：${getErrorText(reason)}`
+			? `任务 #${createdId} 已创建，但Bug类型标签关联失败。请打开该任务检查标签：${getErrorText(reason)}`
 			: getErrorText(reason)
 	} finally {
 		creating.value = false
@@ -253,7 +246,7 @@ async function setIssueStatus(task: TaskResponse, event: Event) {
 		await queryClient.invalidateQueries({queryKey: taskKeys.all})
 	} catch (reason) {
 		target.value = old
-		statusError.value = `更新工单状态失败：${getErrorText(reason)}`
+		statusError.value = `更新Bug状态失败：${getErrorText(reason)}`
 	} finally { changingId.value = 0 }
 }
 </script>
