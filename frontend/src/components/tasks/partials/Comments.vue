@@ -331,7 +331,7 @@ const actions = computed(() => {
 		return {}
 	}
 	return Object.fromEntries(comments.value.map((comment) => {
-		const list: {action: () => void, title: string}[] = [{
+		const list: {action: () => void, title: string, danger?: boolean}[] = [{
 			action: () => startReplyTo(comment),
 			title: t('task.comment.reply'),
 		}]
@@ -339,6 +339,7 @@ const actions = computed(() => {
 			list.push({
 				action: () => toggleDelete(comment.id),
 				title: t('misc.delete'),
+				danger: true,
 			})
 		}
 		return [comment.id, list]
