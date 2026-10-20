@@ -201,6 +201,14 @@
 							>
 							<XButton
 								type="button"
+								:loading="loading && !isCommentEdit"
+								:disabled="!newCommentText || creating || commentUploadPending"
+								@click="addComment()"
+							>
+								{{ $t('task.comment.comment') }}
+							</XButton>
+							<XButton
+								type="button"
 								variant="secondary"
 								icon="paperclip"
 								:loading="commentUploadPending"
@@ -208,14 +216,6 @@
 								@click="commentFilesInput?.click()"
 							>
 								{{ $t('task.attachment.upload') }}
-							</XButton>
-							<XButton
-								type="button"
-								:loading="loading && !isCommentEdit"
-								:disabled="!newCommentText || creating || commentUploadPending"
-								@click="addComment()"
-							>
-								{{ $t('task.comment.comment') }}
 							</XButton>
 						</div>
 						<p v-if="commentUploadError" class="help is-danger" role="alert">{{ commentUploadError }}</p>
