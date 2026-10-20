@@ -145,8 +145,9 @@ func dailyWorklogDates(from, to string) (time.Time, time.Time, error) {
 	return start, end.AddDate(0, 0, 1), nil
 }
 
-// Permissions are checked before issuing any query. Because project_id is
-// mandatory, a user cannot enumerate worklogs across inaccessible projects.
+// Project ID discovery for all-project reports never returns raw entries or
+// project IDs to the caller. Every selected project's rows are read only after
+// WorklogScope authorizes the request and restricts user visibility.
 func dailyWorklogData(ctx context.Context, in dailyWorklogFilterInput) ([]*models.Worklog, error) {
 	a, err := authFromCtx(ctx)
 	if err != nil { return nil, err }
@@ -169,20 +170,30 @@ func dailyWorklogData(ctx context.Context, in dailyWorklogFilterInput) ([]*model
 		if err != nil { return nil, translateDomainError(err) }
 		projects = append(projects, p)
 	} else {
-		// Project.ReadAll uses the normal project access rules (including
-		// team memberships). Page explicitly, without assuming an unlimited
-		// per_page value is accepted by each database backend.
-		for page := 1; ; page++ {
-			p := &models.Project{IsArchived: true}
-			result, _, total, err := p.ReadAll(s, a, "", page, 100)
-			if err != nil { return nil, translateDomainError(err) }
-			found, ok := result.([]*models.Project)
-			if !ok { return nil, fmt.Errorf("unexpected project list type %T", result) }
-			for _, project := range found {
-				// Ignore the favorites and saved-filter pseudo projects.
-				if project.ID > 0 { projects = append(projects, project) }
+		// Find only projects which actually have time entries in the requested
+		// date range. Project.ReadAll is a presentation/pagination API, not an
+		// exhaustive worklog scope: pseudo projects and pagination would make
+		// bulk reports depend on unrelated navigation state.
+		//
+		// This first query reveals no data to the caller. Each candidate is
+		// independently authorized with WorklogScope below before any record
+		// is read, summarized, or exported.
+		candidates := make([]*models.Worklog, 0)
+		err := s.Distinct("project_id").
+			Where("work_date >= ? AND work_date < ?", start, end).
+			Find(&candidates)
+		if err != nil { return nil, translateDomainError(err) }
+		for _, candidate := range candidates {
+			if candidate.ProjectID <= 0 { continue }
+			p, err := models.GetProjectSimpleByID(s, candidate.ProjectID)
+			if err != nil {
+				// A deleted project may leave historical worklogs. It is no
+				// longer an accessible project, so omit it in all-project views.
+				var missing models.ErrProjectDoesNotExist
+				if errors.As(err, &missing) { continue }
+				return nil, translateDomainError(err)
 			}
-			if int64(page*100) >= total { break }
+			projects = append(projects, p)
 		}
 	}
 
