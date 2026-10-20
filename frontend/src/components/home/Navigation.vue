@@ -56,7 +56,7 @@
 				<li>
 					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}" :class="{'nav-muted-active': $route.name !== 'projects.index' || $route.query.status !== 'archived'}">
 						<span class="menu-item-icon icon"><Icon icon="archive" /></span>
-						已归档项目
+						{{ $t('project.directory.archiveNav') }}
 					</RouterLink>
 				</li>
 				<li>
