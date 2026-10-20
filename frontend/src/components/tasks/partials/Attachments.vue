@@ -16,12 +16,14 @@
 			@change="uploadNewAttachment()"
 		>
 
+		<div v-if="uploadBatch !== null" class="attachment-upload-progress" role="status">
+			<span>正在上传 {{ uploadBatch.completed + 1 }} / {{ uploadBatch.total }}：{{ uploadProgress === undefined ? "准备中…" : Math.round(uploadProgress) + "%" }}</span>
 		<ProgressBar
-			v-if="uploadBatch !== null"
 			:value="uploadProgress"
 			:aria-label="$t('task.attachment.upload')"
 			is-primary
 		/>
+		</div>
 
 		<div
 			v-if="attachments.length > 0"
@@ -303,11 +305,11 @@ const deleteMutation = useDeleteAttachmentMutation()
 const uploadBatch = ref<{
 	completed: number,
 	total: number,
+	currentPercent?: number,
 } | null>(null)
 // the fetch client reports no byte progress, so the first file can only be shown as indeterminate
-const uploadProgress = computed(() => uploadBatch.value === null || uploadBatch.value.completed === 0
-	? undefined
-	: (uploadBatch.value.completed / uploadBatch.value.total) * 100)
+const uploadProgress = computed(() => uploadBatch.value === null ? undefined
+	: ((uploadBatch.value.completed + (uploadBatch.value.currentPercent ?? 0) / 100) / uploadBatch.value.total) * 100)
 const loading = computed(() => uploadBatch.value !== null
 	|| uploadMutation.isPending.value
 	|| deleteMutation.isPending.value
@@ -473,7 +475,9 @@ async function uploadFilesToTask(files: File[] | FileList) {
 			continue
 		}
 		try {
-			const result = await uploadMutation.mutateAsync({taskId, files: [file]})
+			const result = await uploadMutation.mutateAsync({taskId, files: [file], onProgress: (loaded, total) => {
+				if (uploadBatch.value !== null && total > 0) uploadBatch.value = {...uploadBatch.value, currentPercent: Math.min(100, loaded / total * 100)}
+			}})
 			for (const err of result.errors ?? []) error(err)
 		} catch {
 			// mutation already toasts; keep uploading the remaining files
@@ -630,6 +634,10 @@ defineExpose({openFilePicker})
 </script>
 
 <style lang="scss" scoped>
+.attachment-upload-progress {display:flex; align-items:center; gap:.6rem; margin-block:.4rem .8rem; font-size:.8rem;}
+.attachment-upload-progress > span {white-space:nowrap;}
+.attachment-upload-progress :deep(progress) {inline-size:100%;}
+
 .attachments {
 	input[type="file"] {
 		display: none;
