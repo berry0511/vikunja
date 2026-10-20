@@ -132,9 +132,8 @@ import Card from '@/components/misc/Card.vue'
 import {useProjects} from '@/composables/useProjects'
 import {getProjectTitle} from '@/helpers/getProjectTitle'
 import {allTasksQuery, taskKeys, type TaskResponse} from '@/client/queries/tasks'
-import {createTaskMutationOptions} from '@/client/queries/taskMutations'
-import {ensureLabels, createLabelMutationOptions} from '@/client/queries/labels'
-import {taskLabelsCreate, patchTasksRead} from '@/client/generated'
+import {ensureLabels, labelKeys} from '@/client/queries/labels'
+import {labelsCreate, tasksCreate, taskLabelsCreate, patchTasksRead} from '@/client/generated'
 import {queryClient} from '@/client/queryClient'
 import {getErrorText} from '@/message'
 import {
@@ -202,15 +201,15 @@ async function createIssue() {
 		const labels = await ensureLabels()
 		let label = labels.find(item => item.title === labelTitle)
 		if (!label) {
-			label = await createLabelMutationOptions().mutationFn!({
+			label = (await labelsCreate({body: {
 				title: labelTitle,
 				description: '工单中心内部使用的类型标签',
-				hex_color: kind.value === 'bug' ? '#dc4c53' : '#4775cc',
-			} as never, {} as never)
+				hex_color: kind.value === 'bug' ? 'dc4c53' : '4775cc',
+			}})).data
+			await queryClient.invalidateQueries({queryKey: labelKeys.all})
 		}
 		if (!label?.id) throw new Error('无法创建工单类型标签')
-		const created = await createTaskMutationOptions().mutationFn!({
-			project_id: createProjectId.value,
+		const created = (await tasksCreate({path: {project: createProjectId.value}, body: {
 			title: title.value,
 			description: issueDescription({
 				kind: kind.value, details: details.value, environment: environment.value,
@@ -218,7 +217,7 @@ async function createIssue() {
 			}),
 			priority: priority.value,
 			done: false,
-		} as never, {} as never)
+		}})).data
 		if (!created.id) throw new Error('工单已保存，但没有返回任务编号')
 		createdId = created.id
 		await taskLabelsCreate({path: {task: createdId}, body: {label_id: label.id}})
