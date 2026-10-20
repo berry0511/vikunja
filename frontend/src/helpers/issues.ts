@@ -12,7 +12,7 @@ type TicketTask = Pick<Task, 'done' | 'percent_done' | 'labels'>
 
 export function issueKind(task: TicketTask): IssueKind | null {
 	const titles = (task.labels ?? []).map(label => label.title)
-	if (titles.some(title => [ISSUE_LABELS.bug, '工单·缺陷', '工单-缺陷'].includes(title))) return 'bug'
+	if (titles.some(title => title !== undefined && [ISSUE_LABELS.bug, '工单·缺陷', '工单-缺陷'].includes(title))) return 'bug'
 	return null
 }
 
