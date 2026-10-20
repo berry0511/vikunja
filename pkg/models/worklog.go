@@ -36,6 +36,7 @@ type Worklog struct {
 	Created   time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"Creation timestamp."`
 	Updated   time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"Last modification timestamp."`
 	Username  string    `xorm:"-" json:"username" readOnly:"true" doc:"Display username, resolved from the user table."`
+	ProjectTitle string `xorm:"-" json:"project_title" readOnly:"true" doc:"Project title, resolved at report time."`
 }
 
 func (*Worklog) TableName() string { return "worklogs" }
