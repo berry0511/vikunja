@@ -21,7 +21,6 @@ import (
 	"image"
 	"image/png"
 	"io"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -62,37 +61,11 @@ func (*TaskAttachment) TableName() string {
 	return "task_attachments"
 }
 
-const (
-	maxOrdinaryAttachmentBytes uint64 = 1 << 30
-	maxVideoAttachmentBytes    uint64 = 5 << 30
-)
-
-// AttachmentVideoByName classifies commonly uploaded video formats for the
-// per-attachment size limit. Storage MIME detection still runs independently.
-func AttachmentVideoByName(name string) bool {
-	switch strings.ToLower(filepath.Ext(name)) {
-	case ".mp4", ".m4v", ".mov", ".avi", ".mkv", ".webm", ".wmv", ".flv", ".mpeg", ".mpg", ".3gp", ".ts":
-		return true
-	}
-	return false
-}
-
-func attachmentSizeAllowed(name string, size uint64) bool {
-	if AttachmentVideoByName(name) {
-		return size <= maxVideoAttachmentBytes
-	}
-	return size <= maxOrdinaryAttachmentBytes
-}
-
 // NewAttachment creates a new task attachment
 func (ta *TaskAttachment) NewAttachment(s *xorm.Session, f io.ReadSeeker, realname string, realsize uint64, a web.Auth) error {
 
 	if ta.Source != "comment" {
 		ta.Source = "task"
-	}
-
-	if !attachmentSizeAllowed(realname, realsize) {
-		return ErrTaskAttachmentIsTooLarge{Size: realsize}
 	}
 
 	// Store the file using the existing session to avoid nested transactions
