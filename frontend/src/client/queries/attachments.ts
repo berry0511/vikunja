@@ -12,6 +12,7 @@ import type {
 import {i18n} from '@/i18n'
 import {useConfigStore} from '@/stores/config'
 import {uploadSizeError} from '@/helpers/uploadSize'
+import {uploadProgressFetch} from '@/client/uploadProgressFetch'
 import {expectBlob} from './blobResponse'
 import {contextMutationOptions} from './contextMutation'
 import {
@@ -44,10 +45,11 @@ export async function attachmentBlob(attachment: AttachmentIdentity, size?: Prev
 
 export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = () => true) {
 	return contextMutationOptions({
-		mutationFn: async ({taskId, files, source = 'task'}: {
+		mutationFn: async ({taskId, files, source = 'task', onProgress}: {
 			taskId: number,
 			files: File[],
 			source?: 'task' | 'comment',
+			onProgress?: (loaded: number, total: number) => void,
 		}) => {
 			const limit = getActivePinia() ? useConfigStore().max_file_size : '20MB'
 			for (const file of files) {
@@ -59,6 +61,7 @@ export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = (
 					path: {task: taskId},
 					query: {source},
 					body: {files},
+					...(onProgress ? {fetch: uploadProgressFetch(onProgress)} : {}),
 				})).data
 			} catch (reason) {
 				// Proxies can close connections instead of returning a readable 413.
