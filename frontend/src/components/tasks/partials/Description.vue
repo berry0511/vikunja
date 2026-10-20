@@ -261,21 +261,5 @@ function uploadCallback(files: File[] | FileList): Promise<string[]> {
 	}
 }
 
-.tiptap__task-description {
-	// Always show the editor boundary even before the user focuses it.
-	:deep(.tiptap__wrapper) {
-		border: 1px solid var(--grey-300);
-		border-radius: 10px;
-		background: var(--white);
-		transition: border-color .15s ease, box-shadow .15s ease;
-		&:hover { border-color: var(--grey-500); }
-		&:focus-within {
-			border-color: var(--primary);
-			box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
-		}
-	}
-	// The exact amount of pixels we need to make the description icon align with the buttons and the form inside the editor.
-	// The icon is not exactly the same length on all sides so we need to hack our way around it.
-	margin-inline-start: 4px;
-}
+
 </style>
