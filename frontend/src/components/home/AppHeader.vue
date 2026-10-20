@@ -10,7 +10,7 @@
 			:aria-label="$t('navigation.home')"
 		>
 			<Logo
-				width="164"
+				width="220"
 				height="48"
 			/>
 		</RouterLink>
