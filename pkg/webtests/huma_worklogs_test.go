@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
 
 	"github.com/stretchr/testify/assert"
@@ -40,6 +41,18 @@ func TestHumaWorklogsAllProjects(t *testing.T) {
 	}
 	create(humaTokenFor(t, &testuser1), `{"project_id":1,"task_id":1,"work_date":"2026-10-19T00:00:00Z","minutes":60,"comment":"alpha"}`)
 	create(humaTokenFor(t, ownerOfProject3), `{"project_id":3,"task_id":32,"work_date":"2026-10-19T00:00:00Z","minutes":45,"comment":"private-beta"}`)
+
+	// Verify the database actually contains both committed records before
+	// attributing an empty query result to project filtering.
+	check := db.NewSession()
+	persisted := make([]*models.Worklog, 0)
+	require.NoError(t, check.Find(&persisted))
+	for _, w := range persisted {
+		t.Logf("stored worklog: id=%d project=%d author=%d day=%s minutes=%d",
+			w.ID, w.ProjectID, w.UserID, w.WorkDate.Format("2006-01-02T15:04:05Z07:00"), w.Minutes)
+	}
+	require.GreaterOrEqual(t, len(persisted), 2, "create responded 201 but records were not persisted")
+	require.NoError(t, check.Close())
 
 	// Distinguish persistence errors from all-project enumeration errors.
 	// Both writes returned 201; an exact-project query must show the saved row
