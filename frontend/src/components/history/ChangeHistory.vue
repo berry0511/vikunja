@@ -24,10 +24,10 @@
 				<li v-for="entry in history.data.value.items" :key="entry.id" class="history-entry">
 					<div class="history-meta">
 						<span class="history-actor">{{ entry.username || '#' + entry.actor_id }}</span>
-						<span class="history-field">{{ entry.action === 'delete' ? '删除' : (fieldNames[entry.field] || entry.field) }}</span>
+						<span class="history-field">{{ entry.field === 'attachment' && entry.action === 'upload' ? '上传附件' : entry.field === 'attachment' && entry.action === 'delete' ? '删除附件' : entry.action === 'delete' ? '删除' : (fieldNames[entry.field] || entry.field) }}</span>
 						<time :datetime="entry.created">{{ formatDate(entry.created) }}</time>
 					</div>
-					<div v-if="entry.action !== 'delete'" class="history-values">
+					<div v-if="entry.action !== 'delete' || entry.field === 'attachment'" class="history-values">
 						<div class="history-before">
 							<span class="history-value-label">修改前</span>
 							<pre><template v-if="entry.old_value"><span v-for="(part, i) in historyDiffSpans(entry.old_value, entry.new_value, 'old')" :key="i" :class="{'history-removed': part.changed}">{{ part.text }}</span></template><span v-else>（空）</span></pre>
@@ -72,7 +72,7 @@ const fieldNames: Record<string, string> = {
 	percent_done: '任务进度', repeat_after: '重复周期', repeat_mode: '重复模式',
 	hex_color: '颜色', bucket_id: '任务分组', cover_image_attachment_id: '封面附件',
 	is_archived: '归档状态', identifier: '项目标识', parent_project_id: '父项目',
-	position: '排序位置', assignee: '负责人', label: '标签', comment: '评论正文', deleted: '删除操作',
+	position: '排序位置', assignee: '负责人', label: '标签', attachment: '附件', comment: '评论正文', deleted: '删除操作',
 }
 function formatDate(input: string): string {
 	const date = new Date(input)
