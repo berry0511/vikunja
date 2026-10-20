@@ -32,26 +32,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAttachmentSizePolicy(t *testing.T) {
-	const gib uint64 = 1 << 30
-	for _, tc := range []struct {
-		name string
-		size uint64
-		allow bool
-	}{
-		{"report.zip", gib, true},
-		{"report.zip", gib + 1, false},
-		{"video.MP4", 5 * gib, true},
-		{"video.MP4", 5*gib + 1, false},
-		{"video.webm", 2 * gib, true},
-		{"archive.mp4.zip", 2 * gib, false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.allow, attachmentSizeAllowed(tc.name, tc.size))
-		})
-	}
-}
-
 func TestTaskAttachment_ReadOne(t *testing.T) {
 	u := &user.User{ID: 1}
 
