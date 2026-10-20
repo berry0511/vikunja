@@ -375,15 +375,6 @@
 						:project-id="task.project_id"
 					/>
 
-					<!-- Time Tracking -->
-					<div
-						v-if="timeTrackingEnabled && activeFields.timeTracking"
-						:ref="e => setFieldRef('timeTracking', e)"
-						class="content time-tracking"
-					>
-						<TaskTimeTracking :task-id="task.id" />
-					</div>
-
 					<!-- Related Tasks -->
 					<div
 						v-if="activeFields.relatedTasks"
@@ -554,15 +545,6 @@
 
 						<span class="action-heading">{{ $t('task.detail.dateAndTime') }}</span>
 
-						<XButton
-							v-if="timeTrackingEnabled"
-							v-cy="'taskTrackTimeAction'"
-							variant="secondary"
-							:icon="['far', 'clock']"
-							@click="setFieldActive('timeTracking')"
-						>
-							{{ $t('task.detail.actions.timeTracking') }}
-						</XButton>
 
 						<XButton
 							v-shortcut="SHORTCUTS.taskDetail.dueDate"
@@ -677,7 +659,6 @@ import BaseButton from '@/components/base/BaseButton.vue'
 
 // partials
 import Attachments from '@/components/tasks/partials/Attachments.vue'
-import TaskTimeTracking from '@/components/time-tracking/TaskTimeTracking.vue'
 import TaskDailyWorklogs from '@/components/time-tracking/TaskDailyWorklogs.vue'
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import ColorPicker from '@/components/input/ColorPicker.vue'
@@ -755,7 +736,6 @@ const taskMutating = computed(() => [
 	markTaskRead,
 ].some(mutation => mutation.isPending.value))
 const authStore = useAuthStore()
-const timeTrackingEnabled = computed(() => !authStore.isLinkShareAuth)
 const baseStore = useBaseStore()
 
 const taskQuery = useTask(
@@ -764,7 +744,6 @@ const taskQuery = useTask(
 		'reactions',
 		'is_unread',
 		'buckets',
-		...(timeTrackingEnabled.value ? ['time_entries_count' as const] : []),
 	],
 )
 const task = ref(createTaskDraft())
@@ -993,7 +972,6 @@ type FieldType =
 	| 'reminders'
 	| 'repeatAfter'
 	| 'startDate'
-	| 'timeTracking'
 
 const activeFields: { [type in FieldType]: boolean } = reactive({
 	assignees: false,
@@ -1009,14 +987,12 @@ const activeFields: { [type in FieldType]: boolean } = reactive({
 	reminders: false,
 	repeatAfter: false,
 	startDate: false,
-	timeTracking: false,
 })
 
 function setActiveFields() {
 	// Set all active fields based on values in the model
 	activeFields.assignees = (task.value.assignees?.length ?? 0) > 0
 	activeFields.attachments = (task.value.attachments?.length ?? 0) > 0
-	activeFields.timeTracking = (task.value.time_entries_count ?? 0) > 0
 	activeFields.dueDate = Boolean(parseDateOrNull(task.value.due_date))
 	activeFields.endDate = Boolean(parseDateOrNull(task.value.end_date))
 	activeFields.labels = (task.value.labels?.length ?? 0) > 0
@@ -1072,7 +1048,6 @@ const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive(
 	reminders: null,
 	repeatAfter: null,
 	startDate: null,
-	timeTracking: null,
 })
 
 const dueDatePicker = useTemplateRef<InstanceType<typeof Datepicker>>('dueDatePicker')
