@@ -824,8 +824,8 @@ defineExpose({openFilePicker})
 }
 
 .preview-column {
-	max-inline-size: 3.1rem;
-	block-size: 3.1rem;
+	max-inline-size: 2.25rem;
+	block-size: 2.25rem;
 }
 
 // Redundant mouse-only click target; the real control is button.attachment-open.
@@ -882,5 +882,45 @@ defineExpose({openFilePicker})
 	padding: .25rem .35rem;
 	border-radius: 4px;
 	font-size: .75rem;
+}
+
+/* GitHub-like attachment rows with compact metadata and inline actions. */
+.files {
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	overflow: hidden;
+	margin-block-end: .75rem;
+}
+.files .attachment {
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	padding: .4rem .65rem;
+	min-block-size: 3rem;
+}
+.files .attachment + .attachment {
+	border-block-start: 1px solid var(--card-border-color);
+}
+.files .attachment:hover {
+	background: var(--grey-50);
+}
+.attachment-info-column {
+	overflow: hidden;
+}
+.attachment-info-meta {
+	gap: .15rem .45rem;
+	margin: .1rem 0 0;
+}
+.attachment-actions {
+	gap: .2rem;
+}
+.attachment-info-meta-button {
+	border-radius: 5px;
+	min-inline-size: 1.5rem;
+	min-block-size: 1.5rem;
+}
+.attachment-info-meta-button:hover,
+.attachment-info-meta-button:focus-visible {
+	background: var(--grey-100);
 }
 </style>
