@@ -66,7 +66,7 @@
 						<tbody>
 							<tr v-for="d in summaryQuery.data.value.days" :key="d.work_date + '-' + d.project_id + '-' + d.user_id">
 								<td>{{ d.work_date }}</td>
-								<td>{{ getProjectTitleByReport(d.project_title) }}</td>
+								<td>{{ getProjectTitle({id: d.project_id, title: d.project_title}) }}</td>
 								<td>{{ d.username || '#' + d.user_id }}</td>
 								<td class="report-number"><strong>{{ formatMinutes(d.minutes) }}</strong></td>
 							</tr>
@@ -89,7 +89,7 @@
 						<tbody>
 							<tr v-for="entry in entries" :key="entry.id">
 								<td>{{ entry.work_date.slice(0, 10) }}</td>
-								<td>{{ getProjectTitleByReport(entry.project_title) }}</td>
+								<td>{{ getProjectTitle({id: entry.project_id, title: entry.project_title}) }}</td>
 								<td>{{ entry.username || '#' + entry.user_id }}</td>
 								<td>
 									<RouterLink :to="{name: 'task.detail', params: {id: entry.task_id}}" class="report-task-link">
@@ -178,7 +178,6 @@ const peopleOptions = computed(() => {
 	return [{value: 0, label: '全部人员 / 仅本人'}, ...[...names].map(([value, label]) => ({value, label}))]
 })
 const participantCount = computed(() => new Set((summaryQuery.data.value?.days ?? []).map(day => day.user_id)).size)
-function getProjectTitleByReport(title: string): string { return title === 'Inbox' ? '收件箱' : title }
 const exporting = ref(false)
 const reportError = ref('')
 watch([projectId, taskId, fromDate, toDate, userId], () => {page.value = 1; reportError.value = ''})
