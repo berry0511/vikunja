@@ -619,12 +619,42 @@ function getCommentUrl(commentId: string) {
 }
 .comments > .media.comment {
 	margin: 0 !important;
-	padding: 1rem 1.1rem;
+	padding: .65rem .9rem .8rem;
 	border: 1px solid var(--card-border-color);
-	border-radius: 12px;
+	border-radius: 10px;
 	background: var(--white);
-	box-shadow: 0 2px 7px rgba(15, 23, 42, .035);
+	box-shadow: 0 1px 3px rgba(15,23,42,.04);
 	transition: border-color .15s ease, box-shadow .15s ease;
+}
+.comments > .posted-comment {
+	border-color: var(--grey-300);
+}
+.comments > .posted-comment .comment-info {
+	background: var(--grey-50);
+	border: 1px solid var(--card-border-color);
+	border-radius: 7px;
+	padding: .62rem .8rem;
+	margin-bottom: .85rem;
+	min-block-size: 2.8rem;
+}
+.comments > .posted-comment .media-content {
+	min-inline-size: 0;
+}
+.comments > .posted-comment :deep(.tiptap__editor) {
+	padding-inline: .55rem;
+	line-height: 1.65;
+}
+.comments > .posted-comment :deep(.tiptap__editor-actions) {
+	margin-block-start: .55rem;
+	padding-block: .6rem .1rem;
+	border-top: 1px solid var(--card-border-color);
+}
+.comments > .posted-comment :deep(.tiptap__editor-actions .danger-action) {
+	color: var(--danger);
+}
+.comments > .posted-comment :deep(.tiptap__editor-actions .danger-action:hover) {
+	background: var(--danger);
+	color: var(--white);
 }
 .comments > .posted-comment:hover {
 	border-color: color-mix(in srgb, var(--primary) 22%, var(--card-border-color));
@@ -654,6 +684,7 @@ function getCommentUrl(commentId: string) {
 	margin-block-end: .7rem;
 	border-block-end: 1px solid var(--card-border-color);
 }
+.comment-info strong {color: var(--text-strong); font-weight: 750;}
 .comment-composer :deep(.tiptap),
 .comment-composer :deep(.tiptap__editor) {
 	border-radius: 8px;
