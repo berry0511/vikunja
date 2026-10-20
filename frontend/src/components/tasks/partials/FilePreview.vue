@@ -23,7 +23,7 @@
 		class="icon-wrapper"
 	>
 		<Icon
-			size="6x"
+			size="lg"
 			icon="volume-high"
 		/>
 	</div>
@@ -34,7 +34,7 @@
 		class="icon-wrapper"
 	>
 		<Icon
-			size="6x"
+			size="lg"
 			icon="play"
 		/>
 	</div>
@@ -45,7 +45,7 @@
 		class="icon-wrapper"
 	>
 		<Icon
-			size="6x"
+			size="lg"
 			icon="file"
 		/>
 	</div>
@@ -122,6 +122,7 @@ img {
 	block-size: 100%;
 	font-size: .95rem;
 	overflow: hidden;
+	:deep(svg) {max-inline-size: 1.65rem; max-block-size: 1.65rem;}
 	color: var(--grey-500);
 }
 </style>
