@@ -186,6 +186,7 @@ onBeforeUnmount(() => {
 
 .app-container {
 	min-block-size: calc(100vh - 65px);
+	background: var(--site-background);
 
 	@media screen and (max-width: $tablet) {
 		padding-block-start: $navbar-height;
@@ -198,7 +199,7 @@ onBeforeUnmount(() => {
 	display: flow-root;
 	z-index: 10;
 	position: relative;
-	padding: 1.5rem 0.5rem 0;
+	padding: 1rem .75rem 2rem;
 	// TODO refactor: DRY `transition-timing-function` with `./Navigation.vue`.
 	transition: margin-inline-start $transition-duration;
 
@@ -209,7 +210,7 @@ onBeforeUnmount(() => {
 	}
 
 	@media screen and (min-width: $tablet) {
-		padding: $navbar-height + 1.5rem 1.5rem 0 1.5rem;
+		padding: $navbar-height + 1.25rem clamp(1rem, 2vw, 2.25rem) 2rem;
 	}
 
 	&.is-menu-enabled {
