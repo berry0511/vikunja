@@ -149,7 +149,13 @@ func (w *Worklog) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 // first resolve WorklogScope, and pass that resolved user id (0=all).
 // Date bounds use [from, to) so reporting never depends on server timezone.
 func ListProjectWorklogs(s *xorm.Session, projectID, userID, taskID int64, from, to time.Time) ([]*Worklog, error) {
-	query := s.Where("project_id = ? AND work_date >= ? AND work_date < ?", projectID, from, to)
+	// Use date-only ISO strings for the calendar range instead of binding
+	// Go time.Time values. SQLite stores DATETIME as text and drivers may
+	// serialize time.Time bindings with a different offset/format, making
+	// lexicographic comparisons exclude midnight records. ISO day prefixes
+	// compare correctly in SQLite and coerce to dates in MySQL/Postgres.
+	query := s.Where("project_id = ? AND work_date >= ? AND work_date < ?",
+		projectID, from.UTC().Format("2006-01-02"), to.UTC().Format("2006-01-02"))
 	if userID > 0 {
 		query = query.And("user_id = ?", userID)
 	}
