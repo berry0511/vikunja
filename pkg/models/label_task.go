@@ -17,6 +17,7 @@
 package models
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -64,9 +65,10 @@ func (*LabelTask) TableName() string {
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/{task}/labels/{label} [delete]
 func (lt *LabelTask) Delete(s *xorm.Session, auth web.Auth) (err error) {
-	_, err = s.Delete(&LabelTask{LabelID: lt.LabelID, TaskID: lt.TaskID})
-	if err != nil {
-		return err
+	deleted, err := s.Delete(&LabelTask{LabelID: lt.LabelID, TaskID: lt.TaskID})
+	if err != nil { return err }
+	if deleted > 0 {
+		if err := saveHistoryChanges(s, "task", lt.TaskID, auth, []historyField{{"label", fmt.Sprint(lt.LabelID), ""}}); err != nil { return err }
 	}
 
 	// Bump task and project updated times so delta syncs and the CalDAV ctag
@@ -111,9 +113,8 @@ func (lt *LabelTask) Create(s *xorm.Session, auth web.Auth) (err error) {
 
 	lt.ID = 0
 	_, err = s.Insert(lt)
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
+	if err := saveHistoryChanges(s, "task", lt.TaskID, auth, []historyField{{"label", "", fmt.Sprint(lt.LabelID)}}); err != nil { return err }
 
 	// Bump the task updated time so delta syncs pick up the label change.
 	err = updateTaskLastUpdated(s, &Task{ID: lt.TaskID})
