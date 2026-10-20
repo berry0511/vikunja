@@ -35,11 +35,17 @@ func RegisterChangeHistoryRoutes(api huma.API) {
 		Description: "Returns field-level before/after values. Requires read permission on the project. No edit or delete history endpoints exist.",
 		Method: http.MethodGet, Path: "/projects/{project}/history", Tags: []string{"projects"},
 	}, projectHistoryList)
+	Register(api, huma.Operation{
+		OperationID: "task-comment-history-list",
+		Summary: "Read immutable comment edit history",
+		Description: "Read the text before and after each edit. Parent-task read access required; no edit/delete history endpoint exists.",
+		Method: http.MethodGet, Path: "/tasks/{task}/comments/{commentid}/history", Tags: []string{"task_comments"},
+	}, commentHistoryList)
 }
 
 func init() { AddRouteRegistrar(RegisterChangeHistoryRoutes) }
 
-func readChangeHistory(ctx context.Context, entityType string, id int64, page, perPage int) (*historyListBody, error) {
+func readChangeHistory(ctx context.Context, entityType string, id, taskID int64, page, perPage int) (*historyListBody, error) {
 	a, err := authFromCtx(ctx)
 	if err != nil { return nil, err }
 	// Historical values can contain content later removed from the current
@@ -57,6 +63,15 @@ func readChangeHistory(ctx context.Context, entityType string, id int64, page, p
 		allowed, _, err = (&models.Task{ID: id}).CanRead(s, a)
 	case "project":
 		allowed, _, err = (&models.Project{ID: id}).CanRead(s, a)
+	case "comment":
+		if taskID <= 0 { return nil, huma.Error404NotFound("Comment not found") }
+		// Validate comment-to-task ownership, not merely access to an unrelated
+		// task: otherwise a caller could query another task's comment history.
+		comment := &models.TaskComment{ID: id, TaskID: taskID}
+		if readErr := comment.ReadOne(s, a); readErr != nil {
+			return nil, translateDomainError(readErr)
+		}
+		allowed, _, err = (&models.Task{ID: taskID}).CanRead(s, a)
 	default:
 		return nil, huma.Error404NotFound("Entity not found")
 	}
@@ -91,12 +106,20 @@ func taskHistoryList(ctx context.Context, in *struct {
 	ID int64 `path:"task"`
 	ListParams
 }) (*historyListBody, error) {
-	return readChangeHistory(ctx, "task", in.ID, in.Page, in.PerPage)
+	return readChangeHistory(ctx, "task", in.ID, 0, in.Page, in.PerPage)
 }
 
 func projectHistoryList(ctx context.Context, in *struct {
 	ID int64 `path:"project"`
 	ListParams
 }) (*historyListBody, error) {
-	return readChangeHistory(ctx, "project", in.ID, in.Page, in.PerPage)
+	return readChangeHistory(ctx, "project", in.ID, 0, in.Page, in.PerPage)
+}
+
+func commentHistoryList(ctx context.Context, in *struct {
+	TaskID int64 `path:"task"`
+	ID int64 `path:"commentid"`
+	ListParams
+}) (*historyListBody, error) {
+	return readChangeHistory(ctx, "comment", in.ID, in.TaskID, in.Page, in.PerPage)
 }
