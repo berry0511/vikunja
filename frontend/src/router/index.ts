@@ -611,14 +611,12 @@ router.beforeEach(async (to, from) => {
 		// so awaiting it here doesn't deadlock the initial navigation.
 		const baseStore = useBaseStore()
 		await baseStore.appReady
-		const configStore = useConfigStore()
-		const featureOn = configStore.isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL)
 		// isAdmin comes from /user, not the JWT; force-fetch in case checkAuth() was debounced.
 		if (authStore.info?.is_admin === undefined) {
 			await authStore.refreshUserInfo()
 		}
 		const isAdmin = authStore.info?.is_admin === true
-		if (!featureOn || !isAdmin) {
+		if (!isAdmin) {
 			return {name: 'not-found'}
 		}
 	}
