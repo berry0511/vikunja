@@ -339,6 +339,14 @@
 						/>
 					</div>
 
+					<!-- Bug status is shared with the Bug list, not a separate task state. -->
+					<div v-if="isBugTask" class="details bug-status-field">
+						<label for="bug-detail-status">Bug 状态</label>
+						<select id="bug-detail-status" :value="issueStatus(task)" :disabled="!canWrite || changingBugStatus" @change="changeBugStatus">
+							<option v-for="(label, status) in ISSUE_STATUS_LABELS" :key="status" :value="status">{{ label }}</option>
+						</select>
+					</div>
+
 					<!-- Description -->
 					<div class="details content description">
 						<Description
@@ -653,6 +661,7 @@ import {klona} from 'klona/lite'
 
 import {useTask} from '@/composables/useTask'
 import {getHexColor} from '@/helpers/task'
+import {issueKind, issueStatus, statusTaskPatch, ISSUE_STATUS_LABELS, type IssueStatus} from '@/helpers/issues'
 import {createTaskDraft, mergeTask} from '@/helpers/task'
 
 import type {Task as ITask} from '@/client/generated'
@@ -796,6 +805,25 @@ const endDateInput = computed({
 	},
 })
 const hasAttachments = computed(() => (task.value.attachments?.length ?? 0) > 0)
+const isBugTask = computed(() => issueKind(task.value) === 'bug')
+const changingBugStatus = ref(false)
+async function changeBugStatus(event: Event) {
+	const control = event.target as HTMLSelectElement
+	const previous = issueStatus(task.value)
+	const status = control.value as IssueStatus
+	if (!canWrite.value || changingBugStatus.value || status === previous) return
+	changingBugStatus.value = true
+	try {
+		const patch = statusTaskPatch(status)
+		await saveTask({...klona(task.value), ...patch})
+	} catch (cause) {
+		control.value = previous
+		error(cause)
+	} finally {
+		changingBugStatus.value = false
+	}
+}
+
 const remindersDefaultRelativeTo = computed(() => {
 	if (parseDateOrNull(task.value.due_date)) {
 		return REMINDER_PERIOD_RELATIVE_TO_TYPES.DUEDATE
@@ -1248,6 +1276,18 @@ function setRelatedTasksActive() {
 </script>
 
 <style lang="scss" scoped>
+.bug-status-field {
+	display: flex;
+	align-items: center;
+	gap: .75rem;
+	padding: .65rem .85rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	background: var(--white);
+	label {font-weight: 650; white-space: nowrap;}
+	select {min-inline-size: 9rem; padding: .4rem .6rem; border: 1px solid var(--card-border-color); border-radius: 6px; background: var(--white); color: var(--text);}
+}
+
 .task-delete-action {
 	border: 1px solid var(--danger) !important;
 	border-radius: 8px;
