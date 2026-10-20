@@ -1194,6 +1194,7 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 	if err != nil {
 		return err
 	}
+	beforeHistory := *storedProject
 
 	err = checkProjectParentBeforeUpdate(s, project, storedProject, auth)
 	if err != nil {
@@ -1299,6 +1300,16 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 		if err != nil {
 			return err
 		}
+	}
+
+	// Fetch the effective persisted record. Partial updates and position
+	// normalization must be represented by their actual DB result.
+	current := &Project{}
+	exists, historyErr := s.ID(project.ID).Get(current)
+	if historyErr != nil { return historyErr }
+	if !exists { return fmt.Errorf("project disappeared before history was written: %d", project.ID) }
+	if err := saveHistoryChanges(s, "project", project.ID, auth, projectHistoryDiff(&beforeHistory, current)); err != nil {
+		return err
 	}
 
 	*project = *l
@@ -1549,6 +1560,10 @@ func (p *Project) Delete(s *xorm.Session, a web.Auth) (err error) {
 	_, err = s.ID(p.ID).Delete(&Project{})
 	if err != nil {
 		return
+	}
+
+	if err := saveHistoryDeletion(s, "project", p.ID, a); err != nil {
+		return err
 	}
 
 	events.DispatchOnCommit(s, &ProjectDeletedEvent{
