@@ -5,7 +5,7 @@
 				<h1 class="title is-3">工时统计</h1>
 				<p class="report-muted">按项目、人员和日期核对每日投入。工时请在对应任务中记录。</p>
 			</div>
-			<XButton variant="secondary" icon="download" :disabled="!projectId || !validRange || exporting" :loading="exporting" @click="exportCSV()">
+			<XButton variant="secondary" icon="download" :disabled="!validRange || exporting" :loading="exporting" @click="exportCSV()">
 				导出明细
 			</XButton>
 		</header>
@@ -36,11 +36,6 @@
 		</Card>
 
 		<div v-if="!validRange" class="report-feedback" role="alert">结束日期不能早于开始日期。</div>
-		<div v-else-if="!projectId" class="report-empty">
-			<Icon icon="layer-group" />
-			<h2>先选择一个项目</h2>
-			<p>查看这个项目中每个任务和每位成员的实际投入。</p>
-		</div>
 		<template v-else>
 			<div class="report-metrics">
 				<Card>
@@ -65,11 +60,12 @@
 				<div v-else class="report-table-scroll">
 					<table class="report-table">
 						<thead>
-							<tr><th>日期</th><th>人员</th><th class="report-number">投入工时</th></tr>
+							<tr><th>日期</th><th>项目</th><th>人员</th><th class="report-number">投入工时</th></tr>
 						</thead>
 						<tbody>
 							<tr v-for="d in summaryQuery.data.value.days" :key="d.work_date + '-' + d.user_id">
 								<td>{{ d.work_date }}</td>
+								<td>{{ getProjectTitleByReport(d.project_title) }}</td>
 								<td>{{ d.username || '#' + d.user_id }}</td>
 								<td class="report-number"><strong>{{ formatMinutes(d.minutes) }}</strong></td>
 							</tr>
@@ -87,11 +83,12 @@
 				<div v-else class="report-table-scroll">
 					<table class="report-table">
 						<thead>
-							<tr><th>日期</th><th>人员</th><th>关联任务</th><th>工作内容</th><th class="report-number">投入工时</th><th>操作</th></tr>
+							<tr><th>日期</th><th>项目</th><th>人员</th><th>关联任务</th><th>工作内容</th><th class="report-number">投入工时</th><th>操作</th></tr>
 						</thead>
 						<tbody>
 							<tr v-for="entry in entries" :key="entry.id">
 								<td>{{ entry.work_date.slice(0, 10) }}</td>
+								<td>{{ getProjectTitleByReport(entry.project_title) }}</td>
 								<td>{{ entry.username || '#' + entry.user_id }}</td>
 								<td>
 									<RouterLink :to="{name: 'task.detail', params: {id: entry.task_id}}" class="report-task-link">
@@ -156,13 +153,13 @@ const userId = ref(0)
 const page = ref(1)
 const validRange = computed(() => !!fromDate.value && !!toDate.value && fromDate.value <= toDate.value)
 const projectOptions = computed(() => [
-	{value: 0, label: '选择项目'},
+	{value: 0, label: '全部项目'},
 	...projects.projectsArray
 		.filter(p => p.id > 0 && !p.is_archived)
 		.map(p => ({value: p.id, label: getProjectTitle(p)})),
 ])
 const filter = computed(() => ({
-	project_id: validRange.value ? projectId.value : 0,
+	project_id: validRange.value ? projectId.value : -1,
 	task_id: taskId.value,
 	user_id: userId.value,
 	from_date: fromDate.value,
@@ -180,6 +177,7 @@ const peopleOptions = computed(() => {
 	return [{value: 0, label: '全部人员 / 仅本人'}, ...[...names].map(([value, label]) => ({value, label}))]
 })
 const participantCount = computed(() => new Set((summaryQuery.data.value?.days ?? []).map(day => day.user_id)).size)
+function getProjectTitleByReport(title: string): string { return title === 'Inbox' ? '收件箱' : title }
 const exporting = ref(false)
 const reportError = ref('')
 watch([projectId, taskId, fromDate, toDate, userId], () => {page.value = 1; reportError.value = ''})
