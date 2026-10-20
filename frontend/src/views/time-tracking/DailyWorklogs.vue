@@ -2,6 +2,7 @@
 	<div class="daily-report">
 		<header class="report-header">
 			<div>
+				<p class="report-eyebrow">WORK HOURS / REPORTS</p>
 				<h1 class="title is-3">工时统计</h1>
 				<p class="report-muted">按项目、人员和日期核对每日投入。工时请在对应任务中记录。</p>
 			</div>
@@ -63,7 +64,7 @@
 							<tr><th>日期</th><th>项目</th><th>人员</th><th class="report-number">投入工时</th></tr>
 						</thead>
 						<tbody>
-							<tr v-for="d in summaryQuery.data.value.days" :key="d.work_date + '-' + d.user_id">
+							<tr v-for="d in summaryQuery.data.value.days" :key="d.work_date + '-' + d.project_id + '-' + d.user_id">
 								<td>{{ d.work_date }}</td>
 								<td>{{ getProjectTitleByReport(d.project_title) }}</td>
 								<td>{{ d.username || '#' + d.user_id }}</td>
@@ -155,8 +156,8 @@ const validRange = computed(() => !!fromDate.value && !!toDate.value && fromDate
 const projectOptions = computed(() => [
 	{value: 0, label: '全部项目'},
 	...projects.projectsArray
-		.filter(p => p.id > 0 && !p.is_archived)
-		.map(p => ({value: p.id, label: getProjectTitle(p)})),
+		.filter(p => p.id > 0)
+		.map(p => ({value: p.id, label: getProjectTitle(p) + (p.is_archived ? '（已归档）' : '')})),
 ])
 const filter = computed(() => ({
 	project_id: validRange.value ? projectId.value : -1,
@@ -215,36 +216,111 @@ async function exportCSV(summary = false) {
 </script>
 
 <style scoped lang="scss">
-.daily-report {max-inline-size: 1200px; margin-inline: auto; padding: clamp(.8rem, 3vw, 1.75rem);}
-.report-header {display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-block-end: 1.5rem;}
-.report-header .title {margin: 0 0 .5rem; color: var(--text-strong);}
-.report-muted {color: var(--text-light); font-size: .9rem; line-height: 1.5;}
-.report-filters {display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 1rem;}
-.report-filters .field {min-inline-size: 0;}
-.report-filter-footer {display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-block-start: .6rem;}
-.report-metrics {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.25rem;}
-.report-metrics :deep(.card) {block-size: 100%;}
-.metric-label {font-size: .9rem; color: var(--text-light); margin-block-end: .65rem;}
-.metric-value {display: block; color: var(--text-strong); font-size: clamp(1.3rem, 2.5vw, 2rem); line-height: 1.3;}
-.metric-value small {font-size: .8rem; color: var(--text-light); font-weight: 400;}
-.report-table-scroll {max-inline-size: 100%; overflow-x: auto;}
-.report-table {inline-size: 100%; border-collapse: collapse; min-inline-size: 520px; font-size: .9rem;}
-.report-table thead {background: var(--grey-50); color: var(--text-light);}
-.report-table th {font-weight: 600; text-align: start; padding: .75rem .8rem; white-space: nowrap;}
-.report-table td {border-block-start: 1px solid var(--card-border-color); padding: .85rem .8rem; color: var(--text); vertical-align: top;}
-.report-table tbody tr:hover {background-color: var(--grey-50);}
-.report-table .report-number {text-align: end; white-space: nowrap;}
-.report-table .report-comment {min-inline-size: 180px; overflow-wrap: anywhere;}
-.report-task-link {white-space: nowrap;}
-.report-actions {display: flex; justify-content: flex-end; padding-block-start: 1rem;}
-.report-pagination {display: flex; align-items: center; justify-content: center; gap: 1rem; margin-block-start: 1rem;}
-.report-loading {padding: 1.25rem 0; color: var(--text-light);}
-.report-feedback {padding: .8rem; margin-block: .75rem; color: var(--danger); border-radius: $radius;}
-.report-empty {padding: 3rem 1rem; text-align: center; color: var(--text-light);}
-.report-empty h2 {font-size: 1.1rem; font-weight: 600; margin-block: .65rem;}
-.report-empty--in-card {padding: 1.5rem;}
-@media (max-width: 640px) {
-	.report-header {align-items: flex-start; flex-direction: column;}
-	.report-metrics {grid-template-columns: 1fr;}
+.daily-report {
+	max-inline-size: 1320px;
+	margin-inline: auto;
+	padding: clamp(.5rem, 1.8vw, 1.5rem);
+}
+.report-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1.25rem;
+	margin-block-end: 1.6rem;
+}
+.report-eyebrow {
+	font-size: .73rem;
+	font-weight: 800;
+	letter-spacing: .11em;
+	color: var(--primary);
+	margin-block-end: .6rem;
+}
+.report-header .title {
+	font-size: clamp(1.6rem, 3vw, 2.25rem);
+	font-weight: 760;
+	line-height: 1.2;
+	margin: 0 0 .5rem;
+	color: var(--text-strong);
+}
+.report-muted { color: var(--text-light); font-size: .88rem; line-height: 1.55; }
+.report-filters {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: .9rem;
+}
+.report-filters .field { min-inline-size: 0; margin-block-end: 0; }
+.report-filters .label { color: var(--text-strong); font-size: .85rem; font-weight: 680; }
+.report-filter-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+	padding-block-start: 1rem;
+	margin-block-start: 1rem;
+	border-block-start: 1px solid var(--card-border-color);
+}
+.report-metrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+	margin-block: 1.3rem;
+}
+.report-metrics :deep(.card) {
+	block-size: 100%;
+	margin: 0;
+	border-inline-start: 3px solid color-mix(in srgb, var(--primary) 70%, var(--card-border-color));
+}
+.report-metrics :deep(.card-content) { padding: 1.3rem 1.45rem; }
+.metric-label { margin: 0 0 .65rem; font-size: .82rem; font-weight: 620; color: var(--text-light); }
+.metric-value {
+	display: block;
+	font-size: clamp(1.5rem, 2.7vw, 2.2rem);
+	font-weight: 770;
+	line-height: 1.2;
+	letter-spacing: -.025em;
+	color: var(--text-strong);
+}
+.metric-value small { font-size: .77rem; color: var(--text-light); font-weight: 500; }
+.report-table-scroll { inline-size: 100%; overflow-x: auto; border: 1px solid var(--card-border-color); border-radius: 10px; }
+.report-table { inline-size: 100%; border-collapse: collapse; min-inline-size: 600px; font-size: .88rem; }
+.report-table thead { background: var(--grey-50); color: var(--text-strong); }
+.report-table th {
+	font-size: .78rem;
+	font-weight: 750;
+	text-align: start;
+	padding: .9rem 1rem;
+	white-space: nowrap;
+}
+.report-table td {
+	border-block-start: 1px solid var(--card-border-color);
+	padding: .9rem 1rem;
+	color: var(--text);
+	vertical-align: middle;
+}
+.report-table tbody tr { transition: background .12s ease; }
+.report-table tbody tr:hover { background: var(--grey-50); }
+.report-table .report-number { text-align: end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.report-table .report-number strong { color: var(--text-strong); }
+.report-table .report-comment { min-inline-size: 200px; overflow-wrap: anywhere; }
+.report-task-link {
+	color: var(--primary);
+	text-decoration: none;
+	font-weight: 680;
+	white-space: nowrap;
+	&:hover { text-decoration: underline; }
+}
+.report-actions { display: flex; justify-content: flex-end; padding-block-start: 1rem; }
+.report-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-block-start: 1rem; }
+.report-loading { padding: 1.25rem 0; color: var(--text-light); }
+.report-feedback { padding: .9rem 1rem; margin-block: .75rem; color: var(--danger); background: var(--white); border: 1px solid var(--danger); border-radius: 10px; }
+.report-empty { padding: 3rem 1rem; text-align: center; color: var(--text-light); }
+.report-empty h2 { font-size: 1.1rem; font-weight: 700; margin-block: .65rem; }
+.report-empty--in-card { padding: 1.5rem; }
+@media (max-width: $desktop) { .report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: $tablet) {
+	.report-header { align-items: flex-start; flex-direction: column; }
+	.report-filters { grid-template-columns: 1fr; }
+	.report-metrics { grid-template-columns: 1fr; }
 }
 </style>
