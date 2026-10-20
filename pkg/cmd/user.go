@@ -125,11 +125,8 @@ var userSetAdminCmd = &cobra.Command{
 		initialize.FullInit()
 	},
 	Run: func(_ *cobra.Command, args []string) {
-		// Refuse on a free instance; the is_admin bypass is gated by the admin-panel entitlement everywhere else.
-		if !license.IsFeatureEnabled(license.FeatureAdminPanel) {
-			log.Fatalf("The admin-panel license feature is not active; refusing to change the is_admin flag.")
-		}
-
+		// This local CLI is the secure bootstrap path for an initial admin;
+		// it never provisions a known default password.
 		s := db.NewSession()
 		defer s.Close()
 		value := userFlagMakeAdmin
