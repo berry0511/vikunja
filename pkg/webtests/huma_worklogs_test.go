@@ -12,6 +12,9 @@ import (
 	"net/http"
 	"testing"
 
+	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/user"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,13 +26,20 @@ func TestHumaWorklogsAllProjects(t *testing.T) {
 	e, err := setupTestEnv()
 	require.NoError(t, err)
 
+	// webtests provides testuser1 and testuser2 only. Load the existing
+	// fixture owner of project 3 instead of referencing a nonexistent global.
+	s := db.NewSession()
+	ownerOfProject3, err := user.GetUserByID(s, 3)
+	require.NoError(t, err)
+	require.NoError(t, s.Close())
+
 	create := func(token, body string) {
 		t.Helper()
 		rec := humaRequest(t, e, http.MethodPost, "/api/v2/worklogs", body, token, "")
 		require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	}
 	create(humaTokenFor(t, &testuser1), `{"project_id":1,"task_id":1,"work_date":"2026-10-19T00:00:00Z","minutes":60,"comment":"alpha"}`)
-	create(humaTokenFor(t, &testuser3), `{"project_id":3,"task_id":32,"work_date":"2026-10-19T00:00:00Z","minutes":45,"comment":"private-beta"}`)
+	create(humaTokenFor(t, ownerOfProject3), `{"project_id":3,"task_id":32,"work_date":"2026-10-19T00:00:00Z","minutes":45,"comment":"private-beta"}`)
 
 	query := "/api/v2/worklogs?project_id=0&user_id=0&task_id=0&from_date=2026-10-19&to_date=2026-10-19"
 	owner := humaRequest(t, e, http.MethodGet, query, "", humaTokenFor(t, &testuser1), "")
