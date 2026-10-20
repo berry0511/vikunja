@@ -25,12 +25,13 @@ export function changeHistoryQuery(kind: 'task' | 'project' | 'comment', id: num
 	return queryOptions({
 		queryKey: ['change-history', kind, id, taskId, page],
 		queryFn: async () => {
-			const {data} = await client.get<ChangeHistoryPage>({
+			const {data} = await client.get<{200: ChangeHistoryPage}, unknown, true>({
 				url: kind === 'comment'
 					? '/tasks/{task}/comments/{id}/history'
 					: kind === 'task' ? '/tasks/{id}/history' : '/projects/{id}/history',
 				path: kind === 'comment' ? {task: taskId, id} : {id},
 				query: {page},
+				throwOnError: true,
 			})
 			return data
 		},
