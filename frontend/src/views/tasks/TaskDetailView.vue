@@ -356,18 +356,6 @@
 						:disabled="!canWrite"
 					/>
 
-					<!-- Attachments -->
-					<div
-						v-show="activeFields.attachments || hasAttachments"
-						class="content attachments"
-					>
-						<Attachments
-							:ref="e => { setFieldRef('attachments', e); attachmentsRef = e as any }"
-							:edit-enabled="canWrite"
-							:task="task"
-						/>
-					</div>
-
 					<!-- Daily work logs belong to the task and automatically inherit its IDs. -->
 					<TaskDailyWorklogs
 						v-if="task.id > 0 && task.project_id > 0 && !authStore.isLinkShareAuth"
@@ -431,6 +419,18 @@
 						:task-id="taskId"
 						:project-id="task.project_id"
 					/>
+
+					<!-- Attachments -->
+					<div
+						v-show="activeFields.attachments || hasAttachments"
+						class="content attachments"
+					>
+						<Attachments
+							:ref="e => { setFieldRef('attachments', e); attachmentsRef = e as any }"
+							:edit-enabled="canWrite"
+							:task="task"
+						/>
+					</div>
 
 					<!-- Marker element for scroll-to-bottom button visibility -->
 					<div
@@ -594,7 +594,7 @@
 							v-shortcut="SHORTCUTS.taskDetail.delete"
 							icon="trash-alt"
 							:shadow="false"
-							class="is-danger is-outlined has-no-border"
+							class="is-danger is-outlined task-delete-action"
 							@click="showDeleteModal = true"
 						>
 							{{ $t('task.detail.actions.delete') }}
@@ -1248,6 +1248,15 @@ function setRelatedTasksActive() {
 </script>
 
 <style lang="scss" scoped>
+.task-delete-action {
+	border: 1px solid var(--danger) !important;
+	border-radius: 8px;
+	&:hover, &:focus-visible {
+		background: var(--danger) !important;
+		color: var(--white) !important;
+	}
+}
+
 .task-view-container {
 	// simulate sass lighten($primary, 30) by increasing lightness 30% to 73%
 	--primary-light: hsla(var(--primary-h), var(--primary-s), 73%, var(--primary-a));
