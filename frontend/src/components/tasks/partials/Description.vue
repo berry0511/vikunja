@@ -237,6 +237,30 @@ function uploadCallback(files: File[] | FileList): Promise<string[]> {
 </script>
 
 <style lang="scss" scoped>
+
+/* One consistent issue body for both tasks and Bugs; no nested oversized card. */
+.tiptap__task-description {
+	margin-inline-start: 0;
+	:deep(.tiptap__wrapper) {
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		background: transparent;
+		&:hover {border-color: transparent;}
+		&:focus-within {border-color: transparent; box-shadow: none;}
+	}
+	:deep(.tiptap__editor) {
+		min-block-size: 0;
+		padding-block: .45rem;
+		line-height: 1.6;
+	}
+	:deep(.tiptap__editor-actions) {
+		border-top: 1px solid var(--card-border-color);
+		margin-block-start: .65rem;
+		padding-block-start: .65rem;
+	}
+}
+
 .tiptap__task-description {
 	// Always show the editor boundary even before the user focuses it.
 	:deep(.tiptap__wrapper) {
