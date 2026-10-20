@@ -79,7 +79,8 @@ const showLoading = useDelayedLoading(() => props.loading)
 	border-radius: 14px;
 	box-shadow: 0 4px 18px rgba(15,23,42,.045);
 	color: var(--text);
-	overflow: hidden;
+	// Keep overflow visible: dropdowns and date selectors inside report cards
+	// must not be clipped by rounded panel boundaries.
 	&.has-no-shadow { box-shadow: none; }
 	@media print { box-shadow: none; border: 0; }
 }
