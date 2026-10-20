@@ -189,105 +189,62 @@ async function cancel(element: HTMLInputElement) {
 </script>
 
 <style lang="scss" scoped>
-.heading .task-properties {justify-content: flex-start; gap: .5rem;}
-.heading .task-id {font-size: .78rem;}
-.heading h1.title {margin: .15rem 0 .4rem; font-size: clamp(1.3rem,1.8vw,1.7rem); font-weight: 500;}
-.bug-state-pill {display: inline-flex; align-items:center; padding:.2rem .65rem; font-size:.76rem; font-weight:500; border:1px solid var(--card-border-color); border-radius: 999px; color:var(--text); background:var(--grey-50);}
-.bug-state-pill.is-resolved {color:#8250df;}
-.bug-state-pill.is-working {color:#9a6700;}
-.bug-state-pill.is-review {color:#0969da;}
-
-
-/* GitHub Issue-like hierarchy: prominent title, subdued number and state. */
 .heading {
 	display: flex;
 	flex-direction: column;
-	gap: .35rem;
-	padding: .7rem 0 1rem;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: .25rem;
+	inline-size: 100%;
+	padding: .25rem 0 .65rem;
 	border-bottom: 1px solid var(--card-border-color);
-}
-.heading .task-properties {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: .65rem;
-}
-.heading .task-id {
-	font-size: .88rem;
-	font-weight: 500;
-	color: var(--text-light);
+	text-transform: none;
 }
 .heading h1.title {
-	font-size: clamp(1.35rem, 2vw, 1.85rem);
-	font-weight: 550;
-	letter-spacing: -.03em;
-	line-height: 1.25;
-	margin: .3rem 0;
-	padding: .2rem .25rem;
+	inline-size: 100%;
+	min-block-size: 0;
+	margin: 0;
+	padding: .15rem .25rem;
+	font-size: clamp(1.3rem, 1.8vw, 1.7rem);
+	font-weight: 500;
+	line-height: 1.35;
+	letter-spacing: -.015em;
+	text-align: start;
 	border: 1px solid transparent;
 	border-radius: 6px;
 }
-.heading h1.title[contenteditable="true"]:hover {
-	border-color: var(--card-border-color);
-}
+.heading h1.title[contenteditable="true"]:hover { border-color: var(--card-border-color); }
 .heading h1.title[contenteditable="true"]:focus-visible {
 	outline: 2px solid var(--primary);
 	background: var(--white);
 }
-
-.heading {
-	display: flex;
-	justify-content: flex-start;
-	text-transform: none;
-	align-items: center;
-
-	@media screen and (max-width: $tablet) {
-		flex-direction: column;
-		align-items: start;
-	}
-}
-
-.title {
-	margin-block-end: 0;
-}
-
-.title.input {
-	// 1.8rem is the font-size, 1.125 is the line-height, .3rem padding everywhere, 1px border around the whole thing.
-	min-block-size: calc(1.8rem * 1.125 + .6rem + 2px);
-	margin-inline-end: 0;
-
-	@media screen and (max-width: $tablet) {
-		margin: 0 -.3rem .5rem; // the title has 0.3rem padding - this make the text inside of it align with the rest
-	}
-}
-
-.title.task-id {
-	color: var(--grey-400);
-	white-space: nowrap;
-}
-
-.color-bubble {
-	block-size: .75rem;
-	inline-size: .75rem;
-}
-
-// Modal renders its own fixed close button from $tablet up
-.close {
-	display: none;
-	font-size: 2rem;
-	line-height: 1;
-	position: absolute;
-	inset-inline-end: 1.25rem;
-	inset-block-start: 1.1rem;
-
-	@media screen and (max-width: $tablet) {
-		display: block;
-	}
-}
-
 .task-properties {
-	@media screen and (max-width: $tablet) {
-		flex-direction: row;
-	}
+	display: flex;
+	flex-direction: row !important;
+	align-items: center !important;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+	gap: .65rem;
+	min-block-size: 1.6rem;
+}
+.title.task-id {font-size: .78rem; font-weight: 400; color: var(--text-light); white-space: nowrap;}
+.bug-state-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: .18rem .55rem;
+	font-size: .76rem;
+	font-weight: 500;
+	border: 1px solid var(--card-border-color);
+	border-radius: 999px;
+	background: var(--grey-50);
+}
+.bug-state-pill.is-resolved {color: #8250df;}
+.bug-state-pill.is-working {color: #9a6700;}
+.bug-state-pill.is-review {color: #0969da;}
+.color-bubble {block-size: .75rem; inline-size: .75rem;}
+.close {margin-inline-start: auto;}
+@media screen and (max-width: $tablet) {
+	.heading {padding-block: .35rem .65rem;}
+	.heading h1.title {font-size: 1.4rem;}
 }
 </style>
