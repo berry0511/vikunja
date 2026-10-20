@@ -373,7 +373,7 @@
 
 					<!-- Attachments -->
 					<div
-						v-show="activeFields.attachments || hasAttachments"
+						v-show="activeFields.attachments || hasAttachments || isBugTask"
 						class="content attachments"
 					>
 						<Attachments
