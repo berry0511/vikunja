@@ -677,14 +677,14 @@ function getCommentUrl(commentId: string) {
 	margin: 0 0 .8rem;
 	color: var(--text-strong);
 	font-size: .86rem;
-	font-weight: 750;
+	font-weight: 550;
 }
 .comment-info {
 	padding-block-end: .6rem;
 	margin-block-end: .7rem;
 	border-block-end: 1px solid var(--card-border-color);
 }
-.comment-info strong {color: var(--text-strong); font-weight: 750;}
+.comment-info strong {color: var(--text-strong); font-weight: 600;}
 .comment-composer :deep(.tiptap),
 .comment-composer :deep(.tiptap__editor) {
 	border-radius: 8px;
