@@ -68,7 +68,7 @@ export function worklogListQuery(filter: WorklogFilter, page: number) {
 export function worklogSummaryQuery(filter: WorklogFilter) {
 	return queryOptions({
 		queryKey: keys.summary(filter),
-		enabled: filter.project_id > 0,
+		enabled: filter.project_id >= 0,
 		queryFn: async ({signal}): Promise<WorklogSummary> => {
 			const {data} = await client.get<{200: WorklogSummary}, unknown, true>({
 				url: '/worklogs/summary',
