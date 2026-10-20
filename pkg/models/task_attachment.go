@@ -104,6 +104,9 @@ func (ta *TaskAttachment) NewAttachment(s *xorm.Session, f io.ReadSeeker, realna
 	if err != nil {
 		return err
 	}
+	if err := saveAttachmentHistory(s, ta, a, "upload"); err != nil {
+		return err
+	}
 
 	events.DispatchOnCommit(s, &TaskAttachmentCreatedEvent{
 		Task:       &task,
@@ -455,13 +458,15 @@ func (ta *TaskAttachment) Delete(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 
-	// Delete the underlying file
-	err = ta.File.Delete(s)
-	// If the file does not exist, we don't want to error out
-	if err != nil && files.IsErrFileDoesNotExist(err) {
-		return nil
+	// Delete the underlying file. The history must be recorded even when
+	// the physical blob is already missing.
+	if ta.File != nil {
+		err = ta.File.Delete(s)
+		if err != nil && !files.IsErrFileDoesNotExist(err) {
+			return err
+		}
 	}
-	if err != nil {
+	if err := saveAttachmentHistory(s, ta, a, "delete"); err != nil {
 		return err
 	}
 
