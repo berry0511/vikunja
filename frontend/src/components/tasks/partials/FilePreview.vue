@@ -12,7 +12,7 @@
 		class="icon-wrapper"
 	>
 		<Icon
-			size="6x"
+			size="lg"
 			icon="file-pdf"
 		/>
 	</div>
@@ -107,11 +107,21 @@ onBeforeUnmount(() => releaseAttachmentUrl(blobUrl.value))
 <style scoped lang="scss">
 img {
 	inline-size: 100%;
+	block-size: 100%;
+	max-inline-size: 100%;
+	max-block-size: 100%;
 	border-radius: $radius;
-	object-fit: cover;
+	object-fit: contain;
 }
 
 .icon-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 100%;
+	block-size: 100%;
+	font-size: .95rem;
+	overflow: hidden;
 	color: var(--grey-500);
 }
 </style>
