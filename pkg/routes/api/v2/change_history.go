@@ -42,6 +42,11 @@ func init() { AddRouteRegistrar(RegisterChangeHistoryRoutes) }
 func readChangeHistory(ctx context.Context, entityType string, id int64, page, perPage int) (*historyListBody, error) {
 	a, err := authFromCtx(ctx)
 	if err != nil { return nil, err }
+	// Historical values can contain content later removed from the current
+	// document. Public link shares must not expose superseded private data.
+	if _, isShare := a.(*models.LinkSharing); isShare {
+		return nil, huma.Error403Forbidden("History is not available through link shares")
+	}
 	if id < 1 { return nil, huma.Error404NotFound("Entity not found") }
 	s := db.NewSession()
 	defer s.Close()
