@@ -28,7 +28,7 @@
 			</div>
 			<span v-if="isBug" class="bug-state-pill" :class="`is-${issueStatus(task)}`">{{ ISSUE_STATUS_LABELS[issueStatus(task)] }}</span>
 			<Done
-			v-if="!isBug"
+				v-if="!isBug"
 				:is-done="task.done"
 			/>
 			<BaseButton
