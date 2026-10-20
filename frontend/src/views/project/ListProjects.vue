@@ -4,7 +4,7 @@
 			<div class="directory-intro">
 				<p class="directory-eyebrow">{{ $t('project.projects') }} / WORKSPACE</p>
 				<h1>{{ $t('project.projects') }}</h1>
-				<p class="directory-description">集中查看项目进度，归档后的项目也可以随时找回。</p>
+				<p class="directory-description">{{ $t('project.directory.subtitle') }}</p>
 			</div>
 			<div class="directory-actions">
 				<XButton :to="{name: 'filters.create'}" variant="secondary" icon="filter">{{ $t('filters.create.title') }}</XButton>
@@ -12,23 +12,23 @@
 			</div>
 		</header>
 		<div class="directory-toolbar">
-			<div class="directory-tabs" role="group" aria-label="按项目状态筛选">
+			<div class="directory-tabs" role="group" :aria-label="$t('project.directory.filterLabel')">
 				<button type="button" :class="{'is-active': status === 'active'}" :aria-pressed="status === 'active'" @click="setStatus('active')">
-					进行中 <span>{{ activeProjects.length }}</span>
+					{{ $t('project.directory.active') }} <span>{{ activeProjects.length }}</span>
 				</button>
 				<button v-cy="'show-archived-check'" type="button" :class="{'is-active': status === 'archived'}" :aria-pressed="status === 'archived'" @click="setStatus('archived')">
-					<Icon icon="archive" /> 已归档 <span>{{ archivedProjects.length }}</span>
+					<Icon icon="archive" /> {{ $t('project.directory.archived') }} <span>{{ archivedProjects.length }}</span>
 				</button>
 				<button type="button" :class="{'is-active': status === 'all'}" :aria-pressed="status === 'all'" @click="setStatus('all')">
-					全部 <span>{{ allProjects.length }}</span>
+					{{ $t('project.directory.all') }} <span>{{ allProjects.length }}</span>
 				</button>
 			</div>
-			<p class="directory-view-hint">{{ status === 'archived' ? '归档项目不会删除历史任务和数据。' : '选择项目查看任务、成员与工时。' }}</p>
+			<p class="directory-view-hint">{{ status === 'archived' ? $t('project.directory.archiveHint') : $t('project.directory.openHint') }}</p>
 		</div>
 		<div v-if="projects.length === 0 && !loading" class="directory-empty">
 			<Icon :icon="status === 'archived' ? 'archive' : 'layer-group'" />
-			<h2>{{ status === 'archived' ? '还没有归档项目' : '这里暂时没有项目' }}</h2>
-			<p>{{ status === 'archived' ? '在项目设置中归档项目后，就能在这里找到。' : '可以新建项目，或切换上方的状态筛选。' }}</p>
+			<h2>{{ status === 'archived' ? $t('project.directory.emptyArchived') : $t('project.directory.empty') }}</h2>
+			<p>{{ status === 'archived' ? $t('project.directory.emptyArchivedHint') : $t('project.directory.emptyHint') }}</p>
 		</div>
 		<ProjectCardGrid v-else :projects="projects" show-archived />
 	</section>
