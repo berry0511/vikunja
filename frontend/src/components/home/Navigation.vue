@@ -84,7 +84,7 @@
 				<li v-if="!authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'issues.index'}">
 						<span class="menu-item-icon icon"><Icon icon="clipboard-list" /></span>
-						工单与缺陷
+						Bug 管理
 					</RouterLink>
 				</li>
 				<li v-if="!authStore.isLinkShareAuth">
