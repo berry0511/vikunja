@@ -1,6 +1,6 @@
 <template>
-	<section class="entity-history">
-		<header class="history-header">
+	<section class="entity-history" :class="{'history-compact': compact}">
+		<header v-if="!compact" class="history-header">
 			<div>
 				<h2>{{ kind === 'comment' ? '评论修改记录' : '修改历史' }}</h2>
 				<p>系统记录实际字段变更；普通成员无法编辑或删除历史记录。</p>
@@ -9,7 +9,14 @@
 				{{ expanded ? '收起历史' : '查看历史' }}
 			</XButton>
 		</header>
+		<button v-if="compact" type="button" class="history-text-trigger" :aria-expanded="expanded" @click="expanded = !expanded">
+			修改记录
+		</button>
 		<div v-if="expanded" class="history-body">
+			<div v-if="compact" class="history-panel-top">
+				<strong>评论修改历史</strong>
+				<button type="button" class="history-close" @click="expanded = false">关闭</button>
+			</div>
 			<p v-if="history.isPending.value" class="history-message">正在加载修改记录…</p>
 			<p v-else-if="history.isError.value" class="history-error" role="alert">无法读取修改历史：{{ getErrorText(history.error.value) }}</p>
 			<p v-else-if="!history.data.value?.items.length" class="history-message">暂无字段修改记录。</p>
@@ -21,8 +28,14 @@
 						<time :datetime="entry.created">{{ formatDate(entry.created) }}</time>
 					</div>
 					<div v-if="entry.action !== 'delete'" class="history-values">
-						<div><span>修改前</span><pre>{{ entry.old_value || '（空）' }}</pre></div>
-						<div><span>修改后</span><pre>{{ entry.new_value || '（空）' }}</pre></div>
+						<div class="history-before">
+							<span class="history-value-label">修改前</span>
+							<pre><template v-if="entry.old_value"><span v-for="(part, i) in historyDiffSpans(entry.old_value, entry.new_value, 'old')" :key="i" :class="{'history-removed': part.changed}">{{ part.text }}</span></template><span v-else>（空）</span></pre>
+						</div>
+						<div class="history-after">
+							<span class="history-value-label">修改后</span>
+							<pre><template v-if="entry.new_value"><span v-for="(part, i) in historyDiffSpans(entry.old_value, entry.new_value, 'new')" :key="i" :class="{'history-added': part.changed}">{{ part.text }}</span></template><span v-else>（空）</span></pre>
+						</div>
 					</div>
 					<p v-else class="history-message">该对象被删除，历史记录仍保留。</p>
 				</li>
@@ -41,8 +54,9 @@ import {ref, watch} from 'vue'
 import {useQuery} from '@tanstack/vue-query'
 import {changeHistoryQuery} from '@/client/queries/changeHistory'
 import {getErrorText} from '@/message'
+import {historyDiffSpans} from '@/helpers/historyDiff'
 
-const props = defineProps<{kind: 'task' | 'project' | 'comment', entityId: number, taskId?: number}>()
+const props = withDefaults(defineProps<{kind: 'task' | 'project' | 'comment', entityId: number, taskId?: number, compact?: boolean}>(), {compact: false})
 const expanded = ref(false)
 const page = ref(1)
 watch(() => [props.entityId, props.taskId], () => {page.value = 1; expanded.value = false})
@@ -101,6 +115,61 @@ function formatDate(input: string): string {
 	color: var(--text);
 	background: var(--white);
 	border: 1px solid var(--card-border-color);
+}
+.history-compact {
+	position: relative;
+	margin: 0 0 0 auto;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	flex-shrink: 0;
+}
+.history-text-trigger {
+	border: 0;
+	background: transparent;
+	color: var(--primary);
+	padding: .3rem .4rem;
+	border-radius: 6px;
+	font-size: .8rem;
+	font-weight: 740;
+	cursor: pointer;
+	white-space: nowrap;
+	&:hover { background: var(--grey-50); text-decoration: underline; }
+	&:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+}
+.history-compact .history-body {
+	position: absolute;
+	z-index: 50;
+	top: calc(100% + .45rem);
+	right: 0;
+	inline-size: min(650px, calc(100vw - 3rem));
+	max-block-size: min(70vh, 640px);
+	overflow-y: auto;
+	background: var(--white);
+	padding: 1rem;
+	border-radius: 12px;
+	border: 1px solid var(--card-border-color);
+	box-shadow: 0 16px 38px rgba(15,23,42,.18);
+}
+.history-panel-top {display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding-bottom: .75rem;}
+.history-panel-top strong {font-size: .94rem; color: var(--text-strong);}
+.history-close {background: transparent; border: 0; color: var(--primary); font-weight: 700; cursor: pointer;}
+.history-value-label {
+	display: inline-block;
+	padding: .25rem .65rem;
+	margin-bottom: .45rem;
+	border-radius: 6px;
+	font-size: .8rem !important;
+	font-weight: 750 !important;
+}
+.history-before .history-value-label {background: var(--grey-100); color: var(--text-strong);}
+.history-after .history-value-label {background: color-mix(in srgb, var(--primary) 15%, var(--white)); color: var(--primary);}
+.history-before pre {border-color: var(--grey-300); background: var(--grey-50);}
+.history-after pre {border-color: color-mix(in srgb, var(--primary) 26%, var(--card-border-color)); background: color-mix(in srgb, var(--primary) 5%, var(--white));}
+.history-removed {background: color-mix(in srgb, var(--danger) 19%, var(--white)); color: var(--text-strong); text-decoration: line-through; border-radius: 3px;}
+.history-added {background: color-mix(in srgb, var(--success) 25%, var(--white)); color: var(--text-strong); font-weight: 720; border-radius: 3px;}
+@media (max-width: $tablet) {
+	.history-compact .history-body {right: -1rem; inline-size: min(650px, calc(100vw - 2rem));}
 }
 .history-error { color: var(--danger); }
 .history-pagination { display: flex; align-items: center; justify-content: center; gap: .8rem; padding-block-start: 1rem; }
