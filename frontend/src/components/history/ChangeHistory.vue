@@ -2,7 +2,7 @@
 	<section class="entity-history">
 		<header class="history-header">
 			<div>
-				<h2>修改历史</h2>
+				<h2>{{ kind === 'comment' ? '评论修改记录' : '修改历史' }}</h2>
 				<p>系统记录实际字段变更；普通成员无法编辑或删除历史记录。</p>
 			</div>
 			<XButton type="button" variant="secondary" :icon="expanded ? 'chevron-up' : 'history'" @click="expanded = !expanded">
@@ -42,13 +42,13 @@ import {useQuery} from '@tanstack/vue-query'
 import {changeHistoryQuery} from '@/client/queries/changeHistory'
 import {getErrorText} from '@/message'
 
-const props = defineProps<{kind: 'task' | 'project', entityId: number}>()
+const props = defineProps<{kind: 'task' | 'project' | 'comment', entityId: number, taskId?: number}>()
 const expanded = ref(false)
 const page = ref(1)
-watch(() => props.entityId, () => {page.value = 1; expanded.value = false})
+watch(() => [props.entityId, props.taskId], () => {page.value = 1; expanded.value = false})
 const history = useQuery(() => ({
-	...changeHistoryQuery(props.kind, props.entityId, page.value),
-	enabled: expanded.value && props.entityId > 0,
+	...changeHistoryQuery(props.kind, props.entityId, page.value, props.taskId),
+	enabled: expanded.value && props.entityId > 0 && (props.kind !== 'comment' || (props.taskId ?? 0) > 0),
 }))
 
 const fieldNames: Record<string, string> = {
@@ -58,7 +58,7 @@ const fieldNames: Record<string, string> = {
 	percent_done: '任务进度', repeat_after: '重复周期', repeat_mode: '重复模式',
 	hex_color: '颜色', bucket_id: '任务分组', cover_image_attachment_id: '封面附件',
 	is_archived: '归档状态', identifier: '项目标识', parent_project_id: '父项目',
-	position: '排序位置', assignee: '负责人', label: '标签', deleted: '删除操作',
+	position: '排序位置', assignee: '负责人', label: '标签', comment: '评论正文', deleted: '删除操作',
 }
 function formatDate(input: string): string {
 	const date = new Date(input)
