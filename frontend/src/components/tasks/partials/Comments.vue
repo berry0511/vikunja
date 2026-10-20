@@ -157,7 +157,7 @@
 					</figcaption>
 				</figure>
 				<div class="media-content">
-					<p class="composer-label"><Icon icon="message-circle" /> 编写新评论</p>
+					<p class="composer-label"><Icon :icon="['far', 'comments']" /> 编写新评论</p>
 					<div class="form">
 						<CustomTransition name="fade">
 							<span
