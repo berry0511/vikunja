@@ -41,10 +41,25 @@ func TestHumaWorklogsAllProjects(t *testing.T) {
 	create(humaTokenFor(t, &testuser1), `{"project_id":1,"task_id":1,"work_date":"2026-10-19T00:00:00Z","minutes":60,"comment":"alpha"}`)
 	create(humaTokenFor(t, ownerOfProject3), `{"project_id":3,"task_id":32,"work_date":"2026-10-19T00:00:00Z","minutes":45,"comment":"private-beta"}`)
 
+	// Distinguish persistence errors from all-project enumeration errors.
+	// Both writes returned 201; an exact-project query must show the saved row
+	// before testing cross-project totals and permission isolation.
+	singleProject := humaRequest(t, e, http.MethodGet,
+		"/api/v2/worklogs?project_id=1&user_id=0&task_id=0&from_date=2026-10-19&to_date=2026-10-19",
+		"", humaTokenFor(t, &testuser1), "")
+	require.Equal(t, http.StatusOK, singleProject.Code, singleProject.Body.String())
+	require.Contains(t, singleProject.Body.String(), `"comment":"alpha"`,
+		"new worklog was created but an explicit project query could not read it")
+	projectThree := humaRequest(t, e, http.MethodGet,
+		"/api/v2/worklogs?project_id=3&user_id=0&task_id=0&from_date=2026-10-19&to_date=2026-10-19",
+		"", humaTokenFor(t, ownerOfProject3), "")
+	require.Equal(t, http.StatusOK, projectThree.Code, projectThree.Body.String())
+	require.Contains(t, projectThree.Body.String(), `"comment":"private-beta"`)
+
 	query := "/api/v2/worklogs?project_id=0&user_id=0&task_id=0&from_date=2026-10-19&to_date=2026-10-19"
 	owner := humaRequest(t, e, http.MethodGet, query, "", humaTokenFor(t, &testuser1), "")
 	require.Equal(t, http.StatusOK, owner.Code, owner.Body.String())
-	assert.Contains(t, owner.Body.String(), `"project_id":1`)
+	require.Contains(t, owner.Body.String(), `"project_id":1`, "all-project lookup lost an accessible project")
 	assert.Contains(t, owner.Body.String(), `"project_title":`)
 
 	// user2 has project 3 read permission but is not its administrator.
