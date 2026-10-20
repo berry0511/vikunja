@@ -53,6 +53,12 @@
 					</RouterLink>
 				</li>
 				<li>
+					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}">
+						<span class="menu-item-icon icon"><Icon icon="archive" /></span>
+						已归档项目
+					</RouterLink>
+				</li>
+				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.labels"
 						:to="{ name: 'labels.index'}"
@@ -182,9 +188,11 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 
 	display: flex;
 	flex-direction: column;
-	background: var(--site-background);
-	color: $vikunja-nav-color;
-	padding: 1rem 0;
+	background: var(--white);
+	color: var(--text);
+	border-inline-end: 1px solid var(--card-border-color);
+	box-shadow: 5px 0 24px rgba(15,23,42,.025);
+	padding: 1rem .65rem;
 	transition: transform $transition-duration ease-in;
 	position: fixed;
 	inset-block-start: $navbar-height;
@@ -232,20 +240,37 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 }
 
 .top-menu .menu-list {
-	li {
-		font-weight: 600;
-		font-family: $vikunja-font;
+	li { font-weight: 620; font-family: $vikunja-font; margin-block: .15rem; }
+	.list-menu-link, li > a {
+		display: flex;
+		align-items: center;
+		gap: .7rem;
+		min-block-size: 2.65rem;
+		padding: .65rem .85rem;
+		border-radius: 10px;
+		text-decoration: none;
+		font-size: .91rem;
+		color: var(--text);
+		transition: background .15s ease, color .15s ease;
+		&:hover { background: var(--grey-50); color: var(--text-strong); }
+		&.router-link-active { background: color-mix(in srgb, var(--primary) 11%, var(--white)); color: var(--primary); font-weight: 760; }
+		.icon { min-inline-size: 1.2rem; color: inherit; padding: 0; }
+		&:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 	}
-
-	.list-menu-link,
-	li > a {
-		padding-inline-start: 2rem;
-		display: inline-block;
-
-		.icon {
-			padding-block-end: .25rem;
-		}
-	}
+}
+.menu-container :deep(.navigation-item) {
+	margin-inline: .05rem;
+	border-radius: 9px;
+}
+.menu-container :deep(.list-menu-link) {
+	border-radius: 9px;
+}
+.menu-container :deep(.list-menu-link:hover) {
+	background-color: var(--grey-50);
+}
+.menu-container :deep(.project-menu-title) {
+	font-size: .87rem;
+	font-weight: 550;
 }
 
 .menu + .menu {
