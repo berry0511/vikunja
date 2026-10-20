@@ -71,78 +71,54 @@ const showLoading = useDelayedLoading(() => props.loading)
 
 <style lang="scss" scoped>
 .card {
-	background-color: var(--white);
-	border-radius: $radius;
-	margin-block-end: 1rem;
-	border: 1px solid var(--card-border-color);
-	box-shadow: var(--shadow-sm);
-	color: var(--text);
 	max-inline-size: 100%;
 	position: relative;
-
-	@media print {
-		box-shadow: none;
-		border: none;
-	}
+	margin-block-end: 1.15rem;
+	background-color: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 14px;
+	box-shadow: 0 4px 18px rgba(15,23,42,.045);
+	color: var(--text);
+	// Keep overflow visible: dropdowns and date selectors inside report cards
+	// must not be clipped by rounded panel boundaries.
+	&.has-no-shadow { box-shadow: none; }
+	@media print { box-shadow: none; border: 0; }
 }
-
 .card-header {
-	background-color: transparent;
-	align-items: stretch;
 	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: transparent;
 	box-shadow: none;
-	border-inline-end: 1px solid var(--card-border-color);
-	border-radius: $radius $radius 0 0;
+	border-block-end: 1px solid var(--card-border-color);
 }
-
 .card-header-title {
-	align-items: center;
-	color: var(--text-strong);
-	display: flex;
 	flex-grow: 1;
-	font-weight: 700;
-	padding: 0.75rem 1rem;
-
-	&.is-centered {
-		justify-content: center;
-	}
+	color: var(--text-strong);
+	font-size: .96rem;
+	font-weight: 750;
+	line-height: 1.4;
+	padding: 1rem 1.25rem;
+	&.is-centered { justify-content: center; }
 }
-
 .card-header-icon {
-	align-items: center;
-	cursor: pointer;
 	display: flex;
+	align-items: center;
 	justify-content: center;
-	padding: 0.75rem 1rem;
+	cursor: pointer;
+	padding: .75rem 1rem;
 }
-
 .card-content {
-	background-color: transparent;
-	padding: 1.5rem;
-
-	&:first-child {
-		border-start-start-radius: $radius;
-		border-start-end-radius: $radius;
-	}
-
-	&:last-child {
-		border-end-start-radius: $radius;
-		border-end-end-radius: $radius;
-	}
-
-	// Utility classes like .p-0 are defined globally with lower specificity
-	// than Vue-scoped selectors; restore precedence explicitly.
-	&.p-0 {
-		padding: 0;
-	}
+	background: transparent;
+	padding: clamp(1rem, 2vw, 1.35rem);
+	&.p-0 { padding: 0; }
 }
-
 .card-footer {
-	align-items: stretch;
-	background-color: var(--grey-50);
-	border-block-start: 0;
-	padding: 20px;
 	display: flex;
 	justify-content: flex-end;
+	align-items: center;
+	background: var(--grey-50);
+	padding: 1rem 1.25rem;
+	border-block-start: 1px solid var(--card-border-color);
 }
 </style>

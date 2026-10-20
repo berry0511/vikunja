@@ -22,12 +22,15 @@
 					:loading="taskQuery.isFetching.value"
 					:search-results="foundTasks"
 					label="title"
+					@focusin="refreshTaskResults"
 					@search="findTasks"
 				>
 					<template #searchResult="{option}">
 						{{ option.title }}
 					</template>
 				</Multiselect>
+				<p v-if="taskSelectionError" class="help is-danger" role="alert">{{ taskSelectionError }}</p>
+				<p v-if="!isEditing && selectedTask === null" class="help">请选择对应任务，新工时将直接关联该任务。</p>
 			</div>
 		</div>
 
@@ -123,6 +126,7 @@ import {useTasks} from '@/composables/useTasks'
 import {ensureTask} from '@/client/queries/tasks'
 import {smartFillStart} from '@/helpers/time/smartFillStart'
 import {useCreateTimeEntryMutation, useUpdateTimeEntryMutation} from '@/client/queries/timeEntries'
+import {tasksRead} from '@/client/generated'
 import type {UpdateTimeEntryInput} from '@/client/queries/timeEntries'
 import type {TimeEntryWritable} from '@/client/generated'
 import {parseDateOrNull} from '@/helpers/parseDateOrNull'
@@ -178,15 +182,12 @@ const to = ref<Date | null>(null)
 const comment = ref('')
 const isSaving = ref(false)
 
-// Task and project are mutually exclusive (XOR) — selecting one clears the other,
-// so applyTarget never picks a stale target the user has since changed.
-watch(selectedTask, task => {
-	if (task !== null) {
-		selectedProject.value = null
-	}
-})
+// The project field narrows search results; it is not a direct target
+// when creating new time entries. Historical project-only rows remain editable.
+const taskSelectionError = ref('')
+watch(selectedTask, () => { taskSelectionError.value = '' })
 watch(selectedProject, project => {
-	if (project !== null) {
+	if (project !== null && selectedTask.value?.project_id !== project.id) {
 		selectedTask.value = null
 	}
 })
@@ -196,14 +197,39 @@ const taskQuery = useTasks(
 	() => ({project: selectedProject.value?.id, params: {q: taskSearch.value, sort_by: ['done']}}),
 	{enabled: () => taskSearch.value !== ''},
 )
-const foundTasks = taskQuery.tasks
+// Soft-deleted tasks must never be offered as targets. The server's
+// soft-delete condition filters active searches, while this also protects
+// against stale cached results and tasks returned with deleted_at.
+const foundTasks = computed(() => taskQuery.tasks.value.filter(task => !task.deleted_at))
 function findTasks(query: string) { taskSearch.value = query }
+function refreshTaskResults() {
+	if (taskSearch.value !== '') void taskQuery.refetch()
+}
+
+// Search lists may have been cached before another user deleted the task.
+// Revalidate the chosen task against the server *before* creating an entry;
+// the backend permission check remains authoritative too.
+async function ensureSelectedTaskStillExists(): Promise<boolean> {
+	const task = selectedTask.value
+	if (task === null) return true
+	try {
+		const {data} = await tasksRead({path: {task: task.id}})
+		if (data?.id === task.id && !data.deleted_at) return true
+	} catch {
+		// Deleted, inaccessible or unavailable. Fail closed and ask to reselect.
+	}
+	if (selectedTask.value?.id === task.id) {
+		selectedTask.value = null
+		taskSelectionError.value = 'This task is no longer available. Please select an existing task.'
+	}
+	return false
+}
 
 
 const canSubmit = computed(() =>
-	// In edit mode the entry already has a valid container; an update that sends
-	// neither keeps it, so don't block submit if the prefill lookup failed.
-	isEditing.value || props.taskId !== undefined || selectedTask.value !== null || selectedProject.value !== null,
+	// New records must be linked to a task. Existing project-only records
+	// remain editable without silently changing their historical target.
+	isEditing.value || props.taskId !== undefined || selectedTask.value !== null,
 )
 
 function smartFill() {
@@ -215,14 +241,15 @@ function smartFill() {
 	to.value = new Date()
 }
 
-// Whichever of task / project is set lands on the payload (XOR — enforced by canSubmit).
+// New hours always belong to a task. Only editing an old project-level
+// entry can preserve the legacy direct-project target.
 function applyTarget(payload: TimeEntryWritable) {
 	if (props.taskId !== undefined) {
 		payload.task_id = props.taskId
 	} else if (selectedTask.value !== null) {
 		payload.task_id = selectedTask.value.id
-	} else if (selectedProject.value !== null) {
-		payload.project_id = selectedProject.value.id
+	} else if (isEditing.value && props.entry?.project_id) {
+		payload.project_id = props.entry.project_id
 	}
 }
 
@@ -305,6 +332,8 @@ async function submit(includeEnd: boolean) {
 	isSaving.value = true
 	const draft = draftIdentity()
 	try {
+		if (!(await ensureSelectedTaskStillExists())) return
+		if (draftIdentity() !== draft) return
 		const payload = buildPayload(includeEnd)
 		// An untouched start would otherwise be when the form loaded, not click time.
 		if (!includeEnd && !start.value.chosen) {

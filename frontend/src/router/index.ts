@@ -444,13 +444,15 @@ const router = createRouter({
 			component: () => import('@/views/About.vue'),
 		},
 		{
+			path: '/daily-worklogs',
+			name: 'daily-worklogs',
+			component: () => import('@/views/time-tracking/DailyWorklogs.vue'),
+		},
+		// Retired the legacy time-tracking page. Old bookmarks go to
+		// the sole maintained manual-worklog report.
+		{
 			path: '/time-tracking',
-			name: 'time-tracking',
-			component: () => import('@/views/time-tracking/TimeTracking.vue'),
-			meta: {
-				requiresTimeTracking: true,
-				title: 'timeTracking.title',
-			},
+			redirect: {name: 'daily-worklogs'},
 		},
 		{
 			path: '/admin',
@@ -621,15 +623,6 @@ router.beforeEach(async (to, from) => {
 		await baseStore.appReady
 		const configStore = useConfigStore()
 		if (!configStore.isProFeatureEnabled(PRO_FEATURE.USER_INVITES)) {
-			return {name: 'not-found'}
-		}
-	}
-
-	if (to.meta?.requiresTimeTracking) {
-		const baseStore = useBaseStore()
-		await baseStore.appReady
-		const configStore = useConfigStore()
-		if (!configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING)) {
 			return {name: 'not-found'}
 		}
 	}

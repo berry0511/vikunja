@@ -63,7 +63,6 @@
 		</div>
 
 		<div class="navbar-end">
-			<TimerBadge />
 			<OpenQuickActions />
 			<Notifications />
 			<Dropdown>
@@ -139,7 +138,6 @@ import ProjectSettingsDropdown from '@/components/project/ProjectSettingsDropdow
 import Dropdown from '@/components/misc/Dropdown.vue'
 import DropdownItem from '@/components/misc/DropdownItem.vue'
 import Notifications from '@/components/notifications/Notifications.vue'
-import TimerBadge from '@/components/time-tracking/TimerBadge.vue'
 import Logo from '@/components/home/Logo.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import MenuButton from '@/components/home/MenuButton.vue'
@@ -199,7 +197,9 @@ $user-dropdown-width-mobile: 5rem;
 	gap: var(--navbar-gap-width);
 	min-block-size: $navbar-height;
 
-	background: var(--site-background);
+	background: var(--white);
+	border-block-end: 1px solid var(--card-border-color);
+	box-shadow: 0 3px 16px rgba(15, 23, 42, .035);
 
 	@media screen and (min-width: $tablet) {
 		padding-inline-start: 2rem;
@@ -264,7 +264,7 @@ $user-dropdown-width-mobile: 5rem;
 	white-space: nowrap;
 
 	@media screen and (min-width: $tablet) {
-		font-size: 1.75rem;
+		font-size: 1.26rem;
 	}
 }
 
@@ -301,7 +301,7 @@ $user-dropdown-width-mobile: 5rem;
 	display: inline-flex;
 	align-items: center;
 	font-size: .85rem;
-	font-weight: 700;
+	font-weight: 650;
 	gap: .5rem;
 	
 	:deep(.avatar) {

@@ -368,14 +368,12 @@
 						/>
 					</div>
 
-					<!-- Time Tracking -->
-					<div
-						v-if="timeTrackingEnabled && activeFields.timeTracking"
-						:ref="e => setFieldRef('timeTracking', e)"
-						class="content time-tracking"
-					>
-						<TaskTimeTracking :task-id="task.id" />
-					</div>
+					<!-- Daily work logs belong to the task and automatically inherit its IDs. -->
+					<TaskDailyWorklogs
+						v-if="task.id > 0 && task.project_id > 0 && !authStore.isLinkShareAuth"
+						:task-id="task.id"
+						:project-id="task.project_id"
+					/>
 
 					<!-- Related Tasks -->
 					<div
@@ -547,15 +545,6 @@
 
 						<span class="action-heading">{{ $t('task.detail.dateAndTime') }}</span>
 
-						<XButton
-							v-if="timeTrackingEnabled"
-							v-cy="'taskTrackTimeAction'"
-							variant="secondary"
-							:icon="['far', 'clock']"
-							@click="setFieldActive('timeTracking')"
-						>
-							{{ $t('task.detail.actions.timeTracking') }}
-						</XButton>
 
 						<XButton
 							v-shortcut="SHORTCUTS.taskDetail.dueDate"
@@ -664,14 +653,13 @@ import type {ProjectResponse} from '@/client/queries/projects'
 
 import {PRIORITIES} from '@/constants/priorities'
 import {PERMISSIONS} from '@/constants/permissions'
-import {PRO_FEATURE} from '@/constants/proFeatures'
 import {SHORTCUTS} from '@/constants/shortcuts'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 
 // partials
 import Attachments from '@/components/tasks/partials/Attachments.vue'
-import TaskTimeTracking from '@/components/time-tracking/TaskTimeTracking.vue'
+import TaskDailyWorklogs from '@/components/time-tracking/TaskDailyWorklogs.vue'
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import ColorPicker from '@/components/input/ColorPicker.vue'
 import Comments from '@/components/tasks/partials/Comments.vue'
@@ -711,7 +699,6 @@ import {
 import {useProjects} from '@/composables/useProjects'
 import {useAuthStore} from '@/stores/auth'
 import {useBaseStore} from '@/stores/base'
-import {useConfigStore} from '@/stores/config'
 
 import {useTitle} from '@/composables/useTitle'
 import {useTaskDetailShortcuts} from '@/composables/useTaskDetailShortcuts'
@@ -748,10 +735,7 @@ const taskMutating = computed(() => [
 	duplicateTask,
 	markTaskRead,
 ].some(mutation => mutation.isPending.value))
-const configStore = useConfigStore()
 const authStore = useAuthStore()
-const timeTrackingEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING)
-	&& !authStore.isLinkShareAuth)
 const baseStore = useBaseStore()
 
 const taskQuery = useTask(
@@ -760,7 +744,6 @@ const taskQuery = useTask(
 		'reactions',
 		'is_unread',
 		'buckets',
-		...(timeTrackingEnabled.value ? ['time_entries_count' as const] : []),
 	],
 )
 const task = ref(createTaskDraft())
@@ -989,7 +972,6 @@ type FieldType =
 	| 'reminders'
 	| 'repeatAfter'
 	| 'startDate'
-	| 'timeTracking'
 
 const activeFields: { [type in FieldType]: boolean } = reactive({
 	assignees: false,
@@ -1005,14 +987,12 @@ const activeFields: { [type in FieldType]: boolean } = reactive({
 	reminders: false,
 	repeatAfter: false,
 	startDate: false,
-	timeTracking: false,
 })
 
 function setActiveFields() {
 	// Set all active fields based on values in the model
 	activeFields.assignees = (task.value.assignees?.length ?? 0) > 0
 	activeFields.attachments = (task.value.attachments?.length ?? 0) > 0
-	activeFields.timeTracking = (task.value.time_entries_count ?? 0) > 0
 	activeFields.dueDate = Boolean(parseDateOrNull(task.value.due_date))
 	activeFields.endDate = Boolean(parseDateOrNull(task.value.end_date))
 	activeFields.labels = (task.value.labels?.length ?? 0) > 0
@@ -1068,7 +1048,6 @@ const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive(
 	reminders: null,
 	repeatAfter: null,
 	startDate: null,
-	timeTracking: null,
 })
 
 const dueDatePicker = useTemplateRef<InstanceType<typeof Datepicker>>('dueDatePicker')
@@ -1272,20 +1251,20 @@ function setRelatedTasksActive() {
 }
 
 .task-view {
-	padding-block-start: 1rem;
-	padding-inline: .5rem;
-	background-color: var(--site-background);
+	padding-block-start: .6rem;
+	padding-inline: .25rem;
+	background: transparent;
 
 	@media screen and (min-width: $desktop) {
-		padding: 1rem;
+		padding: 1rem .6rem 1.5rem;
 	}
 }
 
 .is-modal .task-view {
-	border-radius: $radius;
-	padding: 1rem;
+	border-radius: 14px;
+	padding: clamp(.85rem, 2vw, 1.5rem);
 	color: var(--text);
-	background-color: var(--site-background) !important;
+	background-color: var(--white) !important;
 
 	@media screen and (width <= calc(#{$desktop} + 1px)) {
 		border-radius: 0;
@@ -1302,11 +1281,15 @@ function setRelatedTasksActive() {
 
 
 .subtitle {
-	color: var(--grey-500);
-	margin-block-end: 1rem;
+	color: var(--text-light);
+	font-size: .87rem;
+	margin-block: .35rem 1.2rem;
+	padding: .55rem .8rem;
+	border-radius: 9px;
+	background: var(--grey-50);
 
 	a {
-		color: var(--grey-800);
+		color: var(--text-strong);
 	}
 }
 
@@ -1436,16 +1419,39 @@ h2 .button {
 }
 
 .action-buttons {
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 15px;
+	padding: 1.1rem;
+	box-shadow: 0 5px 22px rgba(15, 23, 42, .045);
+	// Use compact paired actions instead of a tall full-width button stack.
+	// The primary completion action and headings remain full-width.
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-content: start;
+	gap: .5rem;
+
+	@media screen and (max-width: $tablet) {
+		grid-template-columns: 1fr;
+	}
+
 	@media screen and (min-width: $tablet) {
 		position: sticky;
 		inset-block-start: $navbar-height + 1.5rem;
 		align-self: flex-start;
 	}
 
+	> .action-heading,
+	> .button--mark-done {
+		grid-column: 1 / -1;
+	}
+
 	.button {
 		inline-size: 100%;
-		margin-block-end: .5rem;
-		justify-content: left;
+		min-inline-size: 0;
+		margin-block-end: 0;
+		justify-content: flex-start;
+		text-align: start;
 
 		&.has-light-text {
 			color: var(--white);
@@ -1493,17 +1499,87 @@ h2 .button {
 }
 
 .detail-content {
+	min-inline-size: 0;
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 15px;
+	padding: clamp(1rem, 1.8vw, 1.6rem) !important;
+	box-shadow: 0 5px 22px rgba(15, 23, 42, .045);
 	@media print {
 		inline-size: 100% !important;
+		box-shadow: none;
+		border: 0;
 	}
+}
+.task-view > :deep(.heading) {
+	margin-block-end: .4rem;
+	padding-inline: .3rem;
+}
+.task-view > .columns {
+	align-items: flex-start;
+	gap: clamp(.8rem, 1.5vw, 1.3rem);
+	margin-inline: 0;
+}
+.task-view > .columns > .column { min-inline-size: 0; }
+.task-view > .columns > .detail-content {
+	flex: 1 1 0;
+	inline-size: auto;
+}
+.task-view > .columns > .action-buttons {
+	flex: 0 0 clamp(270px, 29%, 365px);
+	inline-size: auto;
+}
+.detail-content > .details {
+	margin-inline: 0;
+	gap: .5rem;
+}
+.detail-content > .details > .column {
+	flex: 1 1 min(100%, 220px);
+	min-inline-size: 0;
+	padding: .7rem .9rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
+	background: var(--grey-50);
+	break-after: auto;
+}
+.task-view :deep(.task-section-title) {
+	font-size: 1rem;
+	font-weight: 760;
+	line-height: 1.35;
+	color: var(--text-strong);
+	padding-block-end: .6rem;
+	margin-block-end: 1rem;
+	border-block-end: 1px solid var(--card-border-color);
+}
+.task-view :deep(.task-worklogs) {
+	padding: 1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 12px;
+	background: var(--grey-50);
+	margin-block: 1.1rem;
+}
+@media screen and (max-width: $tablet) {
+	.task-view > .columns { display: block; }
+	.task-view > .columns > .column { inline-size: 100%; }
+	.detail-content { margin-block-end: 1rem; }
+}
+
+// The editor remains a large writing surface when content exists, but an
+// empty task description or comment should not create a tall blank spacer.
+.task-view :deep(.description .tiptap__editor-is-edit-enabled) {
+	min-block-size: 5.5rem;
+}
+.task-view :deep(.comments-container .tiptap__editor-is-edit-enabled) {
+	min-block-size: 5.5rem;
 }
 
 .action-heading {
 	text-transform: uppercase;
-	color: var(--grey-700);
-	font-size: .75rem;
-	font-weight: 700;
-	margin: .5rem 0;
+	color: var(--text-light);
+	font-size: .71rem;
+	letter-spacing: .085em;
+	font-weight: 760;
+	margin: .85rem 0 .15rem;
 	display: inline-block;
 }
 

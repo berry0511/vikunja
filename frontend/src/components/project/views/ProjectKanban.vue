@@ -1035,7 +1035,9 @@ $filter-container-height: '1rem - #{$switch-view-height}';
 		}
 	}
 
-	:deep(.dropdown-trigger) {
+	// This stylesheet is global (not scoped); Vue's :deep() is invalid
+	// here and Lightning CSS would leave an unrecognized selector.
+	.dropdown-trigger {
 		padding: .5rem;
 	}
 

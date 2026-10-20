@@ -180,6 +180,28 @@
 								@save="addComment()"
 							/>
 						</div>
+						<div class="field comment-attachment-row">
+							<input
+								ref="commentFilesInput"
+								type="file"
+								multiple
+								class="is-hidden"
+								:aria-label="$t('task.attachment.upload')"
+								@change="uploadFilesFromComment"
+							>
+							<XButton
+								type="button"
+								variant="secondary"
+								icon="paperclip"
+								:loading="commentUploadPending"
+								:disabled="commentUploadPending || creating"
+								@click="commentFilesInput?.click()"
+							>
+								{{ $t('task.attachment.upload') }}
+							</XButton>
+							<span class="comment-attachment-hint">PDF、文档、照片、视频等文件将作为任务附件，并在评论中加入链接。</span>
+							<p v-if="commentUploadError" class="help is-danger" role="alert">{{ commentUploadError }}</p>
+						</div>
 						<div class="field">
 							<XButton
 								:loading="loading && !isCommentEdit"
@@ -367,6 +389,55 @@ async function waitForEditorRef() {
 }
 
 
+// The rich-text toolbar inserts images, but non-image files belong in task
+// attachments. This explicit action uploads any file and inserts a link in
+// the comment draft; upload alone never publishes a comment.
+const commentFilesInput = ref<HTMLInputElement | null>(null)
+const commentUploadPending = ref(false)
+const commentUploadError = ref('')
+
+function escapeCommentHTML(value: string): string {
+	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+async function uploadFilesFromComment(event: Event) {
+	const input = event.target as HTMLInputElement
+	const files = Array.from(input.files ?? [])
+	input.value = '' // re-selecting the same file must remain possible
+	if (files.length === 0 || commentUploadPending.value || creating.value) return
+
+	const taskId = props.taskId
+	commentUploadError.value = ''
+	commentUploadPending.value = true
+	try {
+		for (const file of files) {
+			const result = await uploadAttachments.mutateAsync({taskId, files: [file]})
+			if (props.taskId !== taskId) return
+			const attachment = result.success?.[0]
+			if (!attachment?.id) {
+				commentUploadError.value = '部分文件上传失败，请检查文件大小和附件权限。'
+				continue
+			}
+			const url = generateAttachmentUrl(taskId, attachment.id)
+			const link = '<p><a href="' + escapeCommentHTML(url) + '">' +
+				escapeCommentHTML(file.name) + '</a></p>'
+			// The TipTap component switches external model changes to preview mode.
+			// Use its existing exposed method to preserve draft + edit focus.
+			const html = newCommentText.value + link
+			if (newCommentEditor.value) {
+				await newCommentEditor.value.setReplyContent(html)
+			} else {
+				newCommentText.value = html
+			}
+		}
+	} catch {
+		if (props.taskId === taskId) commentUploadError.value = '附件上传失败，请检查权限、容量和网络。'
+	} finally {
+		commentUploadPending.value = false
+	}
+}
+
 // the editor toasts the rejection itself, a mutation toast would duplicate it
 const uploadAttachments = useUploadAttachmentsMutation(() => false)
 
@@ -415,6 +486,7 @@ watch(() => props.taskId, (_taskId, previousTaskId) => {
 	flushPendingEdit(previousTaskId)
 	currentPage.value = 1
 	newCommentText.value = ''
+	commentUploadError.value = ''
 	commentDrafts.value = {}
 	commentEdit.value = null
 	commentToDelete.value = null
@@ -533,6 +605,17 @@ function getCommentUrl(commentId: string) {
 </script>
 
 <style lang="scss" scoped>
+.comment-attachment-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: .65rem;
+}
+.comment-attachment-hint {
+	font-size: .85rem;
+	color: var(--text-light);
+}
+
 .media {
 	align-items: flex-start;
 	display: flex;

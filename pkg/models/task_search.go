@@ -636,7 +636,10 @@ func (d *dbTaskSearcher) Search(opts *taskSearchOptions) (tasks []*Task, totalCo
 	}
 
 	limit, start := getLimitFromPageIndex(opts.page, opts.perPage)
-	cond := builder.And(builder.Or(projectIDCond, favoritesCond), where, filterCond)
+	// Worklog/time-entry task pickers consume this search too. Exclude tasks
+	// that have been soft-deleted even when joins or cached search scopes are used.
+	// This explicit condition also keeps count queries aligned with active rows.
+	cond := builder.And(builder.Or(projectIDCond, favoritesCond), where, filterCond, taskNotDeletedCond("tasks"))
 
 	// When the favorites arm is still part of the query (Favorites view, or
 	// out-of-scope favorites exist), its shape is unsupported — stay unranked.
