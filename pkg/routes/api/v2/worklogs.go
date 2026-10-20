@@ -41,6 +41,8 @@ type dailyWorklogSummary struct {
 
 type dailyWorklogDay struct {
 	WorkDate string `json:"work_date" doc:"Calendar date in YYYY-MM-DD format."`
+	ProjectID int64 `json:"project_id" doc:"Project containing these hours."`
+	ProjectTitle string `json:"project_title" doc:"Project name."`
 	UserID   int64  `json:"user_id" doc:"Person's user id."`
 	Username string `json:"username" doc:"Person's username."`
 	Minutes  int    `json:"minutes" doc:"Minutes logged by this person on this date."`
@@ -52,7 +54,7 @@ type dailyWorklogSummaryBody struct {
 
 // Huma only binds query parameters declared directly on an operation input.
 type dailyWorklogFilterInput struct {
-	ProjectID int64  `query:"project_id" required:"true" minimum:"1" doc:"Project whose historical daily worklogs to read."`
+	ProjectID int64  `query:"project_id" required:"true" minimum:"0" doc:"Project id or zero for all accessible projects."`
 	UserID    int64  `query:"user_id" doc:"Filter by person. Zero means everyone for project admins, or self for other members."`
 	TaskID    int64  `query:"task_id" minimum:"0" doc:"Optional task id to filter this project's worklogs; zero includes every task."`
 	FromDate  string `query:"from_date" required:"true" doc:"First included calendar day, YYYY-MM-DD."`
@@ -148,35 +150,84 @@ func dailyWorklogDates(from, to string) (time.Time, time.Time, error) {
 func dailyWorklogData(ctx context.Context, in dailyWorklogFilterInput) ([]*models.Worklog, error) {
 	a, err := authFromCtx(ctx)
 	if err != nil { return nil, err }
-	if in.TaskID < 0 { return nil, dailyWorklogError(models.ErrWorklogInvalid) }
+	if in.ProjectID < 0 || in.UserID < 0 || in.TaskID < 0 || (in.ProjectID == 0 && in.TaskID > 0) {
+		return nil, dailyWorklogError(models.ErrWorklogInvalid)
+	}
 	start, end, err := dailyWorklogDates(in.FromDate, in.ToDate)
 	if err != nil { return nil, dailyWorklogError(err) }
 	s := db.NewSession()
 	defer s.Close()
-	visibleUserID, err := models.WorklogScope(s, a, in.ProjectID, in.UserID)
-	if err != nil { return nil, dailyWorklogError(err) }
-	rows, err := models.ListProjectWorklogs(s, in.ProjectID, visibleUserID, in.TaskID, start, end)
-	if err != nil { return nil, translateDomainError(err) }
 
-	// We deliberately keep author IDs on deleted-user records rather than
-	// dropping historical effort from summaries and exports.
-	ids := make([]int64, 0)
-	seen := make(map[int64]bool)
-	for _, r := range rows {
-		if !seen[r.UserID] { ids = append(ids, r.UserID); seen[r.UserID] = true }
+	projects := make([]*models.Project, 0)
+	if in.ProjectID > 0 {
+		// Explicit project requests fail with 403, rather than silently
+		// returning an empty report for a project the caller cannot view.
+		if _, err := models.WorklogScope(s, a, in.ProjectID, in.UserID); err != nil {
+			return nil, dailyWorklogError(err)
+		}
+		p, err := models.GetProjectSimpleByID(s, in.ProjectID)
+		if err != nil { return nil, translateDomainError(err) }
+		projects = append(projects, p)
+	} else {
+		// Project.ReadAll uses the normal project access rules (including
+		// team memberships). Page explicitly, without assuming an unlimited
+		// per_page value is accepted by each database backend.
+		for page := 1; ; page++ {
+			p := &models.Project{IsArchived: true}
+			result, _, total, err := p.ReadAll(s, a, "", page, 100)
+			if err != nil { return nil, translateDomainError(err) }
+			found, ok := result.([]*models.Project)
+			if !ok { return nil, fmt.Errorf("unexpected project list type %T", result) }
+			for _, project := range found {
+				// Ignore the favorites and saved-filter pseudo projects.
+				if project.ID > 0 { projects = append(projects, project) }
+			}
+			if int64(page*100) >= total { break }
+		}
+	}
+
+	rows := make([]*models.Worklog, 0)
+	for _, project := range projects {
+		userID, err := models.WorklogScope(s, a, project.ID, in.UserID)
+		if err != nil {
+			// A cross-project request does not grant a member access to
+			// someone else's entries in projects where they are not an admin.
+			// Explicit project queries above still return 403.
+			var forbidden models.ErrGenericForbidden
+			if in.ProjectID == 0 && errors.As(err, &forbidden) { continue }
+			return nil, dailyWorklogError(err)
+		}
+		projectRows, err := models.ListProjectWorklogs(s, project.ID, userID, in.TaskID, start, end)
+		if err != nil { return nil, translateDomainError(err) }
+		for _, w := range projectRows {
+			w.ProjectTitle = project.Title
+		}
+		rows = append(rows, projectRows...)
+	}
+
+	// Resolve authors once, retaining historical rows when an author no
+	// longer exists. Sort globally rather than concatenating project blocks.
+	ids, seen := make([]int64, 0), make(map[int64]bool)
+	for _, w := range rows {
+		if !seen[w.UserID] { ids = append(ids, w.UserID); seen[w.UserID] = true }
 	}
 	if len(ids) > 0 {
 		users, err := user.GetUsersByIDs(s, ids)
 		if err != nil { return nil, translateDomainError(err) }
-		for _, r := range rows {
-			if u := users[r.UserID]; u != nil { r.Username = u.Username }
+		for _, w := range rows {
+			if u := users[w.UserID]; u != nil { w.Username = u.Username }
 		}
 	}
+	sort.Slice(rows, func(i, j int) bool {
+		if !rows[i].WorkDate.Equal(rows[j].WorkDate) { return rows[i].WorkDate.Before(rows[j].WorkDate) }
+		if rows[i].ProjectID != rows[j].ProjectID { return rows[i].ProjectID < rows[j].ProjectID }
+		return rows[i].ID < rows[j].ID
+	})
 	return rows, nil
 }
 
 func dailyWorklogsList(ctx context.Context, in *struct {
-	ProjectID int64  `query:"project_id" required:"true" minimum:"1"`
+	ProjectID int64  `query:"project_id" required:"true" minimum:"0"`
 	UserID    int64  `query:"user_id"`
 	TaskID    int64  `query:"task_id" minimum:"0"`
 	FromDate  string `query:"from_date" required:"true"`
@@ -265,13 +316,13 @@ func summarizeDailyWorklogs(rows []*models.Worklog) dailyWorklogSummary {
 	keys := make(map[string]int)
 	for _, r := range rows {
 		day := r.WorkDate.UTC().Format("2006-01-02")
-		key := day + "/" + strconv.FormatInt(r.UserID, 10)
+		key := day + "/" + strconv.FormatInt(r.ProjectID, 10) + "/" + strconv.FormatInt(r.UserID, 10)
 		index, ok := keys[key]
 		if !ok {
 			index = len(out.Days)
 			keys[key] = index
 			out.Days = append(out.Days, dailyWorklogDay{
-				WorkDate: day, UserID: r.UserID, Username: r.Username,
+				WorkDate: day, ProjectID: r.ProjectID, ProjectTitle: r.ProjectTitle, UserID: r.UserID, Username: r.Username,
 			})
 		}
 		out.Days[index].Minutes += r.Minutes
@@ -279,6 +330,9 @@ func summarizeDailyWorklogs(rows []*models.Worklog) dailyWorklogSummary {
 	}
 	sort.Slice(out.Days, func(i, j int) bool {
 		if out.Days[i].WorkDate == out.Days[j].WorkDate {
+			if out.Days[i].ProjectID != out.Days[j].ProjectID {
+				return out.Days[i].ProjectID < out.Days[j].ProjectID
+			}
 			return out.Days[i].UserID < out.Days[j].UserID
 		}
 		return out.Days[i].WorkDate < out.Days[j].WorkDate
@@ -306,13 +360,14 @@ func dailyWorklogsExport(ctx context.Context, in *dailyWorklogFilterInput) (*hum
 		w.Header().Set("Content-Disposition", "attachment; filename=worklogs.csv")
 		_, _ = w.Write([]byte{0xef, 0xbb, 0xbf}) // Excel-friendly UTF-8 BOM.
 		writer := csv.NewWriter(w)
-		_ = writer.Write([]string{"date", "username", "user_id", "project_id", "task_id", "minutes", "hours", "comment"})
+		_ = writer.Write([]string{"date", "project", "project_id", "username", "user_id", "task_id", "minutes", "hours", "comment"})
 		for _, r := range rows {
 			_ = writer.Write([]string{
 				r.WorkDate.UTC().Format("2006-01-02"),
+				dailyWorklogCSVCell(r.ProjectTitle),
+				strconv.FormatInt(r.ProjectID, 10),
 				dailyWorklogCSVCell(r.Username),
 				strconv.FormatInt(r.UserID, 10),
-				strconv.FormatInt(r.ProjectID, 10),
 				strconv.FormatInt(r.TaskID, 10),
 				strconv.Itoa(r.Minutes),
 				fmt.Sprintf("%.2f", float64(r.Minutes)/60),
@@ -335,11 +390,12 @@ func dailyWorklogsExportSummary(ctx context.Context, in *dailyWorklogFilterInput
 		w.Header().Set("Content-Disposition", "attachment; filename=worklogs-daily-summary.csv")
 		_, _ = w.Write([]byte{0xef, 0xbb, 0xbf})
 		writer := csv.NewWriter(w)
-		_ = writer.Write([]string{"date", "username", "user_id", "project_id", "minutes", "hours"})
+		_ = writer.Write([]string{"date", "project", "project_id", "username", "user_id", "minutes", "hours"})
 		for _, day := range sum.Days {
 			_ = writer.Write([]string{
-				day.WorkDate, dailyWorklogCSVCell(day.Username),
-				strconv.FormatInt(day.UserID, 10), strconv.FormatInt(in.ProjectID, 10),
+				day.WorkDate, dailyWorklogCSVCell(day.ProjectTitle),
+				strconv.FormatInt(day.ProjectID, 10), dailyWorklogCSVCell(day.Username),
+				strconv.FormatInt(day.UserID, 10),
 				strconv.Itoa(day.Minutes),
 				fmt.Sprintf("%.2f", float64(day.Minutes)/60),
 			})
