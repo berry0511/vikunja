@@ -106,11 +106,24 @@ func projectHistoryDiff(before, after *Project) []historyField {
 	}
 }
 
+// saveCommentHistoryDeletion records content as it existed immediately before
+// removal. The comment may then be hard-deleted without erasing this record.
+func saveCommentHistoryDeletion(s *xorm.Session, comment *TaskComment, auth web.Auth) error {
+	if comment == nil || comment.ID <= 0 || auth == nil {
+		return fmt.Errorf("comment deletion history entry missing context")
+	}
+	_, err := s.Insert(&ChangeHistory{
+		EntityType: "comment", EntityID: comment.ID, ActorID: auth.GetID(),
+		Action: "delete", Field: "comment", OldValue: comment.Comment,
+	})
+	return err
+}
+
 // ListHistory returns an entity-scoped page. All callers MUST authorize read
 // access to that entity before invoking it. No change-history write API is
 // exposed, even to non-admin project editors.
 func ListHistory(s *xorm.Session, entityType string, id int64, page, perPage int) ([]*ChangeHistory, int64, error) {
-	if (entityType != "task" && entityType != "project") || id <= 0 { return nil, 0, fmt.Errorf("invalid history entity") }
+	if (entityType != "task" && entityType != "project" && entityType != "comment") || id <= 0 { return nil, 0, fmt.Errorf("invalid history entity") }
 	if page <= 0 { page = 1 }
 	if perPage <= 0 || perPage > 100 { perPage = 50 }
 	where := "entity_type = ? AND entity_id = ?"
