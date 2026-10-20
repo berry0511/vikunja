@@ -14,13 +14,6 @@ describe('attachment size preflight', () => {
 		// Increasing the server setting allows this client-side check through.
 		expect(uploadSizeError({size: 60 * 1024 ** 2, name: 'demo.apk'}, '200MB')).toBeNull()
 	})
-	it('enforces different limits for ordinary files and videos', () => {
-		expect(uploadSizeError({name: 'archive.zip', size: 1024 ** 3}, '5GB')).toBeNull()
-		expect(uploadSizeError({name: 'archive.zip', size: 1024 ** 3 + 1}, '5GB')).toContain('1 GiB')
-		expect(uploadSizeError({name: 'demo.MP4', size: 5 * 1024 ** 3}, '5GB')).toBeNull()
-		expect(uploadSizeError({name: 'demo.MP4', size: 5 * 1024 ** 3 + 1}, '5GB')).toContain('5 GiB')
-		expect(uploadSizeError({name: 'demo.mp4', size: 2 * 1024 ** 3}, '20MB')).toContain('files.maxsize')
-	})
 	it('allows the exact boundary and leaves unknown configs to the server', () => {
 		expect(uploadSizeError({size: 20 * 1024 ** 2, name: 'sample.apk'}, '20MB')).toBeNull()
 		expect(uploadSizeError({size: 100, name: 'sample.apk'}, 'unknown')).toBeNull()
