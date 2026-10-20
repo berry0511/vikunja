@@ -170,22 +170,30 @@
 				v-for="(action, k) in bottomActions"
 				:key="k"
 			>
-				<BaseButton @click="action.action">
+				<BaseButton :class="{'danger-action': action.danger}" @click="action.action">
 					{{ action.title }}
 				</BaseButton>
 			</li>
 		</ul>
-		<XButton
+		<div
 			v-else-if="isEditing && showSave"
-			v-cy="'saveEditor'"
-			class="mbs-4"
-			variant="secondary"
-			:shadow="false"
-			:disabled="!contentHasChanged"
-			@click="bubbleSave"
+			class="tiptap__explicit-actions d-print-none"
 		>
-			{{ $t('misc.save') }}
-		</XButton>
+			<XButton
+				v-cy="'saveEditor'"
+				:disabled="!contentHasChanged"
+				@click="bubbleSave"
+			>
+				保存修改
+			</XButton>
+			<XButton
+				v-if="showCancel"
+				variant="secondary"
+				@click="exitEditMode"
+			>
+				取消修改
+			</XButton>
+		</div>
 	</div>
 </template>
 
@@ -1139,6 +1147,13 @@ ul[data-type='taskList'] {
 	}
 }
 
+.tiptap__explicit-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .65rem;
+	padding-top: .8rem;
+}
 // Comment actions are real buttons, not muted prose links. Keep legacy
 // editor variants untouched unless they opt in to the explicit discard UX.
 .tiptap--comment-editor {
@@ -1181,6 +1196,15 @@ ul[data-type='taskList'] {
 		.cancel-edit {
 			background: var(--white);
 			color: var(--text-strong);
+		}
+		.danger-action {
+			color: var(--danger);
+			border-color: color-mix(in srgb, var(--danger) 25%, var(--card-border-color));
+			&:hover {
+				color: var(--white);
+				background: var(--danger);
+				border-color: var(--danger);
+			}
 		}
 	}
 }
