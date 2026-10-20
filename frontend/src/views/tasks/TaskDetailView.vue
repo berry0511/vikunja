@@ -1251,20 +1251,20 @@ function setRelatedTasksActive() {
 }
 
 .task-view {
-	padding-block-start: 1rem;
-	padding-inline: .5rem;
-	background-color: var(--site-background);
+	padding-block-start: .6rem;
+	padding-inline: .25rem;
+	background: transparent;
 
 	@media screen and (min-width: $desktop) {
-		padding: 1rem;
+		padding: 1rem .6rem 1.5rem;
 	}
 }
 
 .is-modal .task-view {
-	border-radius: $radius;
-	padding: 1rem;
+	border-radius: 14px;
+	padding: clamp(.85rem, 2vw, 1.5rem);
 	color: var(--text);
-	background-color: var(--site-background) !important;
+	background-color: var(--white) !important;
 
 	@media screen and (width <= calc(#{$desktop} + 1px)) {
 		border-radius: 0;
@@ -1281,11 +1281,15 @@ function setRelatedTasksActive() {
 
 
 .subtitle {
-	color: var(--grey-500);
-	margin-block-end: 1rem;
+	color: var(--text-light);
+	font-size: .87rem;
+	margin-block: .35rem 1.2rem;
+	padding: .55rem .8rem;
+	border-radius: 9px;
+	background: var(--grey-50);
 
 	a {
-		color: var(--grey-800);
+		color: var(--text-strong);
 	}
 }
 
@@ -1415,6 +1419,11 @@ h2 .button {
 }
 
 .action-buttons {
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 15px;
+	padding: 1.1rem;
+	box-shadow: 0 5px 22px rgba(15, 23, 42, .045);
 	// Use compact paired actions instead of a tall full-width button stack.
 	// The primary completion action and headings remain full-width.
 	display: grid;
@@ -1490,9 +1499,60 @@ h2 .button {
 }
 
 .detail-content {
+	min-inline-size: 0;
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 15px;
+	padding: clamp(1rem, 1.8vw, 1.6rem) !important;
+	box-shadow: 0 5px 22px rgba(15, 23, 42, .045);
 	@media print {
 		inline-size: 100% !important;
+		box-shadow: none;
+		border: 0;
 	}
+}
+.task-view > :deep(.heading) {
+	margin-block-end: .4rem;
+	padding-inline: .3rem;
+}
+.task-view > .columns {
+	align-items: flex-start;
+	gap: clamp(.8rem, 1.5vw, 1.3rem);
+	margin-inline: 0;
+}
+.task-view > .columns > .column { min-inline-size: 0; }
+.detail-content > .details {
+	margin-inline: 0;
+	gap: .5rem;
+}
+.detail-content > .details > .column {
+	flex: 1 1 min(100%, 220px);
+	min-inline-size: 0;
+	padding: .7rem .9rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
+	background: var(--grey-50);
+	break-after: auto;
+}
+.task-view :deep(.task-section-title) {
+	font-size: 1rem;
+	font-weight: 760;
+	line-height: 1.35;
+	color: var(--text-strong);
+	padding-block-end: .6rem;
+	margin-block-end: 1rem;
+	border-block-end: 1px solid var(--card-border-color);
+}
+.task-view :deep(.task-worklogs) {
+	padding: 1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 12px;
+	background: var(--grey-50);
+	margin-block: 1.1rem;
+}
+@media screen and (max-width: $tablet) {
+	.task-view > .columns { display: block; }
+	.detail-content { margin-block-end: 1rem; }
 }
 
 // The editor remains a large writing surface when content exists, but an
@@ -1506,10 +1566,11 @@ h2 .button {
 
 .action-heading {
 	text-transform: uppercase;
-	color: var(--grey-700);
-	font-size: .75rem;
-	font-weight: 700;
-	margin: .5rem 0;
+	color: var(--text-light);
+	font-size: .71rem;
+	letter-spacing: .085em;
+	font-weight: 760;
+	margin: .85rem 0 .15rem;
 	display: inline-block;
 }
 
