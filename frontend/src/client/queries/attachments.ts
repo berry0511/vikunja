@@ -58,7 +58,7 @@ export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = (
 					path: {task: taskId},
 					query: {source},
 					body: {files},
-				})).data
+				} as Parameters<typeof taskAttachmentsUpload>[0])).data
 			} catch (reason) {
 				// Proxies can close connections instead of returning a readable 413.
 				// Retain structured API errors; only translate fetch transport failures.
