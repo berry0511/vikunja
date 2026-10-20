@@ -119,6 +119,7 @@
 					</tbody>
 				</table>
 			</div>
+			<p v-if="statusError" class="issue-error" role="alert">{{ statusError }}</p>
 			<p class="issue-help">此页面使用项目已有的权限。修改状态需要任务编辑权限；工单本身仍能在对应项目的任务视图中找到。</p>
 		</Card>
 	</section>
@@ -166,6 +167,7 @@ const expected = ref('')
 const actual = ref('')
 const creating = ref(false)
 const createError = ref('')
+const statusError = ref('')
 const showCreate = ref(false)
 const kindFilter = ref('all')
 const statusFilter = ref('all')
@@ -235,6 +237,7 @@ async function createIssue() {
 async function setIssueStatus(task: TaskResponse, event: Event) {
 	const target = event.target as HTMLSelectElement
 	const old = issueStatus(task)
+	statusError.value = ''
 	const status = target.value as IssueStatus
 	if (status === old) return
 	changingId.value = task.id
@@ -250,7 +253,7 @@ async function setIssueStatus(task: TaskResponse, event: Event) {
 		await queryClient.invalidateQueries({queryKey: taskKeys.all})
 	} catch (reason) {
 		target.value = old
-		createError.value = `更新工单状态失败：${getErrorText(reason)}`
+		statusError.value = `更新工单状态失败：${getErrorText(reason)}`
 	} finally { changingId.value = 0 }
 }
 </script>
