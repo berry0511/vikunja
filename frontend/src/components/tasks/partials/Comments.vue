@@ -335,7 +335,7 @@ const actions = computed(() => {
 			action: () => startReplyTo(comment),
 			title: t('task.comment.reply'),
 		}]
-		if (comment.author?.id === currentUserId.value) {
+		if (comment.author?.id === currentUserId.value || authStore.info?.is_admin === true) {
 			list.push({
 				action: () => toggleDelete(comment.id),
 				title: t('misc.delete'),
