@@ -47,7 +47,7 @@ const expanded = ref(false)
 const page = ref(1)
 watch(() => [props.entityId, props.taskId], () => {page.value = 1; expanded.value = false})
 const history = useQuery(() => ({
-	...changeHistoryQuery(props.kind, props.entityId, page.value, props.taskId),
+	...changeHistoryQuery(props.kind, props.entityId, page.value, props.taskId ?? 0),
 	enabled: expanded.value && props.entityId > 0 && (props.kind !== 'comment' || (props.taskId ?? 0) > 0),
 }))
 
