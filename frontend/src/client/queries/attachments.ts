@@ -9,6 +9,8 @@ import type {
 	TaskAttachmentsDownloadData,
 } from '@/client/generated'
 import {i18n} from '@/i18n'
+import {useConfigStore} from '@/stores/config'
+import {uploadSizeError} from '@/helpers/uploadSize'
 import {expectBlob} from './blobResponse'
 import {contextMutationOptions} from './contextMutation'
 import {
@@ -44,11 +46,26 @@ export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = (
 		mutationFn: async ({taskId, files}: {
 			taskId: number,
 			files: File[],
-		}) =>
-			(await taskAttachmentsUpload({
-				path: {task: taskId},
-				body: {files},
-			})).data,
+		}) => {
+			const limit = useConfigStore().max_file_size
+			for (const file of files) {
+				const reason = uploadSizeError(file, limit)
+				if (reason) throw new Error(reason)
+			}
+			try {
+				return (await taskAttachmentsUpload({
+					path: {task: taskId},
+					body: {files},
+				})).data
+			} catch (reason) {
+				// Proxies can close connections instead of returning a readable 413.
+				// Retain structured API errors; only translate fetch transport failures.
+				if (reason instanceof TypeError && /Failed to fetch|NetworkError/i.test(reason.message)) {
+					throw new Error('附件上传连接中断。请检查服务器 files.maxsize、反向代理上传大小限制（例如 Nginx client_max_body_size）和请求超时。', {cause: reason})
+				}
+				throw reason
+			}
+		},
 		onSuccess: (result, {taskId}, client) => {
 			const uploaded = result.success ?? []
 			mapTaskEverywhere(client, taskId, task => ({
