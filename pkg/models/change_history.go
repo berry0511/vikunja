@@ -106,6 +106,35 @@ func projectHistoryDiff(before, after *Project) []historyField {
 	}
 }
 
+// saveAttachmentHistory records the evidence in the task's immutable timeline.
+// Attachment removal must not erase its filename or original uploader metadata.
+func saveAttachmentHistory(s *xorm.Session, attachment *TaskAttachment, auth web.Auth, action string) error {
+	if attachment == nil || attachment.ID <= 0 || attachment.TaskID <= 0 || auth == nil {
+		return fmt.Errorf("attachment history missing context")
+	}
+	if action != "upload" && action != "delete" {
+		return fmt.Errorf("invalid attachment history action %q", action)
+	}
+	name := "未知文件"
+	var size uint64
+	if attachment.File != nil {
+		name, size = attachment.File.Name, attachment.File.Size
+	}
+	metadata := fmt.Sprintf("%s (附件 #%d，%d 字节，来源：%s，上传者 #%d，上传时间：%s)",
+		name, attachment.ID, size, attachment.Source, attachment.CreatedByID, historicalTime(attachment.Created))
+	entry := &ChangeHistory{
+		EntityType: "task", EntityID: attachment.TaskID, ActorID: auth.GetID(),
+		Action: action, Field: "attachment",
+	}
+	if action == "upload" {
+		entry.NewValue = metadata
+	} else {
+		entry.OldValue = metadata
+	}
+	_, err := s.Insert(entry)
+	return err
+}
+
 // saveCommentHistoryDeletion records content as it existed immediately before
 // removal. The comment may then be hard-deleted without erasing this record.
 func saveCommentHistoryDeletion(s *xorm.Session, comment *TaskComment, auth web.Auth) error {
