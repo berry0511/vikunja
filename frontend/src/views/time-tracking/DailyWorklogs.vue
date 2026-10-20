@@ -129,6 +129,7 @@ import {useProjects} from '@/composables/useProjects'
 import {useAuthStore} from '@/stores/auth'
 import {useBaseStore} from '@/stores/base'
 import {useTitle} from '@/composables/useTitle'
+import {getProjectTitle} from '@/helpers/getProjectTitle'
 import {
 	downloadWorklogs,
 	downloadWorklogSummary,
@@ -158,7 +159,7 @@ const projectOptions = computed(() => [
 	{value: 0, label: '选择项目'},
 	...projects.projectsArray
 		.filter(p => p.id > 0 && !p.is_archived)
-		.map(p => ({value: p.id, label: p.title})),
+		.map(p => ({value: p.id, label: getProjectTitle(p)})),
 ])
 const filter = computed(() => ({
 	project_id: validRange.value ? projectId.value : 0,
