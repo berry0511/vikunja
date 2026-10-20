@@ -418,6 +418,13 @@
 						</div>
 					</div>
 
+					<!-- Transactional, read-only modification history -->
+					<ChangeHistory
+						v-if="task.id > 0 && !authStore.isLinkShareAuth"
+						kind="task"
+						:entity-id="task.id"
+					/>
+
 					<!-- Comments -->
 					<Comments
 						:can-write="canWrite"
@@ -660,6 +667,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 // partials
 import Attachments from '@/components/tasks/partials/Attachments.vue'
 import TaskDailyWorklogs from '@/components/time-tracking/TaskDailyWorklogs.vue'
+import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import ColorPicker from '@/components/input/ColorPicker.vue'
 import Comments from '@/components/tasks/partials/Comments.vue'
