@@ -27,7 +27,7 @@
 		</div>
 		<BaseButton
 			class="project-button"
-			:aria-label="project.title"
+			:aria-label="getProjectTitle(project)"
 			:title="textOnlyDescription"
 			:to="{
 				name: 'project.index',
