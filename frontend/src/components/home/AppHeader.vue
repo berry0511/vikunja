@@ -26,7 +26,7 @@
 			</span>
 
 			<BaseButton
-				v-if="!isEditorContentEmpty(currentProject.description)"
+				v-if="currentProject.id > 0"
 				:to="{ name: 'project.info', params: { projectId: currentProject.id } }"
 				class="project-title-button"
 			>
@@ -145,7 +145,6 @@ import OpenQuickActions from '@/components/misc/OpenQuickActions.vue'
 import UserAvatar from '@/components/misc/UserAvatar.vue'
 
 import { getProjectTitle } from '@/helpers/getProjectTitle'
-import { isEditorContentEmpty } from '@/helpers/editorContentEmpty'
 
 import { useBaseStore } from '@/stores/base'
 import { useConfigStore } from '@/stores/config'
