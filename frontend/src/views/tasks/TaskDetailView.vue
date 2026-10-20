@@ -364,6 +364,13 @@
 						:disabled="!canWrite"
 					/>
 
+					<!-- Comments -->
+					<Comments
+						:can-write="canWrite"
+						:task-id="taskId"
+						:project-id="task.project_id"
+					/>
+
 					<!-- Attachments -->
 					<div
 						v-show="activeFields.attachments || hasAttachments"
@@ -431,13 +438,6 @@
 						v-if="task.id > 0 && !authStore.isLinkShareAuth"
 						kind="task"
 						:entity-id="task.id"
-					/>
-
-					<!-- Comments -->
-					<Comments
-						:can-write="canWrite"
-						:task-id="taskId"
-						:project-id="task.project_id"
 					/>
 
 					<!-- Marker element for scroll-to-bottom button visibility -->
