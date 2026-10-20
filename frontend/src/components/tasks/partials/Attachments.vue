@@ -289,7 +289,11 @@ function eventTargetsEditor(event: Event | null | undefined): boolean {
 const updateTask = useUpdateTaskMutation()
 const {t} = useI18n({useScope: 'global'})
 
-const attachments = computed(() => props.task.attachments ?? [])
+// Comment uploads are real task-owned files for authorization/storage, but
+// appear as links within their originating comment rather than twice in the
+// task's general attachment panel. Older files default to task context.
+const attachments = computed(() => (props.task.attachments ?? [])
+	.filter(a => (a as IAttachment & {source?: string}).source !== 'comment'))
 const configStore = useConfigStore()
 const uploadMutation = useUploadAttachmentsMutation()
 const deleteMutation = useDeleteAttachmentMutation()
