@@ -117,6 +117,12 @@
 							editComment(taskId)
 						}"
 					/>
+					<ChangeHistory
+						v-if="!authStore.isLinkShareAuth"
+						kind="comment"
+						:entity-id="c.id"
+						:task-id="taskId"
+					/>
 					<Reactions 
 						:model-value="c.reactions"
 						class="mbs-2 d-print-none"
@@ -260,6 +266,8 @@ import type {Task as ITask} from '@/client/generated'
 
 import {generateAttachmentUrl} from '@/helpers/attachments'
 import {useUploadAttachmentsMutation} from '@/client/queries/attachments'
+import ChangeHistory from '@/components/history/ChangeHistory.vue'
+import {getErrorText} from '@/message'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
 import {clearEditorDraft} from '@/helpers/editorDraftStorage'
 import {getDisplayName} from '@/helpers/user'
@@ -412,7 +420,7 @@ async function uploadFilesFromComment(event: Event) {
 	commentUploadPending.value = true
 	try {
 		for (const file of files) {
-			const result = await uploadAttachments.mutateAsync({taskId, files: [file]})
+			const result = await uploadAttachments.mutateAsync({taskId, files: [file], source: 'comment'})
 			if (props.taskId !== taskId) return
 			const attachment = result.success?.[0]
 			if (!attachment?.id) {
@@ -431,8 +439,8 @@ async function uploadFilesFromComment(event: Event) {
 				newCommentText.value = html
 			}
 		}
-	} catch {
-		if (props.taskId === taskId) commentUploadError.value = '附件上传失败，请检查权限、容量和网络。'
+	} catch (cause) {
+		if (props.taskId === taskId) commentUploadError.value = getErrorText(cause) || '评论附件上传失败，请检查权限、容量和网络。'
 	} finally {
 		commentUploadPending.value = false
 	}
@@ -442,10 +450,15 @@ async function uploadFilesFromComment(event: Event) {
 const uploadAttachments = useUploadAttachmentsMutation(() => false)
 
 function attachmentUpload(files: File[] | FileList): Promise<string[]> {
+	commentUploadError.value = ''
 	return Promise.all(Array.from(files).map(async file => {
 		const result = await uploadAttachments.mutateAsync({
 			taskId: props.taskId,
 			files: [file],
+			source: 'comment',
+		}).catch((cause: unknown) => {
+			commentUploadError.value = getErrorText(cause) || '评论附件上传失败'
+			throw cause
 		})
 		const [uploaded] = result.success ?? []
 		// forwarded verbatim: the editor's toast translates the error code, which a rewrapped message would lose
