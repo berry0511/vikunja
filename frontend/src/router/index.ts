@@ -448,13 +448,11 @@ const router = createRouter({
 			name: 'daily-worklogs',
 			component: () => import('@/views/time-tracking/DailyWorklogs.vue'),
 		},
+// Retired the legacy time-tracking page. Old bookmarks go to
+		// the sole maintained manual-worklog report.
 		{
 			path: '/time-tracking',
-			name: 'time-tracking',
-			component: () => import('@/views/time-tracking/TimeTracking.vue'),
-			meta: {
-				title: 'timeTracking.title',
-			},
+			redirect: {name: 'daily-worklogs'},
 		},
 		{
 			path: '/admin',
