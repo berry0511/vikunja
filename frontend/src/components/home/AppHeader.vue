@@ -95,7 +95,7 @@
 					{{ $t('user.settings.title') }}
 				</DropdownItem>
 				<DropdownItem
-					v-if="adminPanelEnabled && authStore.info?.is_admin"
+					v-if="authStore.info?.is_admin"
 					:to="{ name: 'admin.overview' }"
 				>
 					{{ $t('admin.title') }}
@@ -132,7 +132,6 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
 import { PERMISSIONS as Permissions } from '@/constants/permissions'
-import { PRO_FEATURE } from '@/constants/proFeatures'
 
 import ProjectSettingsDropdown from '@/components/project/ProjectSettingsDropdown.vue'
 import Dropdown from '@/components/misc/Dropdown.vue'
@@ -174,7 +173,6 @@ const authStore = useAuthStore()
 const configStore = useConfigStore()
 const imprintUrl = computed(() => configStore.legal.imprint_url)
 const privacyPolicyUrl = computed(() => configStore.legal.privacy_policy_url)
-const adminPanelEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL))
 </script>
 
 <style lang="scss" scoped>
