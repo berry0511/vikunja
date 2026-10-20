@@ -826,4 +826,101 @@ function getCommentUrl(commentId: string) {
 	background-color: hsla(var(--primary-hsl), 0.18);
 	transition: background-color .15s ease-in;
 }
+
+/* GitHub-inspired discussion timeline: avatars outside bordered conversation cards. */
+.comments-container {
+	--discussion-border: var(--card-border-color);
+	--discussion-surface: var(--white);
+}
+.comments {
+	position: relative;
+	gap: 1rem;
+}
+.comments::before {
+	content: '';
+	position: absolute;
+	z-index: 0;
+	inset-block: 1rem 2rem;
+	inset-inline-start: 24px;
+	inline-size: 2px;
+	background: var(--discussion-border);
+	pointer-events: none;
+}
+.comments > .media.comment {
+	position: relative;
+	z-index: 1;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	overflow: visible;
+	gap: .65rem;
+}
+.comments > .media.comment > .media-left {
+	margin: 0 !important;
+	flex: 0 0 48px;
+	background: var(--white);
+	border-radius: 50%;
+}
+.comments > .media.comment > .media-content {
+	overflow: visible;
+	min-inline-size: 0;
+	inline-size: auto;
+	background: var(--discussion-surface);
+	border: 1px solid var(--discussion-border);
+	border-radius: 8px;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.comments > .posted-comment .comment-info {
+	position: relative;
+	margin: 0;
+	padding: .65rem .85rem;
+	border: 0;
+	border-bottom: 1px solid var(--discussion-border);
+	border-radius: 7px 7px 0 0;
+	background: var(--grey-50);
+	min-block-size: 2.5rem;
+	flex-wrap: wrap;
+}
+.comments > .posted-comment .comment-info::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: -7px;
+	inset-block-start: 16px;
+	inline-size: 12px;
+	block-size: 12px;
+	transform: rotate(45deg);
+	background: var(--grey-50);
+	border-inline-start: 1px solid var(--discussion-border);
+	border-block-end: 1px solid var(--discussion-border);
+}
+.comments > .posted-comment .media-content > :not(.comment-info) {
+	margin-inline: .85rem;
+}
+.comments > .posted-comment .media-content > :last-child {
+	margin-block-end: .75rem;
+}
+.comments > .posted-comment :deep(.tiptap__editor) {
+	padding: .85rem .1rem;
+	line-height: 1.65;
+}
+.comments > .comment-composer {
+	margin-block-start: .75rem !important;
+}
+.comments > .comment-composer .media-content {
+	padding: .85rem;
+}
+.comment-composer :deep(.tiptap__wrapper) {
+	border-radius: 6px;
+}
+.comment-composer-actions {
+	padding-block-start: .65rem;
+	border-top: 1px solid var(--discussion-border);
+}
+@media screen and (max-width: $tablet) {
+	.comments::before { display: none; }
+	.comments > .media.comment > .media-left { display: none; }
+	.comments > .posted-comment .comment-info::before { display: none; }
+	.comments > .posted-comment .media-content > :not(.comment-info) { margin-inline: .6rem; }
+}
 </style>
