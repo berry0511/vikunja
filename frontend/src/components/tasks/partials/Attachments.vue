@@ -645,21 +645,21 @@ defineExpose({openFilePicker})
 
 .attachment {
 	@media screen and (max-width: $tablet) {
-		grid-template-columns: 2.5rem minmax(0, 1fr);
+		grid-template-columns: 2rem minmax(0, 1fr);
 		gap: .5rem;
 	}
 	display: grid;
-	grid-template-columns: 3.25rem minmax(0, 1fr);
+	grid-template-columns: 2.25rem minmax(0, 1fr);
 	align-items: center;
 	inline-size: 100%;
 	
-	gap: .75rem;
-	padding: .55rem .7rem;
-	margin-block: .3rem;
+	gap: .55rem;
+	padding: .35rem .55rem;
+	margin-block: .25rem;
 	transition: background-color $transition, border-color $transition;
 	background: var(--white);
 	border: 1px solid var(--card-border-color);
-	border-radius: 10px;
+	border-radius: 7px;
 
 	&:hover {
 		background-color: var(--grey-200);
@@ -684,8 +684,9 @@ defineExpose({openFilePicker})
 .filename {
 	display: flex;
 	align-items: center;
-	font-weight: 700;
-	min-block-size: 1.3rem;
+	font-weight: 650;
+	font-size: .88rem;
+	min-block-size: 1.1rem;
 	color: var(--text);
 	text-align: start;
 	word-break: break-all;
@@ -700,7 +701,7 @@ defineExpose({openFilePicker})
 
 .attachment-actions {
 	display: flex;
-	margin-block-start: .2rem;
+	margin-block-start: .1rem;
 	margin-block-end: 0;
 	gap: .3rem;
 }
@@ -762,8 +763,8 @@ defineExpose({openFilePicker})
 	align-items: center;
 	flex-wrap: wrap;
 	gap: .35rem .55rem;
-	margin-block: .35rem 0;
-	font-size: .8rem;
+	margin-block: .15rem 0;
+	font-size: .73rem;
 	color: var(--text-light);
 
 	> span {
