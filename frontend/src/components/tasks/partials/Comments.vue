@@ -99,6 +99,13 @@
 								{{ $t('misc.saved') }}
 							</span>
 						</CustomTransition>
+						<ChangeHistory
+							v-if="c.id > 0 && c.created && c.updated && +new Date(c.created) !== +new Date(c.updated) && !authStore.isLinkShareAuth"
+							kind="comment"
+							:entity-id="c.id"
+							:task-id="taskId"
+							compact
+						/>
 					</div>
 					<Editor
 						:model-value="commentDrafts[c.id] ?? c.comment"
@@ -107,6 +114,7 @@
 						:upload-enabled="true"
 						:bottom-actions="actions[c.id]"
 						:show-save="true"
+						:show-cancel="true"
 						:enable-discard-shortcut="true"
 						:enable-mentions="true"
 						:project-id="projectId"
@@ -116,12 +124,7 @@
 							captureEditDraft(c)
 							editComment(taskId)
 						}"
-					/>
-					<ChangeHistory
-						v-if="c.id > 0 && !authStore.isLinkShareAuth"
-						kind="comment"
-						:entity-id="c.id"
-						:task-id="taskId"
+						@discard="discardCommentEdit(c)"
 					/>
 					<Reactions 
 						:model-value="c.reactions"
@@ -187,7 +190,7 @@
 								@save="addComment()"
 							/>
 						</div>
-						<div class="field comment-attachment-row">
+						<div class="field comment-composer-actions">
 							<input
 								ref="commentFilesInput"
 								type="file"
@@ -206,18 +209,16 @@
 							>
 								{{ $t('task.attachment.upload') }}
 							</XButton>
-							<span class="comment-attachment-hint">PDF、文档、照片、视频等文件将作为任务附件，并在评论中加入链接。</span>
-							<p v-if="commentUploadError" class="help is-danger" role="alert">{{ commentUploadError }}</p>
-						</div>
-						<div class="field">
 							<XButton
+								type="button"
 								:loading="loading && !isCommentEdit"
-								:aria-disabled="newCommentText === '' || creating"
+								:disabled="!newCommentText || creating || commentUploadPending"
 								@click="addComment()"
 							>
 								{{ $t('task.comment.comment') }}
 							</XButton>
 						</div>
+						<p v-if="commentUploadError" class="help is-danger" role="alert">{{ commentUploadError }}</p>
 					</div>
 				</div>
 			</div>
@@ -495,9 +496,7 @@ async function toggleSortOrder() {
 	currentPage.value = 1
 }
 
-watch(() => props.taskId, (_taskId, previousTaskId) => {
-	// Reads the pending draft, so it has to run before the resets below drop it.
-	flushPendingEdit(previousTaskId)
+watch(() => props.taskId, () => {
 	currentPage.value = 1
 	newCommentText.value = ''
 	commentUploadError.value = ''
@@ -537,9 +536,18 @@ function captureEditDraft(comment: CommentResponse) {
 }
 
 function changeComment(comment: CommentResponse, text: string) {
+	// Comment edits are explicit-save only. An automatic 5 s save would make
+	// "取消编辑" unable to guarantee that the draft is discarded.
 	commentDrafts.value[comment.id] = text
 	captureEditDraft(comment)
-	editCommentWithDelay()
+}
+
+function discardCommentEdit(comment: CommentResponse) {
+	// TipTap has already restored its original content without emitting an
+	// editor change. Remove the reactive draft so preview shows the server copy.
+	delete commentDrafts.value[comment.id]
+	if (commentEdit.value?.id === comment.id) commentEdit.value = null
+	isCommentEdit.value = false
 }
 
 function toggleDelete(id: number) {
@@ -547,29 +555,10 @@ function toggleDelete(id: number) {
 	showDeleteModal.value = true
 }
 
-const changeTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 let savedTimeout: ReturnType<typeof setTimeout> | undefined
 onBeforeUnmount(() => {
-	flushPendingEdit(props.taskId)
 	clearTimeout(savedTimeout)
 })
-
-function cancelPendingEdit() {
-	if (changeTimeout.value === null) return
-	clearTimeout(changeTimeout.value)
-	changeTimeout.value = null
-}
-
-function flushPendingEdit(taskId: number) {
-	if (changeTimeout.value === null) return
-	cancelPendingEdit()
-	void editComment(taskId)
-}
-
-function editCommentWithDelay() {
-	cancelPendingEdit()
-	changeTimeout.value = setTimeout(() => editComment(props.taskId), 5000)
-}
 
 async function editComment(taskId: number) {
 	const draft = commentEdit.value
@@ -577,7 +566,6 @@ async function editComment(taskId: number) {
 		isCommentEdit.value = false
 		return
 	}
-	cancelPendingEdit()
 	saving.value = draft.id
 	try {
 		await updateMutation.mutateAsync({taskId, id: draft.id, comment: draft.comment})
@@ -673,16 +661,27 @@ function getCommentUrl(commentId: string) {
 	.comments > .media.comment { padding: .85rem; }
 }
 
-.comment-attachment-row {
+.comment-composer-actions {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: .65rem;
+	margin-top: .85rem;
+	margin-bottom: 0;
 }
-.comment-attachment-hint {
-	font-size: .85rem;
-	color: var(--text-light);
+.comment-composer :deep(.tiptap__wrapper) {
+	border: 1px solid var(--grey-300);
+	border-radius: 10px;
+	background: var(--white);
+	transition: border-color .15s ease, box-shadow .15s ease;
+	&:hover { border-color: var(--grey-500); }
+	&:focus-within {
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
+	}
 }
+.comment-info > .comment-history-compact { margin-inline-start: auto; }
+
 
 .media {
 	align-items: flex-start;
