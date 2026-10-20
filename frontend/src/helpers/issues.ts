@@ -3,7 +3,7 @@ import type {Task} from '@/client/generated'
 // Bug reports reuse the existing task ACL, discussion, attachments and worklogs.
 // Work-order classification is deliberately retired: ordinary work is a task.
 export const ISSUE_LABELS = {
-	bug: '工单·缺陷',
+	bug: 'Bug',
 } as const
 
 export type IssueKind = 'bug'
@@ -12,7 +12,7 @@ type TicketTask = Pick<Task, 'done' | 'percent_done' | 'labels'>
 
 export function issueKind(task: TicketTask): IssueKind | null {
 	const titles = (task.labels ?? []).map(label => label.title)
-	if (titles.includes(ISSUE_LABELS.bug)) return 'bug'
+	if (titles.some(title => [ISSUE_LABELS.bug, '工单·缺陷', '工单-缺陷'].includes(title))) return 'bug'
 	return null
 }
 
