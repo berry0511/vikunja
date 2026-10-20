@@ -18,11 +18,11 @@
 
 		<div v-if="uploadBatch !== null" class="attachment-upload-progress" role="status">
 			<span>正在上传 {{ uploadBatch.completed + 1 }} / {{ uploadBatch.total }}：{{ uploadProgress === undefined ? "准备中…" : Math.round(uploadProgress) + "%" }}</span>
-		<ProgressBar
-			:value="uploadProgress"
-			:aria-label="$t('task.attachment.upload')"
-			is-primary
-		/>
+			<ProgressBar
+				:value="uploadProgress"
+				:aria-label="$t('task.attachment.upload')"
+				is-primary
+			/>
 		</div>
 
 		<div
