@@ -43,9 +43,10 @@ export async function attachmentBlob(attachment: AttachmentIdentity, size?: Prev
 
 export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = () => true) {
 	return contextMutationOptions({
-		mutationFn: async ({taskId, files}: {
+		mutationFn: async ({taskId, files, source = 'task'}: {
 			taskId: number,
 			files: File[],
+			source?: 'task' | 'comment',
 		}) => {
 			const limit = useConfigStore().max_file_size
 			for (const file of files) {
@@ -55,6 +56,7 @@ export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = (
 			try {
 				return (await taskAttachmentsUpload({
 					path: {task: taskId},
+					query: {source},
 					body: {files},
 				})).data
 			} catch (reason) {
