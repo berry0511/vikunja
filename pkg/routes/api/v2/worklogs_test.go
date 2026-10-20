@@ -50,3 +50,27 @@ func TestDailyWorklogsSummaryAndSpreadsheetEscaping(t *testing.T) {
 	}
 	assert.Equal(t, "regular text", dailyWorklogCSVCell("regular text"))
 }
+
+// TestDailyWorklogsCrossProjectTotals ensures that viewing "all projects"
+// does not merge two projects' daily totals into a single unlabeled row.
+func TestDailyWorklogsCrossProjectTotals(t *testing.T) {
+	day := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	rows := []*models.Worklog{
+		{ProjectID: 1, ProjectTitle: "Alpha", WorkDate: day, UserID: 1, Username: "alice", Minutes: 60},
+		{ProjectID: 1, ProjectTitle: "Alpha", WorkDate: day, UserID: 1, Username: "alice", Minutes: 30},
+		{ProjectID: 2, ProjectTitle: "Beta", WorkDate: day, UserID: 1, Username: "alice", Minutes: 120},
+		{ProjectID: 2, ProjectTitle: "Beta", WorkDate: day, UserID: 2, Username: "bob", Minutes: 15},
+	}
+	sum := summarizeDailyWorklogs(rows)
+	require.Len(t, sum.Days, 3)
+	assert.Equal(t, 225, sum.TotalMinutes)
+	assert.Equal(t, 4, sum.RecordCount)
+	assert.Equal(t, int64(1), sum.Days[0].ProjectID)
+	assert.Equal(t, "Alpha", sum.Days[0].ProjectTitle)
+	assert.Equal(t, 90, sum.Days[0].Minutes)
+	assert.Equal(t, int64(2), sum.Days[1].ProjectID)
+	assert.Equal(t, "Beta", sum.Days[1].ProjectTitle)
+	assert.Equal(t, 120, sum.Days[1].Minutes)
+	assert.Equal(t, int64(2), sum.Days[2].UserID)
+	assert.Equal(t, 15, sum.Days[2].Minutes)
+}
