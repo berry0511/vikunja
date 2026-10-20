@@ -1521,6 +1521,14 @@ h2 .button {
 	margin-inline: 0;
 }
 .task-view > .columns > .column { min-inline-size: 0; }
+.task-view > .columns > .detail-content {
+	flex: 1 1 0;
+	inline-size: auto;
+}
+.task-view > .columns > .action-buttons {
+	flex: 0 0 clamp(270px, 29%, 365px);
+	inline-size: auto;
+}
 .detail-content > .details {
 	margin-inline: 0;
 	gap: .5rem;
@@ -1552,6 +1560,7 @@ h2 .button {
 }
 @media screen and (max-width: $tablet) {
 	.task-view > .columns { display: block; }
+	.task-view > .columns > .column { inline-size: 100%; }
 	.detail-content { margin-block-end: 1rem; }
 }
 
