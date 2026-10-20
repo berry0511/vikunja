@@ -2,6 +2,7 @@
 	<div
 		ref="tiptapInstanceRef"
 		class="tiptap"
+		:class="{'tiptap--comment-editor': showCancel}"
 	>
 		<div
 			class="tiptap__wrapper"
@@ -152,7 +153,12 @@
 					{{ $t('misc.save') }}
 				</BaseButton>
 			</li>
-			<li v-if="!isEditing">
+			<li v-if="isEditing && showCancel">
+				<BaseButton class="cancel-edit" @click="exitEditMode">
+					取消编辑
+				</BaseButton>
+			</li>
+			<li v-if="!isEditing && isEditEnabled">
 				<BaseButton
 					class="done-edit"
 					@click="() => setEdit()"
@@ -220,6 +226,7 @@ const props = withDefaults(defineProps<{
 	isEditEnabled?: boolean,
 	bottomActions?: BottomAction[],
 	showSave?: boolean,
+	showCancel?: boolean,
 	placeholder?: string,
 	editShortcut?: string,
 	enableDiscardShortcut?: boolean,
@@ -231,6 +238,7 @@ const props = withDefaults(defineProps<{
 	isEditEnabled: true,
 	bottomActions: () => [],
 	showSave: false,
+	showCancel: false,
 	placeholder: '',
 	editShortcut: '',
 	enableDiscardShortcut: false,
@@ -239,7 +247,7 @@ const props = withDefaults(defineProps<{
 	storageKey: '',
 })
 
-const emit = defineEmits(['save'])
+const emit = defineEmits(['save', 'discard'])
 
 provide(taskLinkCurrentProjectIdKey, computed(() => props.projectId || undefined))
 
@@ -433,6 +441,7 @@ function exitEditMode() {
 	if (isEditing.value) {
 		internalMode.value = 'preview'
 	}
+	emit('discard')
 }
 
 async function setEditIfApplicable(event: MouseEvent) {
@@ -1127,6 +1136,52 @@ ul[data-type='taskList'] {
 		padding: .5rem .75rem;
 		font-size: .9rem;
 		white-space: nowrap;
+	}
+}
+
+// Comment actions are real buttons, not muted prose links. Keep legacy
+// editor variants untouched unless they opt in to the explicit discard UX.
+.tiptap--comment-editor {
+	ul.tiptap__editor-actions {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: .4rem;
+		padding: .65rem 0 .15rem;
+		margin: 0;
+		font-size: .86rem;
+		li {
+			display: inline-flex;
+			&::after { content: none; }
+		}
+		button, a, .done-edit, .cancel-edit {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-block-size: 2.2rem;
+			padding: .43rem .85rem;
+			border: 1px solid var(--card-border-color);
+			border-radius: 8px;
+			background: var(--grey-50);
+			color: var(--text-strong);
+			font-size: .82rem;
+			font-weight: 720;
+			text-decoration: none;
+			cursor: pointer;
+			transition: background .15s ease, border-color .15s ease;
+			&:hover { background: var(--grey-100); border-color: var(--primary); }
+			&:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+		}
+		.done-edit {
+			background: var(--primary);
+			border-color: var(--primary);
+			color: var(--white);
+			&:hover { background: var(--primary-dark, var(--primary)); color: var(--white); }
+		}
+		.cancel-edit {
+			background: var(--white);
+			color: var(--text-strong);
+		}
 	}
 }
 
