@@ -180,7 +180,8 @@ func dailyWorklogData(ctx context.Context, in dailyWorklogFilterInput) ([]*model
 		// is read, summarized, or exported.
 		candidates := make([]*models.Worklog, 0)
 		err := s.Distinct("project_id").
-			Where("work_date >= ? AND work_date < ?", start, end).
+			Where("work_date >= ? AND work_date < ?",
+				start.UTC().Format("2006-01-02"), end.UTC().Format("2006-01-02")).
 			Find(&candidates)
 		if err != nil { return nil, translateDomainError(err) }
 		for _, candidate := range candidates {
