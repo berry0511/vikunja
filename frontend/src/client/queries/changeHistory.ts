@@ -3,7 +3,7 @@ import {client} from '@/client/generated/client.gen'
 
 export type ChangeHistory = {
 	id: number
-	entity_type: 'task' | 'project'
+	entity_type: 'task' | 'project' | 'comment'
 	entity_id: number
 	actor_id: number
 	username: string
@@ -21,18 +21,20 @@ export type ChangeHistoryPage = {
 	total_pages: number
 }
 
-export function changeHistoryQuery(kind: 'task' | 'project', id: number, page = 1) {
+export function changeHistoryQuery(kind: 'task' | 'project' | 'comment', id: number, page = 1, taskId = 0) {
 	return queryOptions({
-		queryKey: ['change-history', kind, id, page],
+		queryKey: ['change-history', kind, id, taskId, page],
 		queryFn: async () => {
 			const {data} = await client.get<ChangeHistoryPage>({
-				url: kind === 'task' ? '/tasks/{id}/history' : '/projects/{id}/history',
-				path: {id},
+				url: kind === 'comment'
+					? '/tasks/{task}/comments/{id}/history'
+					: kind === 'task' ? '/tasks/{id}/history' : '/projects/{id}/history',
+				path: kind === 'comment' ? {task: taskId, id} : {id},
 				query: {page},
 			})
 			return data
 		},
-		enabled: id > 0,
+		enabled: id > 0 && (kind !== 'comment' || taskId > 0),
 		staleTime: 0,
 	})
 }
