@@ -1276,6 +1276,53 @@ function setRelatedTasksActive() {
 </script>
 
 <style lang="scss" scoped>
+
+/* GitHub issue-style detail layout. Keep existing task interactions and permissions. */
+.task-view {
+	max-inline-size: 1500px;
+	margin-inline: auto;
+}
+.task-view :deep(.task-section-title) {
+	font-size: 1rem;
+	font-weight: 650;
+	border-bottom: 1px solid var(--card-border-color);
+	padding-block-end: .7rem;
+	margin-block-end: 1rem;
+}
+.task-view .subtitle {
+	background: transparent;
+	border-bottom: 1px solid var(--card-border-color);
+	border-radius: 0;
+	padding: .6rem 0 .9rem;
+	margin-block-end: 1.3rem;
+}
+.task-view .detail-content {
+	min-inline-size: 0;
+}
+.task-view .detail-content > .details,
+.task-view .detail-content > .content {
+	margin-block-end: 1.25rem;
+}
+.task-view .action-buttons {
+	border-inline-start: 1px solid var(--card-border-color);
+	padding-inline-start: 1.25rem;
+}
+.task-view .action-buttons :deep(.button) {
+	border-radius: 6px;
+	box-shadow: none;
+}
+.task-view .action-buttons .task-delete-action {
+	border: 1px solid var(--danger) !important;
+}
+@media screen and (max-width: $desktop) {
+	.task-view .action-buttons {
+		border-inline-start: 0;
+		border-block-start: 1px solid var(--card-border-color);
+		padding-inline-start: .75rem;
+		padding-block-start: 1rem;
+	}
+}
+
 .bug-status-field {
 	display: flex;
 	align-items: center;
