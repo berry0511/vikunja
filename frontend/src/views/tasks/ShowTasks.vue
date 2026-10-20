@@ -75,7 +75,7 @@
 			<h3 class="has-text-centered mbs-6">
 				{{ $t('task.show.noTasks') }}
 			</h3>
-			<LlamaCool class="llama-cool" />
+			<img class="empty-kty-logo" src="/images/kty-logo.svg" alt="开天眼" />
 		</template>
 
 		<Card
@@ -123,7 +123,6 @@ import SingleTaskInProject from '@/components/tasks/partials/SingleTaskInProject
 import DatepickerWithRange from '@/components/date/DatepickerWithRange.vue'
 import XLabel from '@/components/tasks/partials/Label.vue'
 import {DATE_RANGES} from '@/components/date/dateRanges'
-import LlamaCool from '@/assets/llama-cool.svg?component'
 import {useAuthStore} from '@/stores/auth'
 import {useProjects} from '@/composables/useProjects'
 import {useLabels} from '@/composables/useLabels'
@@ -329,9 +328,12 @@ watchEffect(() => setTitle(pageTitle.value))
 	flex-direction: column;
 }
 
-.llama-cool {
-	margin: 3rem auto 0;
+.empty-kty-logo {
 	display: block;
+	inline-size: clamp(96px, 13vw, 160px);
+	block-size: clamp(96px, 13vw, 160px);
+	object-fit: contain;
+	margin: 1.5rem auto 0;
 }
 
 .label-filter-info {
