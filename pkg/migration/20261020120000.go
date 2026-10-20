@@ -9,6 +9,7 @@
 package migration
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -52,18 +53,24 @@ func backfillCommentAttachmentSources20261020120000(tx *xorm.Engine) error {
 	return nil
 }
 
-type attachmentSource20261020120000 struct {
-	ID int64 `xorm:"bigint autoincr not null unique pk"`
-	Source string `xorm:"varchar(16) not null default 'task'"`
+// ALTER TABLE ... ADD COLUMN is supported by SQLite, PostgreSQL and MySQL.
+// Unlike a partial Sync2 model, it does not alter any other attachment fields.
+func addAttachmentSourceColumn20261020120000(tx *xorm.Engine) error {
+	quote := tx.Dialect().Quoter().Quote
+	statement := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s VARCHAR(16) NOT NULL DEFAULT 'task'",
+		quote("task_attachments"), quote("source"))
+	if _, err := tx.Exec(statement); err != nil {
+		return fmt.Errorf("add source column to task_attachments: %w", err)
+	}
+	return nil
 }
-func (*attachmentSource20261020120000) TableName() string { return "task_attachments" }
 
 func init() {
 	migrations = append(migrations, &xormigrate.Migration{
 		ID: "20261020120000",
 		Description: "Distinguish task files from comment-uploaded attachments",
 		Migrate: func(tx *xorm.Engine) error {
-			if err := tx.AddColumn(&attachmentSource20261020120000{}, "source"); err != nil { return err }
+			if err := addAttachmentSourceColumn20261020120000(tx); err != nil { return err }
 			return backfillCommentAttachmentSources20261020120000(tx)
 		},
 		// Deliberately no destructive rollback of recorded file origins.
