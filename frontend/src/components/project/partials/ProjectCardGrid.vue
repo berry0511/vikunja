@@ -39,45 +39,22 @@ const filteredProjects = computed(() => {
 
 <style lang="scss" scoped>
 .project-grid {
-	--project-grid-item-height: 150px;
-	--project-grid-gap: 1rem;
-	margin: 0; // reset li
-	list-style-type: none;
+	margin: 0;
+	list-style: none;
 	display: grid;
-	grid-template-columns: repeat(var(--project-grid-columns), 1fr);
-	// Let projects without a picture use compact cards. The old fixed 150px
-	// track height left most of each plain card blank.
-	grid-auto-rows: auto;
-	align-items: start;
-	gap: var(--project-grid-gap);
-
-	@media screen and (min-width: $mobile) {
-		--project-grid-columns: 1;
-	}
-
-	@media screen and (min-width: $mobile) and (max-width: $tablet) {
-		--project-grid-columns: 2;
-	}
-
-	@media screen and (min-width: $tablet) and (max-width: $widescreen) {
-		--project-grid-columns: 3;
-	}
-
-	@media screen and (min-width: $widescreen) {
-		--project-grid-columns: 5;
-	}
-
-	&.show-even-number-of-projects {
-		@media screen and (min-width: $widescreen) {
-			.project-grid-item:nth-child(5) {
-				display: none;
-			}
-		}
-	}
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+	align-items: stretch;
+	gap: 1.1rem;
 }
-
 .project-grid-item {
+	margin: 0 !important;
+	min-inline-size: 0;
 	display: block;
-	margin-block-start: 0; // remove padding coming from .content li + li
+}
+.project-grid-item :deep(.project-card) { block-size: 100%; }
+.show-even-number-of-projects {
+	@media screen and (min-width: $widescreen) {
+		.project-grid-item:nth-child(5) { display: none; }
+	}
 }
 </style>
