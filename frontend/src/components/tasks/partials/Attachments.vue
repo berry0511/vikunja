@@ -77,6 +77,9 @@
 						:ref="el => setAudioPlayerRef(a, el)"
 						:attachment="a"
 					/>
+
+				</div>
+				<div class="attachment-row-actions">
 					<p class="attachment-actions">
 						<BaseButton
 							v-tooltip="$t('task.attachment.downloadTooltip')"
@@ -922,5 +925,26 @@ defineExpose({openFilePicker})
 .attachment-info-meta-button:hover,
 .attachment-info-meta-button:focus-visible {
 	background: var(--grey-100);
+}
+
+/* File list: filename and metadata on the left, stable controls on the right. */
+.files .attachment {
+	grid-template-columns: 2rem minmax(0, 1fr) auto;
+	gap: .6rem;
+	padding: .4rem .65rem;
+	min-block-size: 3rem;
+}
+.preview-column {max-inline-size: 2rem; block-size: 2rem; overflow: hidden;}
+.attachment-preview {max-inline-size: 2rem; max-block-size: 2rem; object-fit: contain;}
+.attachment-info-column {align-self: center; min-inline-size: 0;}
+.filename {display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: normal; font-size: .84rem; line-height: 1.25;}
+.attachment-info-meta {font-size: .7rem; line-height: 1.3; gap: .1rem .35rem;}
+.attachment-row-actions {display:flex; align-items:center; justify-content:flex-end; flex-shrink:0;}
+.attachment-row-actions .attachment-actions {display:flex; align-items:center; flex-wrap:nowrap; gap:.1rem; margin:0;}
+.attachment-info-meta-button {display:inline-flex; align-items:center; justify-content:center; min-inline-size:1.8rem; min-block-size:1.8rem; padding:.2rem; color:var(--text-light);}
+.attachment-delete-action {color:var(--danger);}
+@media screen and (max-width: $tablet) {
+	.files .attachment {grid-template-columns: 1.8rem minmax(0, 1fr);}
+	.attachment-row-actions {grid-column: 2; justify-content:flex-start;}
 }
 </style>
