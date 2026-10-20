@@ -57,7 +57,7 @@
 			</form>
 		</Card>
 
-		<Card title="Bug 列表">
+		<Card title="Issues · Bug 列表">
 			<div class="issue-filter-bar">
 				<label>项目
 					<select v-model.number="projectId">
@@ -90,8 +90,8 @@
 					<tbody>
 						<tr v-for="item in shownIssues" :key="item.id">
 							<td>
-								<RouterLink class="issue-title" :to="{name: 'task.detail', params: {id: item.id}}">{{ item.title }}</RouterLink>
-								<span class="issue-id">#{{ item.id }}</span>
+								<RouterLink class="issue-title" :to="{name: 'task.detail', params: {id: item.id}}"><span class="issue-state-mark" :class="`state-${issueStatus(item)}`" aria-hidden="true">{{ item.done ? "✓" : "●" }}</span>{{ item.title }}</RouterLink>
+								<span class="issue-id">#{{ item.id }} · {{ projectName(item.project_id) }}</span>
 							</td>
 							<td>{{ projectName(item.project_id) }}</td>
 							
@@ -288,4 +288,73 @@ async function setIssueStatus(task: TaskResponse, event: Event) {
 .issue-type.is-bug {background:color-mix(in srgb,var(--danger) 13%,var(--white)); color:var(--danger)}
 .issue-empty {text-align:center; color:var(--text-light); padding:2.5rem}
 @media (max-width: $tablet) {.issue-header {flex-direction:column; align-items:flex-start}.issue-metrics {grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Unified GitHub Issues visual language: restrained panels and dense issue rows. */
+.issue-center {
+	--issue-border: var(--card-border-color);
+	--issue-muted: var(--grey-50);
+}
+.issue-header {
+	padding-block: .8rem 1rem;
+	border-block-end: 1px solid var(--issue-border);
+}
+.issue-header h1 {
+	font-size: clamp(1.45rem, 2.1vw, 1.95rem);
+	letter-spacing: -.025em;
+}
+.issue-header .issue-overline {
+	letter-spacing: .08em;
+	font-size: .68rem;
+}
+.issue-filter-bar {
+	padding: .85rem;
+	background: var(--issue-muted);
+	border: 1px solid var(--issue-border);
+	border-radius: 8px;
+}
+.issue-metrics {
+	gap: 0;
+	border: 1px solid var(--issue-border);
+	border-radius: 8px;
+	overflow: hidden;
+	margin: 1rem 0;
+}
+.issue-metrics div {
+	border: 0;
+	border-radius: 0;
+	background: var(--white);
+	padding: .7rem 1rem;
+}
+.issue-metrics div + div { border-inline-start: 1px solid var(--issue-border); }
+.issue-metrics strong { font-size: 1.25rem; }
+.issue-table-wrap { border-radius: 8px; }
+.issue-table { font-size: .85rem; }
+.issue-table th {
+	padding: .7rem .85rem;
+	border-bottom: 1px solid var(--issue-border);
+	font-weight: 650;
+}
+.issue-table td { padding: .75rem .85rem; }
+.issue-title {
+	display: flex;
+	align-items: baseline;
+	gap: .65rem;
+	font-size: .91rem;
+}
+.issue-title:hover { color: var(--primary); text-decoration: underline; }
+.issue-state-mark {
+	font-size: 1rem;
+	color: #1a7f37;
+	flex: 0 0 auto;
+}
+.issue-state-mark.state-resolved { color: #8250df; }
+.issue-state-mark.state-working { color: #bf8700; }
+.issue-state-mark.state-review { color: #0969da; }
+.issue-id { padding-inline-start: 1.65rem; margin-block-start: .15rem; }
+.issue-table select { padding: .4rem .55rem; border-radius: 6px; font-size: .82rem; }
+@media (max-width: $tablet) {
+	.issue-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.issue-metrics div:nth-child(3) { border-inline-start: 0; border-block-start: 1px solid var(--issue-border); }
+	.issue-metrics div:nth-child(4) { border-block-start: 1px solid var(--issue-border); }
+}
 </style>
