@@ -1,4 +1,5 @@
 import {useMutation} from '@tanstack/vue-query'
+import {getActivePinia} from 'pinia'
 import {
 	taskAttachmentsDelete,
 	taskAttachmentsDownload,
@@ -48,17 +49,17 @@ export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = (
 			files: File[],
 			source?: 'task' | 'comment',
 		}) => {
-			const limit = useConfigStore().max_file_size
+			const limit = getActivePinia() ? useConfigStore().max_file_size : '20MB'
 			for (const file of files) {
 				const reason = uploadSizeError(file, limit)
 				if (reason) throw new Error(reason)
 			}
 			try {
-				return (await taskAttachmentsUpload({
+				return (await taskAttachmentsUpload<true>({
 					path: {task: taskId},
 					query: {source},
 					body: {files},
-				} as Parameters<typeof taskAttachmentsUpload>[0])).data
+				})).data
 			} catch (reason) {
 				// Proxies can close connections instead of returning a readable 413.
 				// Retain structured API errors; only translate fetch transport failures.
