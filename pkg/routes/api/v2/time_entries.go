@@ -23,12 +23,30 @@ import (
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/events"
+	"code.vikunja.io/api/pkg/license"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/web/handler"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/conditional"
 )
+
+// timeTrackingGate is Huma operation middleware that 404s a time-tracking op when the license
+// feature is off. It's a middleware because license state can change while the instance is running.
+func timeTrackingGate(api huma.API) func(huma.Context, func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		if !license.IsFeatureEnabled(license.FeatureTimeTracking) {
+			_ = huma.WriteErr(api, ctx, http.StatusNotFound, "Not Found")
+			return
+		}
+		next(ctx)
+	}
+}
+
+func registerGated[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {
+	op.Middlewares = append(op.Middlewares, timeTrackingGate(api))
+	Register(api, op, handler)
+}
 
 type timeEntryListBody struct {
 	Body Paginated[*models.TimeEntry]
@@ -38,7 +56,7 @@ type timeEntryListBody struct {
 func RegisterTimeEntryRoutes(api huma.API) {
 	tags := []string{"time-entries"}
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "time-entries-list",
 		Summary:     "List time entries",
 		Description: "Returns the time entries the authenticated user can see, paginated. Filterable by date range, project, task and user.",
@@ -47,7 +65,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, timeEntriesList)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "time-entries-read",
 		Summary:     "Get a time entry",
 		Description: "Returns a single time entry. Sends an ETag; pass it as If-None-Match on a later read to get a 304 Not Modified.",
@@ -56,7 +74,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, timeEntriesRead)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "time-entries-create",
 		Summary:     "Create a time entry",
 		Description: "Logs a manual time entry for the authenticated user. Exactly one of task_id / project_id must be set.",
@@ -65,7 +83,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, timeEntriesCreate)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "time-entries-update",
 		Summary:     "Update a time entry",
 		Description: "Updates a time entry. Only the author may update it. The entry can be moved between a task and a project — exactly one of task_id / project_id must be set, and you need read access to the new one. PUT replaces all editable fields; use PATCH for a partial update.",
@@ -74,7 +92,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, timeEntriesUpdate)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "time-entries-delete",
 		Summary:     "Delete a time entry",
 		Description: "Deletes a time entry. Only the author may delete it. If it is the running timer, deleting it removes that timer.",
@@ -83,7 +101,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, timeEntriesDelete)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "task-time-entries-list",
 		Summary:     "List a task's time entries",
 		Description: "Returns the time entries logged against the given task, across all users, paginated. Scoped to what you can read: an inaccessible or unknown task yields an empty list, not an error.",
@@ -92,7 +110,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, taskTimeEntriesList)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "project-time-entries-list",
 		Summary:     "List a project's time entries",
 		Description: "Returns the time entries for the given project — both standalone project entries and entries on tasks currently in the project — paginated. Scoped to what you can read: an inaccessible or unknown project yields an empty list, not an error.",
@@ -101,7 +119,7 @@ func RegisterTimeEntryRoutes(api huma.API) {
 		Tags:        tags,
 	}, projectTimeEntriesList)
 
-	Register(api, huma.Operation{
+	registerGated(api, huma.Operation{
 		OperationID: "time-entries-timer-stop",
 		Summary:     "Stop the running timer",
 		Description: "Stops the authenticated user's running timer, setting its end time to the server's current time, and returns the stopped entry. Returns 404 when no timer is running. Starting a timer and editing entries go through the regular create/update endpoints.",
