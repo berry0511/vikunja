@@ -45,6 +45,7 @@
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.projects"
 						:to="{ name: 'projects.index'}"
+						:class="{'nav-muted-active': $route.name === 'projects.index' && $route.query.status === 'archived'}"
 					>
 						<span class="menu-item-icon icon">
 							<Icon icon="layer-group" />
@@ -53,7 +54,7 @@
 					</RouterLink>
 				</li>
 				<li>
-					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}">
+					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}" :class="{'nav-muted-active': $route.name !== 'projects.index' || $route.query.status !== 'archived'}">
 						<span class="menu-item-icon icon"><Icon icon="archive" /></span>
 						已归档项目
 					</RouterLink>
@@ -254,6 +255,7 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 		transition: background .15s ease, color .15s ease;
 		&:hover { background: var(--grey-50); color: var(--text-strong); }
 		&.router-link-active { background: color-mix(in srgb, var(--primary) 11%, var(--white)); color: var(--primary); font-weight: 760; }
+		&.router-link-active.nav-muted-active { background: transparent; color: var(--text); font-weight: 620; }
 		.icon { min-inline-size: 1.2rem; color: inherit; padding: 0; }
 		&:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 	}
