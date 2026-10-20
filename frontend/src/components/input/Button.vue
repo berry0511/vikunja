@@ -89,20 +89,20 @@ const showLoading = useDelayedLoading(() => props.loading)
 	// Custom styles
 	transition: all $transition;
 	border: 0;
-	text-transform: uppercase;
-	font-size: 0.85rem;
-	font-weight: bold;
+	text-transform: none;
+	font-size: .88rem;
+	font-weight: 680;
 	block-size: auto;
-	min-block-size: $button-height;
-	box-shadow: var(--shadow-sm);
-	line-height: 1;
-	padding-inline: .5rem;
-	gap: .25rem;
+	min-block-size: max(#{$button-height}, 2.5rem);
+	box-shadow: 0 3px 9px rgba(15,23,42,.09);
+	line-height: 1.25;
+	padding: .62rem 1rem;
+	gap: .45rem;
 
 	// Default/Primary variant colors
 	background-color: var(--primary);
 	color: var(--button-text-color);
-	border-radius: $radius;
+	border-radius: 9px;
 
 	[dir="rtl"] & {
 		flex-direction: row-reverse;
@@ -150,11 +150,14 @@ const showLoading = useDelayedLoading(() => props.loading)
 
 	// Secondary/Outlined variant
 	&.is-outlined {
-		background-color: var(--scheme-main);
-		color: var(--grey-900);
-
+		background-color: var(--white);
+		color: var(--text-strong);
+		border: 1px solid var(--card-border-color);
+		box-shadow: 0 1px 3px rgba(15,23,42,.025);
 		&:hover {
-			color: var(--grey-600);
+			background: var(--grey-50);
+			color: var(--text-strong);
+			border-color: color-mix(in srgb, var(--primary) 28%, var(--card-border-color));
 		}
 	}
 
