@@ -1303,6 +1303,10 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		t.ProjectID = ot.ProjectID
 	}
 
+	// Snapshot before mutating ot so the durable journal records the real
+	// stored values, not the incoming API body or a merged partial task.
+	historyBefore := *ot
+
 	// Get the stored reminders
 	reminders, err := getRemindersForTasks(s, []int64{t.ID})
 	if err != nil {
@@ -1683,6 +1687,12 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		return err
 	}
 	t.Updated = nt.Updated
+
+	// Journal changes in the same transaction. A journal write failure must
+	// fail the edit rather than silently lose the historical evidence.
+	if err := saveHistoryChanges(s, "task", t.ID, a, taskHistoryDiff(&historyBefore, nt)); err != nil {
+		return err
+	}
 
 	events.DispatchOnCommit(s, &TaskUpdatedEvent{
 		Task: t,
@@ -2186,6 +2196,10 @@ func (t *Task) Delete(s *xorm.Session, a web.Auth) (err error) {
 	// stamps DeletedAt in a map keyed by the bean, and a Task value is unhashable.
 	_, err = s.ID(t.ID).Delete(&Task{})
 	if err != nil {
+		return err
+	}
+
+	if err := saveHistoryDeletion(s, "task", t.ID, a); err != nil {
 		return err
 	}
 
