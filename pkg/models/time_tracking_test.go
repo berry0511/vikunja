@@ -699,7 +699,7 @@ func TestTimeEntry_Delete(t *testing.T) {
 func TestTimeEntry_TaskCount(t *testing.T) {
 	u := &user.User{ID: 1}
 
-	t.Run("attaches counts for a non-share caller", func(t *testing.T) {
+	t.Run("attaches counts for a licensed, non-share caller", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
 		s := db.NewSession()
 		defer s.Close()
@@ -731,7 +731,7 @@ func TestTimeEntry_TaskCount(t *testing.T) {
 		assert.Nil(t, task1.TimeEntriesCount, "link shares must not learn time-entry counts")
 	})
 
-	t.Run("attaches counts without a paid entitlement", func(t *testing.T) {
+	t.Run("leaves the count unset when the feature is unlicensed", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
 		s := db.NewSession()
 		defer s.Close()
@@ -740,7 +740,6 @@ func TestTimeEntry_TaskCount(t *testing.T) {
 		task1 := &Task{ID: 1}
 		taskMap := map[int64]*Task{1: task1}
 		require.NoError(t, addTimeEntriesCountToTasks(s, u, []int64{1}, taskMap))
-		require.NotNil(t, task1.TimeEntriesCount)
-		assert.Equal(t, int64(2), *task1.TimeEntriesCount, "counts are available in free mode")
+		assert.Nil(t, task1.TimeEntriesCount, "an unlicensed instance must not expose counts")
 	})
 }
