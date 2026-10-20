@@ -36,7 +36,7 @@
 				v-for="c in comments"
 				:id="`comment-${c.id}`"
 				:key="c.id"
-				class="media comment"
+				class="media comment posted-comment"
 			>
 				<figure class="media-left is-hidden-mobile">
 					<UserAvatar
@@ -118,12 +118,6 @@
 						}"
 					/>
 					<ChangeHistory
-						v-if="!authStore.isLinkShareAuth"
-						kind="comment"
-						:entity-id="c.id"
-						:task-id="taskId"
-					/>
-					<ChangeHistory
 						v-if="c.id > 0 && !authStore.isLinkShareAuth"
 						kind="comment"
 						:entity-id="c.id"
@@ -149,7 +143,7 @@
 
 			<div
 				v-if="canWrite"
-				class="media comment d-print-none"
+				class="media comment comment-composer d-print-none"
 				:class="{'new-comment-top': commentSortOrder === 'desc'}"
 			>
 				<figure class="media-left is-hidden-mobile">
@@ -163,6 +157,7 @@
 					</figcaption>
 				</figure>
 				<div class="media-content">
+					<p class="composer-label"><Icon icon="message-circle" /> 编写新评论</p>
 					<div class="form">
 						<CustomTransition name="fade">
 							<span
@@ -272,7 +267,6 @@ import type {Task as ITask} from '@/client/generated'
 
 import {generateAttachmentUrl} from '@/helpers/attachments'
 import {useUploadAttachmentsMutation} from '@/client/queries/attachments'
-import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import {getErrorText} from '@/message'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
@@ -625,6 +619,60 @@ function getCommentUrl(commentId: string) {
 </script>
 
 <style lang="scss" scoped>
+// Each saved comment and the editor are visually independent surfaces.
+// This prevents an attachment link and the composer below it from reading as
+// part of the same comment.
+.comments-container {
+	min-inline-size: 0;
+}
+.comments {
+	gap: .9rem;
+}
+.comments > .media.comment {
+	margin: 0 !important;
+	padding: 1rem 1.1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 12px;
+	background: var(--white);
+	box-shadow: 0 2px 7px rgba(15, 23, 42, .035);
+	transition: border-color .15s ease, box-shadow .15s ease;
+}
+.comments > .posted-comment:hover {
+	border-color: color-mix(in srgb, var(--primary) 22%, var(--card-border-color));
+	box-shadow: 0 4px 12px rgba(15, 23, 42, .055);
+}
+.comments > .comment-composer {
+	margin-block-start: 1.15rem !important;
+	border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--card-border-color));
+	background: var(--grey-50);
+	box-shadow: 0 3px 14px rgba(15, 23, 42, .05);
+}
+.comment-composer:focus-within {
+	border-color: var(--primary);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.composer-label {
+	display: flex;
+	align-items: center;
+	gap: .4rem;
+	margin: 0 0 .8rem;
+	color: var(--text-strong);
+	font-size: .86rem;
+	font-weight: 750;
+}
+.comment-info {
+	padding-block-end: .6rem;
+	margin-block-end: .7rem;
+	border-block-end: 1px solid var(--card-border-color);
+}
+.comment-composer :deep(.tiptap),
+.comment-composer :deep(.tiptap__editor) {
+	border-radius: 8px;
+}
+@media screen and (max-width: $tablet) {
+	.comments > .media.comment { padding: .85rem; }
+}
+
 .comment-attachment-row {
 	display: flex;
 	align-items: center;
