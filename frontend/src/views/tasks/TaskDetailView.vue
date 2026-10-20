@@ -12,6 +12,7 @@
 			v-if="visible"
 			class="task-view"
 		>
+			<header class="task-issue-header">
 			<BaseButton
 				v-if="!isModal"
 				class="back-button mbs-2"
@@ -60,6 +61,8 @@
 					:can-write="canWrite"
 				/>
 			</nav>
+
+			</header>
 
 			<ChecklistSummary :task="task" />
 
@@ -364,13 +367,6 @@
 						:disabled="!canWrite"
 					/>
 
-					<!-- Comments -->
-					<Comments
-						:can-write="canWrite"
-						:task-id="taskId"
-						:project-id="task.project_id"
-					/>
-
 					<!-- Attachments -->
 					<div
 						v-show="activeFields.attachments || hasAttachments || isBugTask"
@@ -438,6 +434,13 @@
 						v-if="task.id > 0 && !authStore.isLinkShareAuth"
 						kind="task"
 						:entity-id="task.id"
+					/>
+
+					<!-- Comments -->
+					<Comments
+						:can-write="canWrite"
+						:task-id="taskId"
+						:project-id="task.project_id"
 					/>
 
 					<!-- Marker element for scroll-to-bottom button visibility -->
@@ -1276,6 +1279,22 @@ function setRelatedTasksActive() {
 </script>
 
 <style lang="scss" scoped>
+/* One contained header for task and Bug detail views. */
+.task-issue-header {
+	padding: 1rem 1.2rem .85rem;
+	margin-block-end: 1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
+	background: var(--white);
+	box-shadow: 0 1px 2px rgba(15,23,42,.035);
+}
+.task-issue-header :deep(.heading) { border-bottom: 0; padding-block: .35rem .5rem; }
+.task-issue-header .subtitle { margin: 0; padding: .45rem 0 0; border-top: 1px solid var(--card-border-color); border-bottom: 0; }
+.task-issue-header .back-button { margin-block: 0 .5rem; }
+@media screen and (max-width: $tablet) {
+	.task-issue-header { padding: .75rem; border-radius: 8px; }
+}
+
 /* Shared, compact task/Bug description surface. */
 .task-view .detail-content > .description {
 	padding: .85rem 1rem;
