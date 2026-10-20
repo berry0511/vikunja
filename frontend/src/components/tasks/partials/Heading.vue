@@ -204,8 +204,8 @@ async function cancel(element: HTMLInputElement) {
 	color: var(--text-light);
 }
 .heading h1.title {
-	font-size: clamp(1.5rem, 2.5vw, 2.2rem);
-	font-weight: 650;
+	font-size: clamp(1.35rem, 2vw, 1.85rem);
+	font-weight: 550;
 	letter-spacing: -.03em;
 	line-height: 1.25;
 	margin: .3rem 0;
