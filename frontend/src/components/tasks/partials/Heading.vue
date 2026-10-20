@@ -1,29 +1,5 @@
 <template>
 	<div class="heading">
-		<div class="tw:flex tw:items-center md:tw:items-stretch tw:flex-col tw:gap-1 task-properties">
-			<div class="tw:flex tw:items-center tw:gap-2">
-				<ColorBubble
-					v-if="task.hex_color !== ''"
-					:color="getHexColor(task.hex_color)"
-				/>
-				<BaseButton @click="copyUrl">
-					<span class="title task-id">
-						{{ textIdentifier }}
-					</span>
-				</BaseButton>
-			</div>
-			<Done
-				:is-done="task.done"
-			/>
-			<BaseButton
-				v-if="hasClose"
-				:aria-label="$t('task.detail.closeTaskDetail')"
-				class="close d-print-none"
-				@click="$emit('close')"
-			>
-				<Icon icon="times" />
-			</BaseButton>
-		</div>
 		<h1
 			class="title input"
 			:class="{'disabled': !canWrite}"
@@ -38,6 +14,33 @@
 		>
 			{{ (task.title ?? '').trim() }}
 		</h1>
+		<div class="tw:flex tw:items-center md:tw:items-stretch tw:flex-col tw:gap-1 task-properties">
+			<div class="tw:flex tw:items-center tw:gap-2">
+				<ColorBubble
+					v-if="task.hex_color !== ''"
+					:color="getHexColor(task.hex_color)"
+				/>
+				<BaseButton @click="copyUrl">
+					<span class="title task-id">
+						{{ textIdentifier }}
+					</span>
+				</BaseButton>
+			</div>
+			<span v-if="isBug" class="bug-state-pill" :class="`is-${issueStatus(task)}`">{{ ISSUE_STATUS_LABELS[issueStatus(task)] }}</span>
+			<Done
+			v-if="!isBug"
+				:is-done="task.done"
+			/>
+			<BaseButton
+				v-if="hasClose"
+				:aria-label="$t('task.detail.closeTaskDetail')"
+				class="close d-print-none"
+				@click="$emit('close')"
+			>
+				<Icon icon="times" />
+			</BaseButton>
+		</div>
+
 		<CustomTransition name="fade">
 			<span
 				v-if="loading && saving"
@@ -77,12 +80,15 @@ import {useUpdateTaskMutation} from '@/client/queries/taskMutations'
 
 import type {Task as ITask} from '@/client/generated'
 import {getHexColor, getTaskIdentifier} from '@/helpers/task'
+import {issueKind, issueStatus, ISSUE_STATUS_LABELS} from '@/helpers/issues'
 
 const props = defineProps<{
 	task: ITask,
 	canWrite: boolean,
 	hasClose: boolean,
 }>()
+const isBug = computed(() => issueKind(props.task) === 'bug')
+
 
 const emit = defineEmits<{
 	'update:task': [task: ITask],
@@ -183,6 +189,14 @@ async function cancel(element: HTMLInputElement) {
 </script>
 
 <style lang="scss" scoped>
+.heading .task-properties {justify-content: flex-start; gap: .5rem;}
+.heading .task-id {font-size: .78rem;}
+.heading h1.title {margin: .15rem 0 .4rem; font-size: clamp(1.3rem,1.8vw,1.7rem); font-weight: 500;}
+.bug-state-pill {display: inline-flex; align-items:center; padding:.2rem .65rem; font-size:.76rem; font-weight:500; border:1px solid var(--card-border-color); border-radius: 999px; color:var(--text); background:var(--grey-50);}
+.bug-state-pill.is-resolved {color:#8250df;}
+.bug-state-pill.is-working {color:#9a6700;}
+.bug-state-pill.is-review {color:#0969da;}
+
 
 /* GitHub Issue-like hierarchy: prominent title, subdued number and state. */
 .heading {
