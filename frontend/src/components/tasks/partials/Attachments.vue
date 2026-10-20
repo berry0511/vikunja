@@ -68,9 +68,9 @@
 							:show-username="false"
 							:is-inline="true"
 						/>
-						<span>
-							{{ getHumanSize(a.file?.size ?? 0) }}
-						</span>
+						<span class="attachment-uploader">上传人：{{ getDisplayName(a.created_by ?? {}) }}</span>
+						<span v-if="a.created" class="attachment-created">上传时间：{{ formatDateLong(a.created) }}</span>
+						<span class="attachment-size">{{ getHumanSize(a.file?.size ?? 0) }}</span>
 					</p>
 					<AudioPreview
 						v-if="canPreviewAudio(a)"
@@ -98,7 +98,7 @@
 							v-if="editEnabled"
 							v-tooltip="$t('task.attachment.deleteTooltip')"
 							:aria-label="$t('task.attachment.deleteTooltip')"
-							class="attachment-info-meta-button"
+							class="attachment-info-meta-button attachment-delete-action"
 							@click.prevent.stop="setAttachmentToDelete(a)"
 						>
 							<Icon icon="trash-alt" />
@@ -755,7 +755,11 @@ defineExpose({openFilePicker})
 .attachment-info-meta {
 	display: flex;
 	align-items: center;
-	margin-block: 0;
+	flex-wrap: wrap;
+	gap: .35rem .55rem;
+	margin-block: .35rem 0;
+	font-size: .8rem;
+	color: var(--text-light);
 
 	> span {
 		padding: 0 .25rem;
@@ -763,6 +767,22 @@ defineExpose({openFilePicker})
 
 	:deep(.avatar-wrapper) {
 		margin-inline-end: 0;
+	}
+}
+
+.attachment-uploader {font-weight: 650; color: var(--text-strong);}
+.attachment-created {font-variant-numeric: tabular-nums;}
+.attachment-size {
+	padding: .15rem .45rem !important;
+	background: var(--grey-50);
+	border: 1px solid var(--card-border-color);
+	border-radius: 6px;
+}
+.attachment-delete-action {
+	border-radius: 6px;
+	&:hover, &:focus-visible {
+		background: color-mix(in srgb, var(--danger) 12%, var(--white));
+		color: var(--danger);
 	}
 }
 
