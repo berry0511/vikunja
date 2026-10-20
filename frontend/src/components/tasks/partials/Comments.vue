@@ -123,6 +123,12 @@
 						:entity-id="c.id"
 						:task-id="taskId"
 					/>
+					<ChangeHistory
+						v-if="c.id > 0 && !authStore.isLinkShareAuth"
+						kind="comment"
+						:entity-id="c.id"
+						:task-id="taskId"
+					/>
 					<Reactions 
 						:model-value="c.reactions"
 						class="mbs-2 d-print-none"
@@ -266,6 +272,7 @@ import type {Task as ITask} from '@/client/generated'
 
 import {generateAttachmentUrl} from '@/helpers/attachments'
 import {useUploadAttachmentsMutation} from '@/client/queries/attachments'
+import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import {getErrorText} from '@/message'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
