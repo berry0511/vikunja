@@ -10,6 +10,7 @@ export type Worklog = {
 	user_id: number
 	username: string
 	project_id: number
+	project_title: string
 	task_id: number
 	work_date: string
 	minutes: number
@@ -37,7 +38,7 @@ export type WorklogPage = {
 }
 
 export type WorklogSummary = {
-	days: Array<{work_date: string, user_id: number, username: string, minutes: number}>
+	days: Array<{work_date: string, project_id: number, project_title: string, user_id: number, username: string, minutes: number}>
 	total_minutes: number
 	record_count: number
 }
@@ -51,7 +52,7 @@ const keys = {
 export function worklogListQuery(filter: WorklogFilter, page: number) {
 	return queryOptions({
 		queryKey: keys.list(filter, page),
-		enabled: filter.project_id > 0,
+		enabled: filter.project_id >= 0,
 		queryFn: async ({signal}): Promise<WorklogPage> => {
 			const {data} = await client.get<{200: WorklogPage}, unknown, true>({
 				url: '/worklogs',
