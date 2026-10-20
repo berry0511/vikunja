@@ -364,6 +364,18 @@
 						:disabled="!canWrite"
 					/>
 
+					<!-- Attachments -->
+					<div
+						v-show="activeFields.attachments || hasAttachments"
+						class="content attachments"
+					>
+						<Attachments
+							:ref="e => { setFieldRef('attachments', e); attachmentsRef = e as any }"
+							:edit-enabled="canWrite"
+							:task="task"
+						/>
+					</div>
+
 					<!-- Daily work logs belong to the task and automatically inherit its IDs. -->
 					<TaskDailyWorklogs
 						v-if="task.id > 0 && task.project_id > 0 && !authStore.isLinkShareAuth"
@@ -427,18 +439,6 @@
 						:task-id="taskId"
 						:project-id="task.project_id"
 					/>
-
-					<!-- Attachments -->
-					<div
-						v-show="activeFields.attachments || hasAttachments"
-						class="content attachments"
-					>
-						<Attachments
-							:ref="e => { setFieldRef('attachments', e); attachmentsRef = e as any }"
-							:edit-enabled="canWrite"
-							:task="task"
-						/>
-					</div>
 
 					<!-- Marker element for scroll-to-bottom button visibility -->
 					<div
@@ -1276,6 +1276,25 @@ function setRelatedTasksActive() {
 </script>
 
 <style lang="scss" scoped>
+/* Shared, compact task/Bug description surface. */
+.task-view .detail-content > .description {
+	padding: .85rem 1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	background: var(--white);
+	box-shadow: none;
+}
+.task-view .detail-content > .description :deep(.task-section-title) {
+	margin-block-end: .65rem;
+}
+.task-view .detail-content > .description :deep(.tiptap__editor) {
+	min-block-size: 0;
+	padding: .35rem .1rem;
+}
+.task-view .detail-content > .attachments {
+	margin-block: .7rem 1.15rem;
+}
+
 
 /* Issue properties: lightweight GitHub-style sidebar sections. */
 .task-view .action-buttons {
