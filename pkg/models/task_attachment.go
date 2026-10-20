@@ -43,6 +43,7 @@ type TaskAttachment struct {
 	ID     int64 `xorm:"bigint autoincr not null unique pk" json:"id" param:"attachment" readOnly:"true" doc:"The unique, numeric id of this attachment."`
 	TaskID int64 `xorm:"bigint not null" json:"task_id" param:"task" readOnly:"true" doc:"The id of the task this attachment belongs to. Taken from the URL, not the body."`
 	FileID int64 `xorm:"bigint not null" json:"-"`
+	Source string `xorm:"varchar(16) not null default 'task'" json:"source" readOnly:"true" doc:"Attachment origin: task or comment. Comment uploads are referenced in comment text and hidden from the task attachment panel."`
 
 	CreatedByID int64      `xorm:"bigint not null" json:"-"`
 	CreatedBy   *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The user who uploaded this attachment."`
@@ -62,6 +63,10 @@ func (*TaskAttachment) TableName() string {
 
 // NewAttachment creates a new task attachment
 func (ta *TaskAttachment) NewAttachment(s *xorm.Session, f io.ReadSeeker, realname string, realsize uint64, a web.Auth) error {
+
+	if ta.Source != "comment" {
+		ta.Source = "task"
+	}
 
 	// Store the file using the existing session to avoid nested transactions
 	file, err := files.CreateWithSession(s, f, realname, realsize, a)
@@ -114,6 +119,7 @@ type AttachmentToUpload struct {
 	Reader   io.ReadSeeker
 	Filename string
 	Size     uint64
+	Source   string // task (default) or comment, chosen by the upload operation
 }
 
 // UploadTaskAttachments checks create access to the task, then stores each file,
@@ -131,7 +137,7 @@ func UploadTaskAttachments(s *xorm.Session, a web.Auth, taskID int64, uploads []
 	}
 
 	for _, upload := range uploads {
-		attachment := &TaskAttachment{TaskID: taskID}
+		attachment := &TaskAttachment{TaskID: taskID, Source: upload.Source}
 		if err := attachment.NewAttachment(s, upload.Reader, upload.Filename, upload.Size, a); err != nil {
 			failures = append(failures, err)
 			continue
