@@ -644,18 +644,22 @@ defineExpose({openFilePicker})
 }
 
 .attachment {
+	@media screen and (max-width: $tablet) {
+		grid-template-columns: 2.5rem minmax(0, 1fr);
+		gap: .5rem;
+	}
 	display: grid;
-	grid-template-columns: 9rem 1fr;
+	grid-template-columns: 3.25rem minmax(0, 1fr);
 	align-items: center;
 	inline-size: 100%;
 	
-	padding: .5rem;
-	
-	transition: background-color $transition;
-	background-color: transparent;
-	
-	border: transparent;
-	border-radius: $radius;
+	gap: .75rem;
+	padding: .55rem .7rem;
+	margin-block: .3rem;
+	transition: background-color $transition, border-color $transition;
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
 
 	&:hover {
 		background-color: var(--grey-200);
@@ -680,8 +684,8 @@ defineExpose({openFilePicker})
 .filename {
 	display: flex;
 	align-items: center;
-	font-weight: bold;
-	min-block-size: 2rem;
+	font-weight: 700;
+	min-block-size: 1.3rem;
 	color: var(--text);
 	text-align: start;
 	word-break: break-all;
@@ -691,13 +695,14 @@ defineExpose({openFilePicker})
 .attachment-info-meta,
 .attachment-actions {
 	color: var(--grey-500);
-	font-size: .9rem;
+	font-size: .79rem;
 }
 
 .attachment-actions {
 	display: flex;
-	margin-block-start: .25rem;
+	margin-block-start: .2rem;
 	margin-block-end: 0;
+	gap: .3rem;
 }
 
 .dropzone {
@@ -818,8 +823,8 @@ defineExpose({openFilePicker})
 }
 
 .preview-column {
-	max-inline-size: 8rem;
-	block-size: 5.2rem;
+	max-inline-size: 3.1rem;
+	block-size: 3.1rem;
 }
 
 // Redundant mouse-only click target; the real control is button.attachment-open.
