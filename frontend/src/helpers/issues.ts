@@ -1,21 +1,18 @@
 import type {Task} from '@/client/generated'
 
-// A ticket is a normal Vikunja task tagged with one of these two reserved
-// labels. It retains the existing project ACL, assignees, comments, files,
-// history and daily worklogs. No second data or permissions model is needed.
+// Bug reports reuse the existing task ACL, discussion, attachments and worklogs.
+// Work-order classification is deliberately retired: ordinary work is a task.
 export const ISSUE_LABELS = {
 	bug: '工单·缺陷',
-	work: '工单·任务',
 } as const
 
-export type IssueKind = keyof typeof ISSUE_LABELS
+export type IssueKind = 'bug'
 export type IssueStatus = 'open' | 'working' | 'review' | 'resolved'
 type TicketTask = Pick<Task, 'done' | 'percent_done' | 'labels'>
 
 export function issueKind(task: TicketTask): IssueKind | null {
 	const titles = (task.labels ?? []).map(label => label.title)
 	if (titles.includes(ISSUE_LABELS.bug)) return 'bug'
-	if (titles.includes(ISSUE_LABELS.work)) return 'work'
 	return null
 }
 
@@ -57,9 +54,11 @@ export function issueDescription(input: {
 	expected: string
 	actual: string
 }): string {
-	const fields: Array<[string, string]> = input.kind === 'bug'
-		? [['环境 / 版本', input.environment], ['复现步骤', input.steps], ['预期结果', input.expected], ['实际结果', input.actual], ['补充说明', input.details]]
-		: [['工单说明', input.details]]
+	const fields: Array<[string, string]> = [
+		['环境 / 版本', input.environment], ['复现步骤', input.steps],
+		['预期结果', input.expected], ['实际结果', input.actual],
+		['补充说明', input.details],
+	]
 	return fields.filter(([, value]) => value.trim()).map(([title, value]) =>
 		`<h3>${escapeHTML(title)}</h3><p>${escapeHTML(value).replace(/\n/g, '<br>')}</p>`,
 	).join('') || '<p></p>'
