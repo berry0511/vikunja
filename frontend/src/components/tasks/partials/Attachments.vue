@@ -236,6 +236,8 @@ import Loading from '@/components/misc/Loading.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 import {useUploadAttachmentsMutation, useDeleteAttachmentMutation} from '@/client/queries/attachments'
+import {useConfigStore} from '@/stores/config'
+import {uploadSizeError} from '@/helpers/uploadSize'
 import {canPreviewAudio, canPreviewImage, previewKind, type PreviewKind} from '@/helpers/attachmentPreview'
 import {getDisplayName} from '@/helpers/user'
 import type {TaskAttachment as IAttachment} from '@/client/generated'
@@ -288,6 +290,7 @@ const updateTask = useUpdateTaskMutation()
 const {t} = useI18n({useScope: 'global'})
 
 const attachments = computed(() => props.task.attachments ?? [])
+const configStore = useConfigStore()
 const uploadMutation = useUploadAttachmentsMutation()
 const deleteMutation = useDeleteAttachmentMutation()
 const uploadBatch = ref<{
@@ -456,6 +459,12 @@ async function uploadFilesToTask(files: File[] | FileList) {
 		total: batch.length,
 	}
 	for (const [index, file] of batch.entries()) {
+		const sizeMessage = uploadSizeError(file, configStore.max_file_size)
+		if (sizeMessage) {
+			error(new Error(sizeMessage))
+			uploadBatch.value = {completed: index + 1, total: batch.length}
+			continue
+		}
 		try {
 			const result = await uploadMutation.mutateAsync({taskId, files: [file]})
 			for (const err of result.errors ?? []) error(err)
