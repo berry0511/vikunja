@@ -21,6 +21,7 @@
 			>
 				{{ $t('project.noDescriptionAvailable') }}
 			</p>
+			<ChangeHistory v-if="projectId > 0" kind="project" :entity-id="projectId" />
 		</Card>
 	</Modal>
 </template>
@@ -29,6 +30,7 @@
 import {computed} from 'vue'
 import DOMPurify from 'dompurify'
 import {useProjects} from '@/composables/useProjects'
+import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import {useGoBack} from '@/composables/useGoBack'
 import {useI18n} from 'vue-i18n'
 
