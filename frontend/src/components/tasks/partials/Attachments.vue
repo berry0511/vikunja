@@ -687,8 +687,8 @@ defineExpose({openFilePicker})
 .filename {
 	display: flex;
 	align-items: center;
-	font-weight: 650;
-	font-size: .88rem;
+	font-weight: 500;
+	font-size: .82rem;
 	min-block-size: 1.1rem;
 	color: var(--text);
 	text-align: start;
@@ -779,7 +779,7 @@ defineExpose({openFilePicker})
 	}
 }
 
-.attachment-uploader {font-weight: 650; color: var(--text-strong);}
+.attachment-uploader {font-weight: 500; color: var(--text-strong);}
 .attachment-created {font-variant-numeric: tabular-nums;}
 .attachment-size {
 	padding: .15rem .45rem !important;
@@ -934,8 +934,8 @@ defineExpose({openFilePicker})
 	padding: .4rem .65rem;
 	min-block-size: 3rem;
 }
-.preview-column {max-inline-size: 2rem; block-size: 2rem; overflow: hidden;}
-.attachment-preview {max-inline-size: 2rem; max-block-size: 2rem; object-fit: contain;}
+.preview-column {inline-size: 2rem; block-size: 2rem; max-inline-size: 2rem; min-inline-size: 0; overflow: hidden;}
+.attachment-preview {display: block; inline-size: 100%; block-size: 100%; max-inline-size: 100%; max-block-size: 100%; overflow: hidden; object-fit: contain;}
 .attachment-info-column {align-self: center; min-inline-size: 0;}
 .filename {display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: normal; font-size: .84rem; line-height: 1.25;}
 .attachment-info-meta {font-size: .7rem; line-height: 1.3; gap: .1rem .35rem;}
