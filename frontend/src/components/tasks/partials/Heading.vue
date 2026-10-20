@@ -183,6 +183,44 @@ async function cancel(element: HTMLInputElement) {
 </script>
 
 <style lang="scss" scoped>
+
+/* GitHub Issue-like hierarchy: prominent title, subdued number and state. */
+.heading {
+	display: flex;
+	flex-direction: column;
+	gap: .35rem;
+	padding: .7rem 0 1rem;
+	border-bottom: 1px solid var(--card-border-color);
+}
+.heading .task-properties {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .65rem;
+}
+.heading .task-id {
+	font-size: .88rem;
+	font-weight: 500;
+	color: var(--text-light);
+}
+.heading h1.title {
+	font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+	font-weight: 650;
+	letter-spacing: -.03em;
+	line-height: 1.25;
+	margin: .3rem 0;
+	padding: .2rem .25rem;
+	border: 1px solid transparent;
+	border-radius: 6px;
+}
+.heading h1.title[contenteditable="true"]:hover {
+	border-color: var(--card-border-color);
+}
+.heading h1.title[contenteditable="true"]:focus-visible {
+	outline: 2px solid var(--primary);
+	background: var(--white);
+}
+
 .heading {
 	display: flex;
 	justify-content: flex-start;
