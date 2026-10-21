@@ -85,8 +85,8 @@ func usersSearch(ctx context.Context, in *struct {
 	if len([]rune(needle)) >= 2 {
 		type candidateRow struct { Username string `xorm:"'username'"` }
 		candidates := []candidateRow{}
-		pattern := "%" + strings.ReplaceAll(strings.ReplaceAll(needle, "%", "\\%"), "_", "\\_") + "%"
-		if err := s.SQL("SELECT username FROM users WHERE LOWER(username) LIKE ? OR (discoverable_by_name = ? AND LOWER(name) LIKE ?) LIMIT 40", pattern, true, pattern).Find(&candidates); err != nil {
+		pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(needle) + "%"
+		if err := s.SQL("SELECT username FROM users WHERE LOWER(username) LIKE ? ESCAPE '!' OR (discoverable_by_name = ? AND LOWER(name) LIKE ? ESCAPE '!') LIMIT 40", pattern, true, pattern).Find(&candidates); err != nil {
 			_ = s.Rollback()
 			return nil, translateDomainError(err)
 		}
