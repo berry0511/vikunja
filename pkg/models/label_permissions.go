@@ -105,7 +105,12 @@ func labelVisibleCond(s *xorm.Session, a web.Auth) (builder.Cond, error) {
 			Where(builder.And(accessibleProjects, taskNotDeletedCond("tasks"))),
 	)
 
+	// Public catalog labels are selectable by every authenticated user. This does
+	// not expand task visibility: task lists still use project/task ACLs.
 	accessBranches := []builder.Cond{usedOnAccessibleTask}
+	if _, linkShare := a.(*LinkSharing); !linkShare {
+		accessBranches = append(accessBranches, builder.In("labels.id", builder.Select("label_id").From("global_labels")))
+	}
 	if _, isLinkShare := a.(*LinkSharing); !isLinkShare {
 		caller, err := user.GetFromAuth(a)
 		if err != nil {
