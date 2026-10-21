@@ -45,7 +45,7 @@
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.projects"
 						:to="{ name: 'projects.index'}"
-						:class="{'nav-muted-active': $route.name === 'projects.index' && $route.query.status === 'archived'}"
+						
 					>
 						<span class="menu-item-icon icon">
 							<Icon icon="layer-group" />
@@ -53,12 +53,7 @@
 						{{ $t('project.projects') }}
 					</RouterLink>
 				</li>
-				<li>
-					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}" :class="{'nav-muted-active': $route.name !== 'projects.index' || $route.query.status !== 'archived'}">
-						<span class="menu-item-icon icon"><Icon icon="archive" /></span>
-						{{ $t('project.directory.archiveNav') }}
-					</RouterLink>
-				</li>
+
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.labels"
@@ -89,7 +84,7 @@
 				</li>
 				<li v-if="!authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'issues.index'}">
-						<span class="menu-item-icon icon"><Icon icon="clipboard-list" /></span>
+						<span class="menu-item-icon icon"><Icon icon="bug" /></span>
 						Bug 管理
 					</RouterLink>
 				</li>
@@ -133,9 +128,10 @@
 			</nav>
 
 			<nav
-				class="menu"
+				class="menu sidebar-projects-section"
 				:aria-label="$t('project.projects')"
 			>
+				<div class="sidebar-projects-heading">项目列表</div>
 				<ProjectsNavigation
 					:model-value="projects"
 					:can-edit-order="true"
@@ -289,5 +285,17 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
+}
+.sidebar-projects-section {
+	margin-block-start: .75rem;
+	padding-block-start: .8rem !important;
+	border-block-start: 1px solid var(--card-border-color);
+}
+.sidebar-projects-heading {
+	font-size: .72rem;
+	font-weight: 550;
+	letter-spacing: .02em;
+	color: var(--text-light);
+	padding: 0 .85rem .55rem;
 }
 </style>
