@@ -75,7 +75,8 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue'
 import {useQuery} from '@tanstack/vue-query'
-import {client, adminProjectsList, adminUsersList} from '@/client/generated'
+import {adminProjectsList, adminUsersList} from '@/client/generated'
+import {client} from '@/client/generated/client.gen'
 import {getToken} from '@/helpers/auth'
 
 type OrganizationTask = {
