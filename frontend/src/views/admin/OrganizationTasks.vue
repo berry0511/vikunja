@@ -14,7 +14,7 @@
 			<label>项目
 				<select v-model.number="projectId">
 					<option :value="0">全部项目</option>
-					<option v-for="project in projects" :key="project.id" :value="project.id">{{ project.title }}</option>
+					<option v-for="project in projects" :key="project.id" :value="project.id">{{ project.title }} · {{ project.owner?.username || "无所有者" }} (#{{ project.id }})</option>
 				</select>
 			</label>
 			<label>负责人
@@ -51,10 +51,17 @@
 			</div>
 		</div>
 		<div v-else class="organization-gantt">
-			<p v-if="ganttTasks.length === 0">当前页的任务没有有效起止日期。</p>
-			<div v-for="task in ganttTasks" :key="task.id" class="organization-gantt-row">
-				<RouterLink :to="{name: 'task.detail', params: {id: task.id}}">{{ task.title }}</RouterLink>
-				<div class="organization-track"><div class="organization-bar" :style="barStyle(task)" /></div>
+			<p class="gantt-hint">展示当前页中设置了有效起止日期的任务；横轴为实际日期，浅色竖线表示日期刻度。</p>
+			<p v-if="ganttTasks.length === 0">当前页没有设置有效起止日期的任务。请先在任务详情中设置开始和结束日期。</p>
+			<div v-else class="gantt-scroll">
+				<div class="gantt-grid">
+					<div class="gantt-title-head">任务 / 项目</div>
+					<div class="gantt-scale"><span v-for="tick in ticks" :key="tick.time" class="gantt-tick" :style="{left: tick.left + '%'}">{{ tick.label }}</span></div>
+					<template v-for="task in ganttTasks" :key="task.id">
+						<div class="gantt-task-info"><RouterLink :to="{name: 'task.detail', params: {id: task.id}}">{{ task.title }}</RouterLink><small>{{ task.project_name }}</small></div>
+						<div class="gantt-lane"><span v-for="tick in ticks" :key="tick.time" class="gantt-gridline" :style="{left: tick.left + '%'}" /><div class="organization-bar" :style="barStyle(task)" :title="spanLabel(task)" /></div>
+					</template>
+				</div>
 			</div>
 		</div>
 		<div class="organization-pagination">
@@ -65,8 +72,9 @@
 		<section class="organization-team-summary">
 			<h2>全部团队</h2>
 			<div v-for="team in teams" :key="team.id" class="organization-team-row">
-				<button type="button" @click="teamId = team.id; page = 1">{{ team.name }}</button>
-				<span>{{ team.members }} 人 · {{ team.projects }} 个共享项目</span>
+				<div class="team-identity"><span class="team-avatar" aria-hidden="true">{{ team.name.slice(0, 1).toUpperCase() }}</span><div><button type="button" class="team-name" @click="teamId = team.id; page = 1">{{ team.name }}</button><small>团队 #{{ team.id }}</small></div></div>
+				<span class="team-stat">{{ team.members }} 位成员 · {{ team.projects }} 个共享项目</span>
+				<button type="button" class="team-filter" @click="teamId = team.id; page = 1">查看任务 →</button>
 			</div>
 		</section>
 	</main>
@@ -142,7 +150,17 @@ const taskResult = computed(() => tasksQuery.data.value)
 const teams = computed(() => teamsQuery.data.value ?? [])
 const projectsQuery = useQuery(() => ({
 	queryKey: ['admin', 'organization', 'projects'],
-	queryFn: async () => (await adminProjectsList({query: {page: 1, per_page: 100}})).data.items ?? [],
+	queryFn: async () => {
+		const results = []
+		let page = 1
+		for (;;) {
+			const data = (await adminProjectsList({query: {page, per_page: 100, exclude_default_projects: true}})).data
+			results.push(...(data.items ?? []))
+			if (page >= (data.total_pages ?? 1)) break
+			page++
+		}
+		return results
+	},
 }))
 const peopleQuery = useQuery(() => ({
 	queryKey: ['admin', 'organization', 'people'],
@@ -153,26 +171,46 @@ const people = computed(() => peopleQuery.data.value ?? [])
 
 const totalPages = computed(() => Math.max(1, Math.ceil((taskResult.value?.total ?? 0) / 50)))
 watch([teamId, projectId, assigneeId, done, search], () => {page.value = 1})
+// Ignore missing/zero dates; Vikunja stores unset timestamps as year 0001.
+const DAY = 86_400_000
 function taskSpan(task: OrganizationTask): [number, number] | null {
-	const start = Date.parse(task.start_date || '')
-	const end = Date.parse(task.end_date || task.due_date || '')
-	if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null
-	return [start, end]
+	const from = task.start_date ? Date.parse(task.start_date) : NaN
+	const to = task.end_date || task.due_date ? Date.parse(task.end_date || task.due_date || '') : NaN
+	if (!Number.isFinite(from) || !Number.isFinite(to) || new Date(from).getUTCFullYear() < 2000 || new Date(to).getUTCFullYear() < 2000 || to < from) return null
+	return [from, to]
 }
 const ganttTasks = computed(() => (taskResult.value?.items ?? []).filter(task => taskSpan(task) !== null))
 const bounds = computed(() => {
 	const ranges = ganttTasks.value.map(task => taskSpan(task)!)
-	return {min: Math.min(...ranges.map(x => x[0])), max: Math.max(...ranges.map(x => x[1]))}
+	if (!ranges.length) return {min: 0, max: DAY}
+	const earliest = Math.min(...ranges.map(x => x[0]))
+	const latest = Math.max(...ranges.map(x => x[1]))
+	return {min: earliest - DAY, max: Math.max(latest + DAY, earliest + 7 * DAY)}
 })
+const ticks = computed(() => {
+	if (!ganttTasks.value.length) return []
+	const duration = bounds.value.max - bounds.value.min
+	const step = Math.max(DAY, Math.ceil(duration / (6 * DAY)) * DAY)
+	const result: Array<{time: number, left: number, label: string}> = []
+	for (let time = Math.ceil(bounds.value.min / step) * step; time <= bounds.value.max; time += step) {
+		result.push({time, left: (time - bounds.value.min) / duration * 100, label: new Date(time).toLocaleDateString('zh-CN', {month: '2-digit', day: '2-digit'})})
+	}
+	return result
+})
+function spanLabel(task: OrganizationTask): string {
+	const range = taskSpan(task)
+	return range ? new Date(range[0]).toLocaleDateString('zh-CN') + ' → ' + new Date(range[1]).toLocaleDateString('zh-CN') : ''
+}
 function barStyle(task: OrganizationTask) {
 	const span = taskSpan(task)
 	if (!span) return {}
-	const width = Math.max(86400000, bounds.value.max - bounds.value.min)
+	const duration = bounds.value.max - bounds.value.min
 	return {
-		marginInlineStart: Math.max(0, (span[0]-bounds.value.min)/width*100)+'%',
-		width: Math.max(1, (span[1]-span[0])/width*100)+'%',
+		left: ((span[0] - bounds.value.min) / duration * 100) + '%',
+		width: Math.max(.7, ((Math.max(span[1], span[0] + DAY) - span[0]) / duration * 100)) + '%',
 	}
 }
+
 </script>
 <style scoped lang="scss">
 .organization-center {max-inline-size:1460px; margin-inline:auto; padding:1.25rem;}
@@ -197,4 +235,28 @@ function barStyle(task: OrganizationTask) {
 .organization-team-row {display:flex; justify-content:space-between; padding:.5rem; border-bottom:1px solid var(--card-border-color);}
 .organization-team-row span {color:var(--text-light); font-size:.8rem;}
 @media(max-width:720px){.organization-row{grid-template-columns:1.5rem 1fr;}.organization-row span:nth-last-child(-n+2){display:none;}}
+
+.gantt-hint {font-size:.77rem;color:var(--text-light);margin:.45rem 0 1rem;}
+.gantt-scroll {overflow-x:auto;}
+.gantt-grid {display:grid;grid-template-columns:minmax(175px,240px) minmax(650px,1fr);align-items:stretch;}
+.gantt-title-head,.gantt-scale {min-height:2.8rem;border-bottom:1px solid var(--card-border-color);font-size:.78rem;color:var(--text-light);padding:.7rem .55rem;}
+.gantt-scale {position:relative;}
+.gantt-tick {position:absolute;top:.6rem;transform:translateX(-50%);white-space:nowrap;}
+.gantt-task-info {display:flex;flex-direction:column;padding:.65rem .55rem;border-bottom:1px solid var(--card-border-color);gap:.15rem;min-width:0;}
+.gantt-task-info a {font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gantt-task-info small {font-size:.72rem;color:var(--text-light);}
+.gantt-lane {position:relative;min-height:3rem;border-bottom:1px solid var(--card-border-color);background:var(--white);}
+.gantt-gridline {position:absolute;top:0;bottom:0;width:1px;background:var(--grey-100);}
+.gantt-lane .organization-bar {position:absolute;top:1.15rem;height:.85rem;border-radius:5px;background:var(--primary);}
+.organization-team-summary {margin-block-start:1rem;}
+.organization-team-row {display:flex;align-items:center;gap:1rem;padding:.7rem .4rem;}
+.team-identity {display:flex;align-items:center;gap:.7rem;min-width:160px;flex:1;}
+.team-avatar {display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:color-mix(in srgb,var(--primary) 12%,var(--white));color:var(--primary);font-size:1rem;font-weight:600;}
+.team-identity > div {display:flex;flex-direction:column;align-items:flex-start;}
+.team-name {background:transparent;border:0;padding:0;color:var(--text-strong);font-size:.86rem;font-weight:550;cursor:pointer;}
+.team-name:hover {color:var(--primary);}
+.team-identity small {color:var(--text-light);font-size:.72rem;}
+.team-stat {font-size:.78rem;}
+.team-filter {border:1px solid var(--card-border-color);border-radius:6px;background:var(--white);padding:.35rem .6rem;font-size:.78rem;cursor:pointer;color:var(--text);}
+@media(max-width:720px){.organization-team-row{flex-wrap:wrap;}.team-filter{margin-left:auto;}}
 </style>
