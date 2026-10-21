@@ -318,6 +318,13 @@ watchEffect(() => setTitle(pageTitle.value))
 </script>
 
 <style lang="scss" scoped>
+/* Match the project list's Microsoft To Do-inspired density in task overview. */
+.title {font-size: clamp(1.25rem, 2vw, 1.6rem); font-weight: 550; letter-spacing: -.02em;}
+.tasks {list-style: none; padding: .5rem .7rem .85rem !important; margin: 0;}
+.tasks > li {list-style: none; margin: 0;}
+.show-tasks-options {padding: .65rem .85rem; background: var(--white); border: 1px solid var(--card-border-color); border-radius: 9px; margin-block: .6rem 1rem;}
+:deep(.single-task) {max-inline-size: 100%;}
+
 .tasks {
 	list-style: none;
 	margin: 0;
