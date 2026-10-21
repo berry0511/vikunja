@@ -19,9 +19,18 @@
 				</li>
 			</ul>
 			<div class="team-project-help">
-				<h2>团队任务</h2>
-				<p>团队任务属于共享给该团队的项目，不包括成员私人任务。需要先在项目的共享设置中为团队授权，才能按团队查看和编辑。</p>
-				<RouterLink :to="{name: 'projects.index'}">查看有权限的项目 →</RouterLink>
+				<h2>团队共享项目 <small>({{ sharedProjects.length }})</small></h2>
+				<p>仅展示明确授权给本团队且当前账号有权访问的项目，不包含团队成员私人任务。</p>
+				<p v-if="projectsQuery.isPending.value">正在核对团队项目授权…</p>
+				<p v-else-if="projectsQuery.isError.value" role="alert">团队项目查询失败，请稍后重试。</p>
+				<p v-else-if="sharedProjects.length === 0">暂时没有可访问的团队共享项目。项目管理员可以在项目共享设置中添加此团队。</p>
+				<ul v-else class="team-shared-projects">
+					<li v-for="project in sharedProjects" :key="project.id">
+						<RouterLink :to="{name: 'project.index', params: {projectId: project.id}}">{{ project.title }}</RouterLink>
+						<span>团队权限：{{ project.permission === 2 ? '管理' : project.permission === 1 ? '读写' : '只读' }}</span>
+					</li>
+				</ul>
+				<RouterLink :to="{name: 'projects.index'}">查看所有我有权限的项目 →</RouterLink>
 			</div>
 		</section>
 	</div>
@@ -29,6 +38,8 @@
 
 <script setup lang="ts">
 import {computed} from 'vue'
+import {projectTeamsList} from '@/client/generated'
+import {ensureProjects} from '@/client/queries/projects'
 import {useQuery} from '@tanstack/vue-query'
 import {teamQuery as getTeamQuery} from '@/client/queries/teams'
 
@@ -36,6 +47,24 @@ const props = defineProps<{id: string}>()
 const teamId = computed(() => Number(props.id))
 const teamQuery = useQuery(() => getTeamQuery(teamId.value))
 const team = computed(() => teamQuery.data.value)
+const projectsQuery = useQuery(() => ({
+	queryKey: ['teams', 'workspace', teamId.value, 'shared-projects'],
+	enabled: teamQuery.isSuccess.value,
+	queryFn: async () => {
+		const projects = (await ensureProjects()).projects.filter(project => !project.is_archived)
+		const matches: Array<{id: number, title: string, permission: number}> = []
+		// Project team listings apply existing project ACL checks server-side.
+		// Avoid parallel flooding instances with many projects.
+		for (const project of projects) {
+			const response = await projectTeamsList({path: {project: project.id}})
+			const team = response.data.items?.find(entry => entry.id === teamId.value)
+			if (team) matches.push({id: project.id, title: project.title, permission: team.permission ?? 0})
+		}
+		return matches
+	},
+}))
+const sharedProjects = computed(() => projectsQuery.data.value ?? [])
+
 </script>
 
 <style scoped lang="scss">
@@ -52,4 +81,7 @@ const team = computed(() => teamQuery.data.value)
 .team-member-role {color:var(--text-light); font-size:.8rem;}
 .team-project-help {padding-block-start:.75rem;}
 .team-project-help p {font-size:.85rem; margin:.7rem 0; color:var(--text-light);}
+.team-shared-projects {list-style:none; padding:0; margin:.75rem 0;}
+.team-shared-projects li {padding:.65rem 0; border-bottom:1px solid var(--card-border-color); display:flex; justify-content:space-between; gap:.75rem;}
+.team-shared-projects span {font-size:.8rem; color:var(--text-light);}
 </style>
