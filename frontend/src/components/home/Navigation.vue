@@ -81,6 +81,12 @@
 						{{ $t('team.title') }}
 					</RouterLink>
 				</li>
+				<li v-if="authStore.info?.is_admin && !authStore.isLinkShareAuth">
+					<RouterLink :to="{name: 'admin.organization'}">
+						<span class="menu-item-icon icon"><Icon icon="building" /></span>
+						组织任务中心
+					</RouterLink>
+				</li>
 				<li v-if="!authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'issues.index'}">
 						<span class="menu-item-icon icon"><Icon icon="clipboard-list" /></span>
