@@ -332,6 +332,7 @@ import FormField from '@/components/input/FormField.vue'
 import FormInput from '@/components/input/FormInput.vue'
 import FormSelect from '@/components/input/FormSelect.vue'
 import FormCheckbox from '@/components/input/FormCheckbox.vue'
+import XButton from '@/components/input/Button.vue'
 
 import {SUPPORTED_LOCALES, setLanguage} from '@/i18n'
 import {error} from '@/message'
