@@ -6,7 +6,7 @@
 				<h1>{{ team?.name ?? '团队工作区' }}</h1>
 				<p>{{ team?.description || '团队成员与协作空间' }}</p>
 			</div>
-			<RouterLink class="team-workspace-manage" :to="{name: 'teams.edit', params: {id: teamId}}">管理团队</RouterLink>
+			<RouterLink v-if="canManage" class="team-workspace-manage" :to="{name: 'teams.edit', params: {id: teamId}}">管理团队</RouterLink>
 		</header>
 		<p v-if="teamQuery.isPending.value">正在加载团队…</p>
 		<p v-else-if="teamQuery.isError.value" role="alert">无法读取团队，请检查团队成员权限。</p>
@@ -66,6 +66,7 @@ import {computed, ref} from 'vue'
 import {projectTeamsList} from '@/client/generated'
 import {ensureProjects} from '@/client/queries/projects'
 import {allTasksQuery} from '@/client/queries/tasks'
+import {useAuthStore} from '@/stores/auth'
 import {useQuery} from '@tanstack/vue-query'
 import {teamQuery as getTeamQuery} from '@/client/queries/teams'
 
@@ -73,6 +74,8 @@ const props = defineProps<{id: string}>()
 const teamId = computed(() => Number(props.id))
 const teamQuery = useQuery(() => getTeamQuery(teamId.value))
 const team = computed(() => teamQuery.data.value)
+const authStore = useAuthStore()
+const canManage = computed(() => Boolean(authStore.info?.is_admin || team.value?.members?.some(member => member.id === authStore.info?.id && member.admin)))
 const projectsQuery = useQuery(() => ({
 	queryKey: ['teams', 'workspace', teamId.value, 'shared-projects'],
 	enabled: teamQuery.isSuccess.value,
