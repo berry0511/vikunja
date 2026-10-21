@@ -263,6 +263,12 @@ async function loadPendingTasks(from: Date|string|undefined, to: Date|string|und
 		return
 	}
 
+	// Fail closed on the personal overview until the authenticated username is available.
+	if (props.assignedToMe && !authStore.info?.username) {
+		taskScope.value = null
+		return
+	}
+
 	const params: TaskFilterParams = {
 		sort_by: ['due_date', 'id'],
 		order_by: ['asc', 'desc'],
