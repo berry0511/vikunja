@@ -1,6 +1,6 @@
 <template>
 	<CreateEdit
-		v-if="authStore.info?.is_admin"
+		v-if="false"
 		v-model:loading="loadingModel"
 		:title="$t('label.create.title')"
 		:primary-disabled="label.title === ''"
@@ -22,7 +22,7 @@
 			<ColorPicker v-model="label.hex_color" />
 		</FormField>
 	</CreateEdit>
-	<p v-else class="help">标签由实例管理员统一维护。请从现有公共标签中选择。</p>
+	<p v-else class="help">标签是系统预置项，不允许任何账号新增、修改或删除。请从现有公共标签中选择。</p>
 </template>
 
 <script setup lang="ts">
