@@ -22,7 +22,7 @@ func init() {
 		Migrate: func(tx *xorm.Engine) error {
 			quote := tx.Dialect().Quoter().Quote
 			for _, col := range []string{"start_date", "end_date", "due_date"} {
-				stmt := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s DATETIME NULL", quote("projects"), quote(col))
+				stmt := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s TIMESTAMP NULL", quote("projects"), quote(col))
 				if _, err := tx.Exec(stmt); err != nil {
 					return fmt.Errorf("add project planning date %s: %w", col, err)
 				}
