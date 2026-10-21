@@ -114,7 +114,16 @@ async function getAdminData<T>(path: string, params: Record<string, string>): Pr
 
 const teamsQuery = useQuery(() => ({
 	queryKey: ['admin', 'organization', 'teams'],
-	queryFn: () => getAdminData<OrganizationTeam>('teams', {page: '1', per_page: '100'}),
+	queryFn: async () => {
+		const first = await getAdminData<OrganizationTeam>('teams', {page: '1', per_page: '100'})
+		const items = [...first.items]
+		const pages = Math.ceil(first.total / 100)
+		for (let page = 2; page <= pages; page++) {
+			const next = await getAdminData<OrganizationTeam>('teams', {page: String(page), per_page: '100'})
+			items.push(...next.items)
+		}
+		return items
+	},
 }))
 const tasksQuery = useQuery(() => ({
 	queryKey: ['admin', 'organization', 'tasks', page.value, teamId.value, projectId.value, assigneeId.value, done.value, search.value],
@@ -129,7 +138,7 @@ const tasksQuery = useQuery(() => ({
 	}),
 }))
 const taskResult = computed(() => tasksQuery.data.value)
-const teams = computed(() => teamsQuery.data.value?.items ?? [])
+const teams = computed(() => teamsQuery.data.value ?? [])
 const projectsQuery = useQuery(() => ({
 	queryKey: ['admin', 'organization', 'projects'],
 	queryFn: async () => (await adminProjectsList({query: {page: 1, per_page: 100}})).data.items ?? [],
