@@ -84,7 +84,7 @@
 				</li>
 				<li v-if="!authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'issues.index'}">
-						<span class="menu-item-icon icon"><Icon icon="bug" /></span>
+						<span class="menu-item-icon icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 6 4M16 7l2-3M4 10h3M17 10h3M4 15h3M17 15h3M8 20l-2 2M16 20l2 2"/><rect x="7" y="7" width="10" height="13" rx="5"/><path d="M9 4h6M12 10v8"/></svg></span>
 						Bug 管理
 					</RouterLink>
 				</li>
