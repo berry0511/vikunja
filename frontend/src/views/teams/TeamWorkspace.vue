@@ -32,14 +32,40 @@
 				</ul>
 				<RouterLink :to="{name: 'projects.index'}">查看所有我有权限的项目 →</RouterLink>
 			</div>
+			<div class="team-task-board">
+				<div class="team-task-heading">
+					<h2>团队任务 <small>({{ teamTasks.length }})</small></h2>
+					<div class="team-view-switch" role="group" aria-label="切换团队视图">
+						<button type="button" :aria-pressed="view === 'list'" @click="view = 'list'">列表</button>
+						<button type="button" :aria-pressed="view === 'gantt'" @click="view = 'gantt'">甘特图</button>
+					</div>
+				</div>
+				<p v-if="tasksQuery.isPending.value">正在读取有权限的任务…</p>
+				<p v-else-if="tasksQuery.isError.value" role="alert">任务读取失败，请检查项目访问权限。</p>
+				<p v-else-if="teamTasks.length === 0">当前团队共享项目中没有可见任务。</p>
+				<ul v-else-if="view === 'list'" class="team-task-list">
+					<li v-for="task in teamTasks" :key="task.id">
+						<RouterLink :to="{name: 'task.detail', params: {id: task.id}}">{{ task.title }}</RouterLink>
+						<span>{{ task.done ? '已完成' : '未完成' }} · {{ sharedProjects.find(p => p.id === task.project_id)?.title }}</span>
+					</li>
+				</ul>
+				<div v-else class="team-gantt">
+					<p v-if="ganttTasks.length === 0">没有设置起止日期的团队任务。</p>
+					<div v-for="task in ganttTasks" :key="task.id" class="team-gantt-line">
+						<RouterLink :to="{name: 'task.detail', params: {id: task.id}}">{{ task.title }}</RouterLink>
+						<div class="team-gantt-track"><div class="team-gantt-bar" :style="ganttStyle(task)" /></div>
+					</div>
+				</div>
+			</div>
 		</section>
 	</div>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {projectTeamsList} from '@/client/generated'
 import {ensureProjects} from '@/client/queries/projects'
+import {allTasksQuery} from '@/client/queries/tasks'
 import {useQuery} from '@tanstack/vue-query'
 import {teamQuery as getTeamQuery} from '@/client/queries/teams'
 
@@ -64,6 +90,37 @@ const projectsQuery = useQuery(() => ({
 	},
 }))
 const sharedProjects = computed(() => projectsQuery.data.value ?? [])
+const view = ref<'list' | 'gantt'>('list')
+const tasksQuery = useQuery(() => ({
+	...allTasksQuery({}),
+	enabled: projectsQuery.isSuccess.value,
+}))
+const teamTasks = computed(() => {
+	const ids = new Set(sharedProjects.value.map(project => project.id))
+	return (tasksQuery.data.value ?? []).filter(task => ids.has(task.project_id))
+})
+function span(task: {start_date?: string | null, end_date?: string | null, due_date?: string | null}) {
+	const start = task.start_date ? new Date(task.start_date) : null
+	const end = task.end_date || task.due_date ? new Date(task.end_date || task.due_date || '') : null
+	if (!start || !end || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return null
+	return [start, end] as const
+}
+const ganttTasks = computed(() => teamTasks.value.filter(task => span(task) !== null))
+const chartBounds = computed(() => {
+	const dates = ganttTasks.value.flatMap(task => span(task) ?? [])
+	const min = Math.min(...dates.map(date => date.getTime()))
+	const max = Math.max(...dates.map(date => date.getTime()))
+	return {min, width: Math.max(86400000, max - min)}
+})
+function ganttStyle(task: {start_date?: string | null, end_date?: string | null, due_date?: string | null}) {
+	const dates = span(task)
+	if (!dates) return {}
+	return {
+		marginInlineStart: Math.max(0, (dates[0].getTime() - chartBounds.value.min) / chartBounds.value.width * 100) + '%',
+		width: Math.max(1, (dates[1].getTime() - dates[0].getTime()) / chartBounds.value.width * 100) + '%',
+	}
+}
+
 
 </script>
 
@@ -84,4 +141,18 @@ const sharedProjects = computed(() => projectsQuery.data.value ?? [])
 .team-shared-projects {list-style:none; padding:0; margin:.75rem 0;}
 .team-shared-projects li {padding:.65rem 0; border-bottom:1px solid var(--card-border-color); display:flex; justify-content:space-between; gap:.75rem;}
 .team-shared-projects span {font-size:.8rem; color:var(--text-light);}
+.team-task-board {border-top:1px solid var(--card-border-color); padding-block-start:1rem; margin-block-start:1rem;}
+.team-task-heading {display:flex; align-items:center; justify-content:space-between; gap:1rem;}
+.team-view-switch {display:flex; border:1px solid var(--card-border-color); border-radius:6px; overflow:hidden;}
+.team-view-switch button {padding:.3rem .6rem; cursor:pointer; background:var(--white); color:var(--text); border:0;}
+.team-view-switch button[aria-pressed="true"] {background:var(--grey-100); font-weight:600;}
+.team-task-list {list-style:none; margin:.75rem 0; padding:0;}
+.team-task-list li {display:flex; justify-content:space-between; gap:1rem; padding:.7rem 0; border-bottom:1px solid var(--card-border-color);}
+.team-task-list span {font-size:.78rem; color:var(--text-light);}
+.team-gantt {margin-block-start:.75rem;}
+.team-gantt-line {display:grid; grid-template-columns:12rem 1fr; gap:.75rem; align-items:center; margin-block:.5rem;}
+.team-gantt-line a {overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.team-gantt-track {background:var(--grey-50); block-size:1.3rem; border-radius:4px;}
+.team-gantt-bar {background:var(--primary); block-size:100%; border-radius:4px;}
+@media(max-width:720px){.team-gantt-line {grid-template-columns:7rem 1fr;}.team-task-list li{flex-direction:column;}}
 </style>
