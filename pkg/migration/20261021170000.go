@@ -24,13 +24,6 @@ func init() {
 				return fmt.Errorf("create public label catalog: %w", err)
 			}
 			type idRow struct { ID int64 `xorm:"'id'"` }
-			admin := idRow{}
-			foundAdmin, err := tx.SQL("SELECT id FROM users WHERE is_admin = ? ORDER BY id LIMIT 1", true).Get(&admin)
-			if err != nil { return err }
-			if !foundAdmin {
-				// Fresh instances can add system labels once an admin exists.
-				return nil
-			}
 			catalog := []struct {title, color string}{
 				{"Bug", "d73a49"},
 				{"需求", "0969da"},
@@ -45,7 +38,7 @@ func init() {
 				if !found {
 					now := time.Now().UTC()
 					if _, err := tx.Exec("INSERT INTO labels (title, description, hex_color, created_by_id, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
-						entry.title, "", entry.color, admin.ID, now, now); err != nil { return err }
+						entry.title, "", entry.color, int64(0), now, now); err != nil { return err }
 					found, err = tx.SQL("SELECT id FROM labels WHERE title = ? ORDER BY id LIMIT 1", entry.title).Get(&label)
 					if err != nil { return err }
 					if !found { return fmt.Errorf("cannot find new shared label %q", entry.title) }
