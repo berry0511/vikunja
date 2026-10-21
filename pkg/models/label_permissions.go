@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"code.vikunja.io/api/pkg/user"
+	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/web"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -94,6 +95,7 @@ func labelVisibleCond(s *xorm.Session, a web.Auth) (builder.Cond, error) {
 	// remove but not re-add labels on tasks in child projects.
 	accessibleProjects, err := accessibleProjectIDsCond(s, a, "tasks.project_id")
 	if err != nil {
+		log.Errorf("labels.visibility project ACL failed: caller_id=%d err=%v", a.GetID(), err)
 		return nil, err
 	}
 
@@ -144,6 +146,7 @@ func (l *Label) hasAccessToLabel(s *xorm.Session, a web.Auth) (has bool, maxPerm
 		Where(builder.And(builder.Eq{"labels.id": l.ID}, visible)).
 		Exist(&Label{})
 	if err != nil || !has {
+		if err != nil { log.Errorf("labels.visibility database check failed: caller_id=%d label_id=%d err=%v", a.GetID(), l.ID, err) }
 		return
 	}
 
