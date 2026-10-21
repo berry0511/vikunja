@@ -37,6 +37,7 @@
 					class="tag"
 				>
 					<span>{{ label.title }}</span>
+					<small v-if="label.title === 'Bug' && duplicateBugOwners" class="label-owner">· {{ label.created_by?.username || `#${label.id}` }}</small>
 					<BaseButton
 						v-if="userInfo?.id === label.created_by?.id"
 						class="label-edit-button is-small"
@@ -155,6 +156,7 @@ const authStore = useAuthStore()
 const userInfo = computed(() => authStore.info)
 
 const {labels, isPending} = useLabels()
+const duplicateBugOwners = computed(() => new Set(labels.value.filter(label => label.title === 'Bug').map(label => label.created_by?.id)).size > 1)
 const updateLabelMutation = useUpdateLabelMutation()
 const deleteLabelMutation = useDeleteLabelMutation()
 const loading = computed(() => isPending.value || updateLabelMutation.isPending.value || deleteLabelMutation.isPending.value)
@@ -218,4 +220,5 @@ function showDeleteDialoge(label: Label) {
 		block-size: .5rem;
 	}
 }
+.label-owner {font-size:.72rem;font-weight:400;opacity:.85;margin-inline-start:.3rem;}
 </style>
