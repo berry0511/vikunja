@@ -64,6 +64,7 @@ func organizationTasksList(ctx context.Context, in *struct {
 	TeamID int64 `query:"team_id" minimum:"0"`
 	ProjectID int64 `query:"project_id" minimum:"0"`
 	AssigneeID int64 `query:"assignee_id" minimum:"0"`
+	OwnerID int64 `query:"owner_id" minimum:"0" doc:"Filter tasks by project owner, independent of task assignment."`
 	Done string `query:"done" enum:"true,false" doc:"Optional completed status filter."`
 	ListParams
 }) (*organizationTasksBody, error) {
@@ -79,6 +80,10 @@ func organizationTasksList(ctx context.Context, in *struct {
 	if in.ProjectID > 0 {
 		where = append(where, "tasks.project_id = ?")
 		args = append(args, in.ProjectID)
+	}
+	if in.OwnerID > 0 {
+		where = append(where, "projects.owner_id = ?")
+		args = append(args, in.OwnerID)
 	}
 	if in.AssigneeID > 0 {
 		where = append(where, "EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = tasks.id AND ta.user_id = ?)")
