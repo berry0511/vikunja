@@ -118,6 +118,7 @@ async function saveSchedule() {
 	try {
 		const body = {
 			...createProjectDraft(project.value),
+			update_planning_dates: true,
 			start_date: toTimestamp(startDate.value),
 			end_date: toTimestamp(endDate.value, true),
 			due_date: toTimestamp(dueDate.value, true),
