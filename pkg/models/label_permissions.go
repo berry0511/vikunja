@@ -27,12 +27,12 @@ import (
 
 // CanUpdate checks if a user can update a label
 func (l *Label) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
-	return l.isLabelOwner(s, a) // Only owners should be allowed to update a label
+	return isInstanceAdmin(s, a), nil // Only instance admins manage shared labels
 }
 
 // CanDelete checks if a user can delete a label
 func (l *Label) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	return l.isLabelOwner(s, a) // Only owners should be allowed to delete a label
+	return isInstanceAdmin(s, a), nil // Only instance admins manage shared labels
 }
 
 // CanRead checks if a user can read a label
@@ -42,12 +42,12 @@ func (l *Label) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
 
 // CanCreate checks if the user can create a label
 // Currently a dummy.
-func (l *Label) CanCreate(_ *xorm.Session, a web.Auth) (bool, error) {
+func (l *Label) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
 	if _, is := a.(*LinkSharing); is {
 		return false, nil
 	}
 
-	return true, nil
+	return isInstanceAdmin(s, a), nil
 }
 
 func (l *Label) isLabelOwner(s *xorm.Session, a web.Auth) (bool, error) {
@@ -112,6 +112,8 @@ func labelVisibleCond(s *xorm.Session, a web.Auth) (builder.Cond, error) {
 			return nil, err
 		}
 		accessBranches = append(accessBranches, user.SameBotIdentityCond(caller, "labels.created_by_id"))
+		// Admin-managed labels are available for assignment to every logged-in user.
+		accessBranches = append(accessBranches, builder.In("labels.created_by_id", builder.Select("id").From("users").Where(builder.Eq{"is_admin": true})))
 	}
 
 	visible := builder.Or(accessBranches...)
@@ -142,10 +144,7 @@ func (l *Label) hasAccessToLabel(s *xorm.Session, a web.Auth) (has bool, maxPerm
 
 	// Writes and deletes are owner-only (CanUpdate/CanDelete), so the caller's
 	// max permission is admin for the owner and read for anyone else who can see it.
-	owner, err := l.isLabelOwner(s, a)
-	if err != nil {
-		return
-	}
+	owner := isInstanceAdmin(s, a)
 	if owner {
 		maxPermission = int(PermissionAdmin)
 	} else {
