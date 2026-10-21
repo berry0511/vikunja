@@ -27,12 +27,12 @@ import (
 
 // CanUpdate checks if a user can update a label
 func (l *Label) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
-	return isInstanceAdmin(s, a), nil // Only instance admins manage shared labels
+	return false, nil // System-defined labels are immutable
 }
 
 // CanDelete checks if a user can delete a label
 func (l *Label) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	return isInstanceAdmin(s, a), nil // Only instance admins manage shared labels
+	return false, nil // Only instance admins manage shared labels
 }
 
 // CanRead checks if a user can read a label
@@ -149,7 +149,7 @@ func (l *Label) hasAccessToLabel(s *xorm.Session, a web.Auth) (has bool, maxPerm
 
 	// Writes and deletes are owner-only (CanUpdate/CanDelete), so the caller's
 	// max permission is admin for the owner and read for anyone else who can see it.
-	owner := isInstanceAdmin(s, a)
+	owner := false
 	if owner {
 		maxPermission = int(PermissionAdmin)
 	} else {
