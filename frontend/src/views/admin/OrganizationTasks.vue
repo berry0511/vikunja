@@ -11,8 +11,18 @@
 					<option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
 				</select>
 			</label>
-			<label>项目编号<input v-model.number="projectId" type="number" min="0" placeholder="全部项目 (0)" /></label>
-			<label>负责人编号<input v-model.number="assigneeId" type="number" min="0" placeholder="全部人员 (0)" /></label>
+			<label>项目
+				<select v-model.number="projectId">
+					<option :value="0">全部项目</option>
+					<option v-for="project in projects" :key="project.id" :value="project.id">{{ project.title }}</option>
+				</select>
+			</label>
+			<label>负责人
+				<select v-model.number="assigneeId">
+					<option :value="0">全部负责人</option>
+					<option v-for="person in people" :key="person.id" :value="person.id">{{ person.name || person.username }}</option>
+				</select>
+			</label>
 			<label>完成情况
 				<select v-model="done">
 					<option value="all">全部任务</option>
@@ -65,7 +75,7 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue'
 import {useQuery} from '@tanstack/vue-query'
-import {client} from '@/client/generated'
+import {client, adminProjectsList, adminUsersList} from '@/client/generated'
 import {getToken} from '@/helpers/auth'
 
 type OrganizationTask = {
@@ -120,6 +130,17 @@ const tasksQuery = useQuery(() => ({
 }))
 const taskResult = computed(() => tasksQuery.data.value)
 const teams = computed(() => teamsQuery.data.value?.items ?? [])
+const projectsQuery = useQuery(() => ({
+	queryKey: ['admin', 'organization', 'projects'],
+	queryFn: async () => (await adminProjectsList({query: {page: 1, per_page: 100}})).data.items ?? [],
+}))
+const peopleQuery = useQuery(() => ({
+	queryKey: ['admin', 'organization', 'people'],
+	queryFn: async () => (await adminUsersList({query: {page: 1, per_page: 100}})).data.items ?? [],
+}))
+const projects = computed(() => projectsQuery.data.value ?? [])
+const people = computed(() => peopleQuery.data.value ?? [])
+
 const totalPages = computed(() => Math.max(1, Math.ceil((taskResult.value?.total ?? 0) / 50)))
 watch([teamId, projectId, assigneeId, done, search], () => {page.value = 1})
 function taskSpan(task: OrganizationTask): [number, number] | null {
