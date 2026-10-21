@@ -83,7 +83,7 @@
 				</li>
 				<li v-if="authStore.info?.is_admin && !authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'admin.organization'}">
-						<span class="menu-item-icon icon"><Icon icon="building" /></span>
+						<span class="menu-item-icon icon"><Icon icon="users" /></span>
 						组织任务中心
 					</RouterLink>
 				</li>
