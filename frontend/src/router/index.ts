@@ -403,6 +403,12 @@ const router = createRouter({
 			},
 		},
 		{
+			path: '/teams/:id/workspace',
+			name: 'teams.workspace',
+			component: () => import('@/views/teams/TeamWorkspace.vue'),
+			props: true,
+		},
+		{
 			path: '/teams/:id/edit',
 			name: 'teams.edit',
 			component: () => import('@/views/teams/EditTeam.vue'),
