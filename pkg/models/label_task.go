@@ -326,7 +326,11 @@ func labelSearchCond(searches []string) builder.Cond {
 func addLabelCreators(s *xorm.Session, labels []*LabelWithTaskID) (err error) {
 	useridSet := make(map[int64]struct{}, len(labels))
 	for _, l := range labels {
-		useridSet[l.CreatedByID] = struct{}{}
+		// Built-in labels are created by the system (creator ID 0).
+		// Never try to hydrate a nonexistent user 0.
+		if l.CreatedByID > 0 {
+			useridSet[l.CreatedByID] = struct{}{}
+		}
 	}
 	if len(useridSet) == 0 {
 		return nil
