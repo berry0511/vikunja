@@ -64,7 +64,7 @@ func organizationTasksList(ctx context.Context, in *struct {
 	TeamID int64 `query:"team_id" minimum:"0"`
 	ProjectID int64 `query:"project_id" minimum:"0"`
 	AssigneeID int64 `query:"assignee_id" minimum:"0"`
-	Done *bool `query:"done"`
+	Done string `query:"done" enum:"true,false" doc:"Optional completed status filter."`
 	ListParams
 }) (*organizationTasksBody, error) {
 	if _, err := adminDoerFromCtx(ctx); err != nil { return nil, err }
@@ -84,9 +84,9 @@ func organizationTasksList(ctx context.Context, in *struct {
 		where = append(where, "EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = tasks.id AND ta.user_id = ?)")
 		args = append(args, in.AssigneeID)
 	}
-	if in.Done != nil {
+	if in.Done != "" {
 		where = append(where, "tasks.done = ?")
-		args = append(args, *in.Done)
+		args = append(args, in.Done == "true")
 	}
 	if in.Q != "" {
 		where = append(where, "LOWER(tasks.title) LIKE ?")
