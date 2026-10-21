@@ -155,6 +155,13 @@ func (l *Label) Delete(s *xorm.Session, _ web.Auth) (err error) {
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /labels [get]
 func (l *Label) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (ls interface{}, resultCount int, numberOfEntries int64, err error) {
+	// An empty database runs migrations before the first administrator exists.
+	// Complete the shared-label seed as soon as an administrator signs in.
+	if isInstanceAdmin(s, a) {
+		if seedErr := ensureSharedDefaultLabels(s, a); seedErr != nil {
+			return nil, 0, 0, seedErr
+		}
+	}
 	return GetLabelsForUser(s, a, []string{search}, page, perPage)
 }
 
@@ -200,4 +207,33 @@ func GetLabelSimple(s *xorm.Session, l *Label) (*Label, error) {
 		return &Label{}, ErrLabelDoesNotExist{l.ID}
 	}
 	return l, err
+}
+
+
+// ensureSharedDefaultLabels is idempotent and only invoked for a verified
+// instance administrator. It supports fresh installs where no admin existed
+// when the schema migration first ran.
+func ensureSharedDefaultLabels(s *xorm.Session, a web.Auth) error {
+	catalog := []struct{title, color string}{
+		{"Bug", "d73a49"}, {"需求", "0969da"}, {"优化", "1a7f37"},
+		{"测试", "8250df"}, {"文档", "bf8700"},
+	}
+	for _, item := range catalog {
+		var label Label
+		found, err := s.Where("title = ?", item.title).Asc("id").Get(&label)
+		if err != nil { return err }
+		if !found {
+			owner, err := user.GetFromAuth(a)
+			if err != nil { return err }
+			label = Label{Title: item.title, HexColor: item.color, CreatedByID: owner.ID}
+			if _, err := s.Insert(&label); err != nil { return err }
+		}
+		var count int64
+		count, err = s.Table("global_labels").Where("label_id = ?", label.ID).Count()
+		if err != nil { return err }
+		if count == 0 {
+			if _, err := s.Exec("INSERT INTO global_labels (label_id) VALUES (?)", label.ID); err != nil { return err }
+		}
+	}
+	return nil
 }
