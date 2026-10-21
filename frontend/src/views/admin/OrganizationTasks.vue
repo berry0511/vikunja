@@ -17,6 +17,12 @@
 					<option v-for="project in projects" :key="project.id" :value="project.id">{{ project.title }} · {{ project.owner?.username || "无所有者" }} (#{{ project.id }})</option>
 				</select>
 			</label>
+			<label>项目所有者
+				<select v-model.number="ownerId">
+					<option :value="0">全部所有者</option>
+					<option v-for="person in people" :key="person.id" :value="person.id">{{ person.name || person.username }}</option>
+				</select>
+			</label>
 			<label>负责人
 				<select v-model.number="assigneeId">
 					<option :value="0">全部负责人</option>
@@ -104,6 +110,7 @@ const page = ref(1)
 const teamId = ref(0)
 const projectId = ref(0)
 const assigneeId = ref(0)
+const ownerId = ref(0)
 const done = ref('all')
 const search = ref('')
 const view = ref<'list' | 'gantt'>('list')
@@ -135,13 +142,14 @@ const teamsQuery = useQuery(() => ({
 	},
 }))
 const tasksQuery = useQuery(() => ({
-	queryKey: ['admin', 'organization', 'tasks', page.value, teamId.value, projectId.value, assigneeId.value, done.value, search.value],
+	queryKey: ['admin', 'organization', 'tasks', page.value, teamId.value, projectId.value, assigneeId.value, ownerId.value, done.value, search.value],
 	queryFn: () => getAdminData<OrganizationTask>('tasks', {
 		page: String(page.value),
 		per_page: '50',
 		...(teamId.value > 0 ? {team_id: String(teamId.value)} : {}),
 		...(projectId.value > 0 ? {project_id: String(projectId.value)} : {}),
 		...(assigneeId.value > 0 ? {assignee_id: String(assigneeId.value)} : {}),
+		...(ownerId.value > 0 ? {owner_id: String(ownerId.value)} : {}),
 		...(done.value === 'all' ? {} : {done: done.value}),
 		...(search.value ? {q: search.value} : {}),
 	}),
@@ -170,7 +178,7 @@ const projects = computed(() => projectsQuery.data.value ?? [])
 const people = computed(() => peopleQuery.data.value ?? [])
 
 const totalPages = computed(() => Math.max(1, Math.ceil((taskResult.value?.total ?? 0) / 50)))
-watch([teamId, projectId, assigneeId, done, search], () => {page.value = 1})
+watch([teamId, projectId, assigneeId, ownerId, done, search], () => {page.value = 1})
 // Ignore missing/zero dates; Vikunja stores unset timestamps as year 0001.
 const DAY = 86_400_000
 function taskSpan(task: OrganizationTask): [number, number] | null {
