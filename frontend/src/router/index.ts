@@ -390,6 +390,11 @@ const router = createRouter({
 			}),
 		},
 		{
+			path: '/admin/organization',
+			name: 'admin.organization',
+			component: () => import('@/views/admin/OrganizationTasks.vue'),
+		},
+		{
 			path: '/teams',
 			name: 'teams.index',
 			component: () => import('@/views/teams/ListTeams.vue'),
