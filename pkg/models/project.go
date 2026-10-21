@@ -44,6 +44,11 @@ type Project struct {
 	Title string `xorm:"varchar(250) not null" json:"title" valid:"required,runelength(1|250)" minLength:"1" maxLength:"250" doc:"The title of the project. You'll see this in the overview."`
 	// The description of the project.
 	Description string `xorm:"longtext null" json:"description" doc:"The description of the project."`
+	// Project-level planning dates are independent of task scheduling dates.
+	StartDate *time.Time `xorm:"datetime null" json:"start_date" doc:"Optional planned project start date."`
+	EndDate *time.Time `xorm:"datetime null" json:"end_date" doc:"Optional planned project end date."`
+	DueDate *time.Time `xorm:"datetime null" json:"due_date" doc:"Optional final project deadline."`
+
 	// The unique project short identifier. Used to build task identifiers.
 	Identifier string `xorm:"varchar(10) null" json:"identifier" valid:"runelength(0|10)" minLength:"0" maxLength:"10" doc:"The unique project short identifier. Used to build task identifiers (e.g. PROJ-123)."`
 	// The hex color of this project
@@ -1228,6 +1233,9 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 		"identifier",
 		"hex_color",
 		"position",
+		"start_date",
+		"end_date",
+		"due_date",
 	}
 	// Only touch parent_project_id when it was actually sent, otherwise a
 	// partial update (nil) would silently detach the project to the top level.
