@@ -118,7 +118,7 @@ func labelVisibleCond(s *xorm.Session, a web.Auth) (builder.Cond, error) {
 		}
 		accessBranches = append(accessBranches, user.SameBotIdentityCond(caller, "labels.created_by_id"))
 		// Admin-managed labels are available for assignment to every logged-in user.
-		accessBranches = append(accessBranches, builder.In("labels.created_by_id", builder.Select("id").From("users").Where(builder.Eq{"is_admin": true})))
+		// Public catalog membership, not the creator account, controls shared visibility.
 	}
 
 	visible := builder.Or(accessBranches...)
