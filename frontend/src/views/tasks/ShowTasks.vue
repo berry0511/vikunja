@@ -138,12 +138,14 @@ const props = withDefaults(defineProps<{
 	showNulls?: boolean,
 	showOverdue?: boolean,
 	labelIds?: string[],
+	assignedToMe?: boolean,
 }>(), {
 	showNulls: false,
 	showOverdue: false,
 	dateFrom: undefined,
 	dateTo: undefined,
 	labelIds: undefined,
+	assignedToMe: false,
 })
 
 const emit = defineEmits<{
@@ -264,7 +266,10 @@ async function loadPendingTasks(from: Date|string|undefined, to: Date|string|und
 	const params: TaskFilterParams = {
 		sort_by: ['due_date', 'id'],
 		order_by: ['asc', 'desc'],
-		filter: 'done = false',
+		// On Home, list only explicitly assigned tasks; project access alone is not assignment.
+		filter: props.assignedToMe && authStore.info?.username
+			? 'done = false && assignees = ' + JSON.stringify(authStore.info.username)
+			: 'done = false',
 		filter_include_nulls: props.showNulls,
 		q: '',
 		expand: ['comment_count', 'is_unread'],
@@ -310,6 +315,8 @@ watch(
 		() => props.showOverdue,
 		() => props.showNulls,
 		() => props.labelIds,
+		() => props.assignedToMe,
+		() => authStore.info?.username,
 	],
 	([from, to, filterId]) => loadPendingTasks(from, to, filterId),
 	{immediate: true},
