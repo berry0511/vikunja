@@ -85,9 +85,17 @@ const projectsQuery = useQuery(() => ({
 		// Project team listings apply existing project ACL checks server-side.
 		// Avoid parallel flooding instances with many projects.
 		for (const project of projects) {
-			const response = await projectTeamsList({path: {project: project.id}})
-			const team = response.data.items?.find(entry => entry.id === teamId.value)
-			if (team) matches.push({id: project.id, title: project.title, permission: team.permission ?? 0})
+			let page = 1
+			for (;;) {
+				const response = await projectTeamsList({path: {project: project.id}, query: {page, per_page: 100}})
+				const team = response.data.items?.find(entry => entry.id === teamId.value)
+				if (team) {
+					matches.push({id: project.id, title: project.title, permission: team.permission ?? 0})
+					break
+				}
+				if (page >= (response.data.total_pages ?? 1)) break
+				page++
+			}
 		}
 		return matches
 	},
