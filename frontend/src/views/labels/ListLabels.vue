@@ -4,7 +4,7 @@
 		class="loader-container"
 	>
 		<XButton
-			v-if="userInfo?.is_admin"
+			v-if="false"
 			:to="{name:'labels.create'}"
 			class="is-pulled-end"
 			icon="plus"
@@ -22,7 +22,7 @@
 				class="has-text-centered has-text-grey is-italic"
 			>
 				{{ $t('label.newCTA') }}
-				<RouterLink v-if="userInfo?.is_admin" :to="{name:'labels.create'}">
+				<RouterLink v-if="false" :to="{name:'labels.create'}">
 					{{ $t('label.create.title') }}.
 				</RouterLink>
 			</p>
@@ -40,7 +40,7 @@
 					<span>{{ label.title }}</span>
 					<small v-if="label.title === 'Bug' && duplicateBugOwners" class="label-owner">· {{ label.created_by?.username || `#${label.id}` }}</small>
 					<BaseButton
-						v-if="userInfo?.is_admin"
+						v-if="false"
 						class="label-edit-button is-small"
 						:aria-label="$t('label.edit.header')"
 						@click.stop.prevent="editLabel(label)"
