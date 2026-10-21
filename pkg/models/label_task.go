@@ -196,6 +196,7 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 	}
 	err = query.Find(&labels)
 	if err != nil {
+		log.Errorf("labels.list database query failed: caller_id=%d err=%v", a.GetID(), err)
 		return nil, 0, 0, err
 	}
 
@@ -205,6 +206,7 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 
 	err = addLabelCreators(s, labels)
 	if err != nil {
+		log.Errorf("labels.list creator hydration failed: caller_id=%d count=%d err=%v", a.GetID(), len(labels), err)
 		return nil, 0, 0, err
 	}
 
@@ -231,6 +233,13 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 
 // GetLabelsForUser returns every label the caller can see.
 func GetLabelsForUser(s *xorm.Session, a web.Auth, search []string, page, perPage int) (ls []*LabelWithTaskID, resultCount int, totalEntries int64, err error) {
+	defer func() {
+		if err != nil {
+			log.Errorf("labels.list failed: caller_id=%d page=%d per_page=%d err=%v", a.GetID(), page, perPage, err)
+		} else {
+			log.Debugf("labels.list succeeded: caller_id=%d page=%d count=%d total=%d", a.GetID(), page, resultCount, totalEntries)
+		}
+	}()
 
 	if _, isLinkShareAuth := a.(*LinkSharing); !isLinkShareAuth {
 		caller, err := user.GetFromAuth(a)
