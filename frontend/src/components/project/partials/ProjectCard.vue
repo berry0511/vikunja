@@ -15,6 +15,7 @@
 			:class="{'is-visible': background}"
 			:style="{'background-image': background ? `url(${background})` : undefined}"
 		/>
+		<span v-if="teamShared" class="shared-team-badge"><Icon icon="users" /> 团队共享</span>
 		<span
 			v-if="project.is_archived"
 			class="is-archived"
@@ -48,6 +49,8 @@
 
 <script lang="ts" setup>
 import {computed} from 'vue'
+import {useQuery} from '@tanstack/vue-query'
+import {projectTeamSharesQuery} from '@/client/queries/projectShares'
 import {usePatchProjectFavoriteMutation, type ProjectResponse} from '@/client/queries/projects'
 
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -58,6 +61,13 @@ import {getProjectTitle} from '@/helpers/getProjectTitle'
 const props = defineProps<{
 	project: ProjectResponse,
 }>()
+
+const teamShares = useQuery(computed(() => ({
+	...projectTeamSharesQuery(props.project.id),
+	enabled: props.project.id > 0,
+	retry: false,
+})))
+const teamShared = computed(() => (teamShares.data.value?.length ?? 0) > 0)
 
 const {background, blurHashUrl} = useProjectBackground(() => props.project)
 
@@ -77,116 +87,36 @@ const textOnlyDescription = computed(() => {
 
 <style lang="scss" scoped>
 .project-card {
-	--project-card-padding: 1.1rem;
 	position: relative;
-	display: flex;
-	align-items: stretch;
-	min-block-size: 132px;
-	padding: var(--project-card-padding);
-	border: 1px solid var(--card-border-color);
-	border-radius: 14px;
-	background: var(--white);
-	box-shadow: 0 3px 13px rgba(15, 23, 42, .035);
-	overflow: hidden;
-	transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
-
-	&.has-background { min-block-size: 155px; background-size: cover; background-position: center; }
-	&:hover {
-		box-shadow: 0 10px 24px rgba(15, 23, 42, .095);
-		border-color: color-mix(in srgb, var(--primary) 30%, var(--card-border-color));
-		transform: translateY(-2px);
-	}
-	&:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
-	> * { position: relative; }
-}
-.project-background,
-.project-button {
-	position: absolute;
-	inset: 0;
-}
-.project-background {
-	background-size: cover;
-	background-repeat: no-repeat;
-	background-position: center;
-}
-.project-card-heading {
-	inline-size: 100%;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	gap: .45rem;
-	padding-inline-end: 1.2rem;
-	z-index: 1;
-	pointer-events: none;
-}
-.project-card-kicker {
-	font-size: .69rem;
-	font-weight: 800;
-	letter-spacing: .075em;
-	text-transform: uppercase;
-	color: var(--text-light);
-	display: inline-flex;
-	align-items: center;
-	gap: .45rem;
-}
-.project-title {
-	font-family: $vikunja-font;
-	font-size: 1.17rem;
-	font-weight: 750;
-	line-height: 1.32;
-	color: var(--text-strong);
-	overflow-wrap: anywhere;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-.project-card-description {
-	font-size: .83rem;
-	line-height: 1.45;
-	color: var(--text-light);
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-	margin: 0;
-}
-.has-background .project-card-heading {
-	justify-content: flex-end;
-	text-shadow: 0 1px 8px rgba(0,0,0,.7);
-}
-.has-background .project-card-kicker,
-.has-background .project-title,
-.has-background .project-card-description { color: #fff; }
-.project-button { z-index: 2; }
-.favorite {
-	position: absolute !important;
-	z-index: 3;
-	inset-block-start: .7rem;
-	inset-inline-end: .7rem;
+	min-block-size: 132px;
+	padding: 1rem 1.15rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 12px;
 	background: var(--white);
-	border-radius: 9px;
-	inline-size: 2rem;
-	block-size: 2rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: var(--text-light);
-	transition: background .15s ease, color .15s ease;
-	&:hover, &.is-favorite { color: var(--warning); background: var(--grey-50); }
+	box-shadow: 0 2px 7px rgba(15,23,42,.035);
+	overflow: hidden;
+	transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
-.is-archived {
-	position: absolute !important;
-	inset-inline-start: 1rem;
-	inset-block-start: .75rem;
-	font-size: .72rem;
-	font-weight: 750;
-	padding: .25rem .55rem;
-	border-radius: 6px;
-	background: var(--grey-100);
-	color: var(--text-strong);
-	z-index: 1;
-}
-.project-card:has(.is-archived) .project-card-heading { padding-block-start: 1.45rem; }
-.background-fade-in { opacity: 0; transition: opacity $transition; &.is-visible { opacity: 1; } }
+.project-card:hover {border-color: color-mix(in srgb,var(--primary) 35%,var(--card-border-color));box-shadow:0 7px 18px rgba(15,23,42,.07);transform:translateY(-1px);}
+.project-card:focus-within {outline:2px solid var(--primary);outline-offset:2px;}
+.project-card.has-background {background-size:cover;background-position:center;min-block-size:156px;}
+.project-background,.project-button {position:absolute;inset:0;}
+.project-background {background-size:cover;background-position:center;background-repeat:no-repeat;}
+.project-card-heading {position:relative;z-index:1;display:flex;flex-direction:column;gap:.4rem;padding-inline-end:2rem;pointer-events:none;}
+.project-card-kicker {display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:500;color:var(--text-light);}
+.project-title {color:var(--text-strong);font-size:1.05rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.project-card-description {margin:0;color:var(--text-light);font-size:.79rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.has-background .project-card-heading {justify-content:flex-end;text-shadow:0 1px 7px rgba(0,0,0,.65);}
+.has-background .project-title,.has-background .project-card-kicker,.has-background .project-card-description {color:#fff;}
+.project-button {z-index:2;}
+.favorite {position:absolute!important;z-index:4;top:.7rem;right:.7rem;background:var(--white);border-radius:8px;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center;color:var(--text-light);}
+.favorite:hover,.favorite.is-favorite {color:var(--warning);}
+.shared-team-badge,.is-archived {position:relative;z-index:3;align-self:flex-start;display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:550;border-radius:6px;padding:.2rem .5rem;margin-bottom:.55rem;}
+.shared-team-badge {background:color-mix(in srgb,var(--primary) 12%,var(--white));color:var(--primary);}
+.is-archived {background:var(--grey-100);color:var(--text);}
+.background-fade-in {opacity:0;transition:opacity .2s ease;}
+.background-fade-in.is-visible {opacity:1;}
 </style>

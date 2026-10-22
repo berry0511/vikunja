@@ -402,6 +402,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+
 .task {
 	display: flex;
 	flex-wrap: wrap;
@@ -618,4 +619,56 @@ defineExpose({
 		border: 1px solid var(--grey-200);
 	}
 }
+/* Microsoft To Do-inspired flat, airy row shared by project and overview lists. */
+.task {
+	min-block-size: 3.35rem;
+	padding: .65rem .9rem;
+	margin: .2rem 0;
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 9px;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, .025);
+	gap: .45rem;
+	transition: background-color .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.task:hover {
+	background: var(--grey-50);
+	border-color: color-mix(in srgb, var(--primary) 32%, var(--card-border-color));
+	box-shadow: 0 2px 8px rgba(15, 23, 42, .045);
+}
+.task:focus-within {
+	outline: 2px solid color-mix(in srgb, var(--primary) 28%, transparent);
+	outline-offset: 1px;
+}
+.task .tasktext {
+	flex: 1 1 220px;
+	display: flex;
+	align-items: center;
+	align-content: center;
+	gap: .25rem .5rem;
+	flex-wrap: wrap;
+	min-inline-size: 0;
+	overflow: visible;
+	word-break: normal;
+	font-size: .875rem;
+	font-weight: 400;
+	line-height: 1.45;
+}
+.task .tasktext .task-link {
+	color: var(--text-strong);
+	font-weight: 500;
+	text-decoration: none;
+}
+.task .tasktext .task-project {font-size: .74rem; font-weight: 400; color: var(--text-light);}
+.task .dueDate, .task .dueDate time {font-size: .75rem; font-style: normal;}
+.task .project-task-icon {font-size: .76rem; color: var(--text-light);}
+.task .favorite {inline-size: 1.8rem; block-size: 1.8rem;}
+.task :deep(.fancy-checkbox) {padding-inline-end: .7rem;}
+.task :deep(.fancy-checkbox input) {accent-color: var(--primary);}
+.task .tasktext.done .task-link {text-decoration: line-through; color: var(--text-light);}
+@media screen and (max-width: $tablet) {
+	.task {padding: .65rem .7rem; min-block-size: 3.15rem;}
+	.task .tasktext {flex-basis: 160px;}
+}
+
 </style>

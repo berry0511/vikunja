@@ -10,7 +10,7 @@
 			:aria-label="$t('navigation.home')"
 		>
 			<Logo
-				width="164"
+				width="220"
 				height="48"
 			/>
 		</RouterLink>
@@ -26,7 +26,7 @@
 			</span>
 
 			<BaseButton
-				v-if="!isEditorContentEmpty(currentProject.description)"
+				v-if="currentProject.id > 0"
 				:to="{ name: 'project.info', params: { projectId: currentProject.id } }"
 				class="project-title-button"
 			>
@@ -95,7 +95,7 @@
 					{{ $t('user.settings.title') }}
 				</DropdownItem>
 				<DropdownItem
-					v-if="adminPanelEnabled && authStore.info?.is_admin"
+					v-if="authStore.info?.is_admin"
 					:to="{ name: 'admin.overview' }"
 				>
 					{{ $t('admin.title') }}
@@ -132,7 +132,6 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
 import { PERMISSIONS as Permissions } from '@/constants/permissions'
-import { PRO_FEATURE } from '@/constants/proFeatures'
 
 import ProjectSettingsDropdown from '@/components/project/ProjectSettingsDropdown.vue'
 import Dropdown from '@/components/misc/Dropdown.vue'
@@ -145,7 +144,6 @@ import OpenQuickActions from '@/components/misc/OpenQuickActions.vue'
 import UserAvatar from '@/components/misc/UserAvatar.vue'
 
 import { getProjectTitle } from '@/helpers/getProjectTitle'
-import { isEditorContentEmpty } from '@/helpers/editorContentEmpty'
 
 import { useBaseStore } from '@/stores/base'
 import { useConfigStore } from '@/stores/config'
@@ -175,7 +173,6 @@ const authStore = useAuthStore()
 const configStore = useConfigStore()
 const imprintUrl = computed(() => configStore.legal.imprint_url)
 const privacyPolicyUrl = computed(() => configStore.legal.privacy_policy_url)
-const adminPanelEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL))
 </script>
 
 <style lang="scss" scoped>

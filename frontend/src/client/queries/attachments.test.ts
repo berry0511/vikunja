@@ -57,6 +57,7 @@ describe('attachments', () => {
 		expect(result.errors).toEqual([{message: 'full'}])
 		expect(sdk.taskAttachmentsUpload).toHaveBeenCalledWith({
 			path: {task: 1},
+			query: {source: 'task'},
 			body: {files: [file]},
 		})
 		expect(client.getQueryData(taskKeys.detail(1))).toMatchObject({attachments: [attachment]})

@@ -66,6 +66,20 @@
 					{{ getViewTitle(view) }}
 				</BaseButton>
 			</div>
+			<div v-if="projectId > 0" class="project-bug-links">
+				<RouterLink :to="{name: 'issues.index', query: {project_id: projectId}}" class="project-bug-link">
+					<Icon icon="bug" />
+					Bug
+				</RouterLink>
+				<RouterLink
+					v-if="!currentProject.is_archived && (currentProject.max_permission ?? 0) > 1"
+					:to="{name: 'issues.index', query: {project_id: projectId, create: '1'}}"
+					class="project-bug-link project-bug-create"
+				>
+					<Icon icon="plus" />
+					报告 Bug
+				</RouterLink>
+			</div>
 			<slot name="header" />
 		</div>
 		<CustomTransition name="fade">
@@ -179,6 +193,35 @@ function getViewRoute(view: ProjectView) {
 </script>
 
 <style lang="scss" scoped>
+.project-bug-links {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: .45rem;
+	margin-inline-start: auto;
+}
+.project-bug-link {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	padding: .47rem .75rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	font-size: .85rem;
+	font-weight: 710;
+	background: var(--white);
+	color: var(--text-strong);
+	white-space: nowrap;
+	&:hover, &.router-link-active {background: var(--grey-50); color: var(--primary); border-color: var(--primary);}
+}
+.project-bug-create {
+	background: color-mix(in srgb, var(--primary) 8%, var(--white));
+	color: var(--primary);
+}
+@media screen and (max-width: $tablet) {
+	.project-bug-links {margin-inline: 0;}
+}
+
 .switch-view-container {
 	position: relative;
 	min-block-size: $switch-view-height;

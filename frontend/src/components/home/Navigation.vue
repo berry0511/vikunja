@@ -14,7 +14,7 @@
 				:aria-label="$t('navigation.home')"
 			>
 				<Logo
-					width="164"
+					width="220"
 					height="48"
 				/>
 			</RouterLink>
@@ -45,7 +45,7 @@
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.projects"
 						:to="{ name: 'projects.index'}"
-						:class="{'nav-muted-active': $route.name === 'projects.index' && $route.query.status === 'archived'}"
+						
 					>
 						<span class="menu-item-icon icon">
 							<Icon icon="layer-group" />
@@ -53,12 +53,7 @@
 						{{ $t('project.projects') }}
 					</RouterLink>
 				</li>
-				<li>
-					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}" :class="{'nav-muted-active': $route.name !== 'projects.index' || $route.query.status !== 'archived'}">
-						<span class="menu-item-icon icon"><Icon icon="archive" /></span>
-						{{ $t('project.directory.archiveNav') }}
-					</RouterLink>
-				</li>
+
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.labels"
@@ -79,6 +74,18 @@
 							<Icon icon="users" />
 						</span>
 						{{ $t('team.title') }}
+					</RouterLink>
+				</li>
+				<li v-if="authStore.info?.is_admin && !authStore.isLinkShareAuth">
+					<RouterLink :to="{name: 'admin.organization'}">
+						<span class="menu-item-icon icon"><Icon icon="users" /></span>
+						组织任务中心
+					</RouterLink>
+				</li>
+				<li v-if="!authStore.isLinkShareAuth">
+					<RouterLink :to="{name: 'issues.index'}">
+						<span class="menu-item-icon icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 6 4M16 7l2-3M4 10h3M17 10h3M4 15h3M17 15h3M8 20l-2 2M16 20l2 2"/><rect x="7" y="7" width="10" height="13" rx="5"/><path d="M9 4h6M12 10v8"/></svg></span>
+						Bug 管理
 					</RouterLink>
 				</li>
 				<li v-if="!authStore.isLinkShareAuth">
@@ -121,9 +128,10 @@
 			</nav>
 
 			<nav
-				class="menu"
+				class="menu sidebar-projects-section"
 				:aria-label="$t('project.projects')"
 			>
+				<div class="sidebar-projects-heading">项目列表</div>
 				<ProjectsNavigation
 					:model-value="projects"
 					:can-edit-order="true"
@@ -277,5 +285,17 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
+}
+.sidebar-projects-section {
+	margin-block-start: .75rem;
+	padding-block-start: .8rem !important;
+	border-block-start: 1px solid var(--card-border-color);
+}
+.sidebar-projects-heading {
+	font-size: .72rem;
+	font-weight: 550;
+	letter-spacing: .02em;
+	color: var(--text-light);
+	padding: 0 .85rem .55rem;
 }
 </style>

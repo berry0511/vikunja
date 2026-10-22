@@ -39,13 +39,15 @@
 			:upload-callback="uploadCallback"
 			:placeholder="$t('task.description.placeholder')"
 			:show-save="true"
+			:show-cancel="true"
 			edit-shortcut="KeyE"
 			:enable-discard-shortcut="true"
 			:enable-mentions="true"
 			:project-id="modelValue.project_id"
 			:storage-key="descriptionStorageKey"
-			@update:modelValue="saveWithDelay"
+			@update:modelValue="markChanged"
 			@save="save"
+			@discard="discardDescription"
 		/>
 	</div>
 </template>
@@ -93,7 +95,6 @@ const updateTask = useUpdateTaskMutation()
 
 const {t} = useI18n({useScope: 'global'})
 
-const changeTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const savedTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const dwellTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
@@ -158,39 +159,30 @@ const descriptionStorageKey = computed(() => `task-description-${props.modelValu
 
 const isEmpty = computed(() => isEditorContentEmpty(description.value))
 
-async function saveWithDelay() {
-	if (description.value === props.modelValue.description) {
-		hasChanges.value = false
-		if (changeTimeout.value !== null) {
-			clearTimeout(changeTimeout.value)
-		}
-		return
-	}
-
-	hasChanges.value = true
-	if (changeTimeout.value !== null) {
-		clearTimeout(changeTimeout.value)
-	}
-
-	changeTimeout.value = setTimeout(async () => {
-		await save()
-	}, 5000)
+// An explicit save/cancel pair must never race a scheduled auto-save.
+function markChanged() {
+	hasChanges.value = description.value !== (props.modelValue.description ?? '')
 }
 
-onBeforeUnmount(async () => {
-	await save() // Save before unmounting to handle modal race condition
-	if (changeTimeout.value !== null) {
-		clearTimeout(changeTimeout.value)
-	}
-	if (savedTimeout.value !== null) {
-		clearTimeout(savedTimeout.value)
-	}
-	if (dwellTimeout.value !== null) {
-		clearTimeout(dwellTimeout.value)
-	}
+function discardDescription() {
+	description.value = props.modelValue.description ?? ''
+	hasChanges.value = false
+	clearEditorDraft(descriptionStorageKey.value)
+	saved.value = false
+}
+
+onBeforeUnmount(() => {
+	if (savedTimeout.value !== null) clearTimeout(savedTimeout.value)
+	if (dwellTimeout.value !== null) clearTimeout(dwellTimeout.value)
 })
 
-onBeforeRouteLeave(() => save())
+// Do not silently save while leaving the page. Preserve the user's choice.
+onBeforeRouteLeave(() => {
+	if (!hasChanges.value) return true
+	if (!window.confirm('任务描述有尚未保存的修改，确定放弃修改并离开吗？')) return false
+	discardDescription()
+	return true
+})
 
 async function save() {
 	if (!hasChanges.value) {
@@ -198,9 +190,6 @@ async function save() {
 	}
 
 	hasChanges.value = false
-	if (changeTimeout.value !== null) {
-		clearTimeout(changeTimeout.value)
-	}
 	saved.value = false
 	saving.value = true
 
@@ -248,9 +237,29 @@ function uploadCallback(files: File[] | FileList): Promise<string[]> {
 </script>
 
 <style lang="scss" scoped>
+
+/* One consistent issue body for both tasks and Bugs; no nested oversized card. */
 .tiptap__task-description {
-	// The exact amount of pixels we need to make the description icon align with the buttons and the form inside the editor.
-	// The icon is not exactly the same length on all sides so we need to hack our way around it.
-	margin-inline-start: 4px;
+	margin-inline-start: 0;
+	:deep(.tiptap__wrapper) {
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		background: transparent;
+		&:hover {border-color: transparent;}
+		&:focus-within {border-color: transparent; box-shadow: none;}
+	}
+	:deep(.tiptap__editor) {
+		min-block-size: 0;
+		padding-block: .45rem;
+		line-height: 1.6;
+	}
+	:deep(.tiptap__editor-actions) {
+		border-top: 1px solid var(--card-border-color);
+		margin-block-start: .65rem;
+		padding-block-start: .65rem;
+	}
 }
+
+
 </style>

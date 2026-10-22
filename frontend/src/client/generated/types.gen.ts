@@ -9220,7 +9220,10 @@ export type TaskAttachmentsUploadData = {
          */
         task: number;
     };
-    query?: never;
+    query?: {
+        /** The location that initiated the upload. */
+        source?: 'task' | 'comment';
+    };
     url: '/tasks/{task}/attachments';
 };
 

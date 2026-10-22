@@ -28,17 +28,19 @@
 						<Multiselect
 							v-model="newMember"
 							:loading="usersLoading"
-							:placeholder="$t('team.edit.search')"
+							:placeholder="'搜索用户名或姓名（支持部分匹配）'"
 							:search-results="foundUsers"
 							label="username"
 							@search="findUser"
 						>
 							<template #searchResult="{option: user}">
-								<User
-									:avatar-size="24"
-									:user="user"
-									class="m-0"
-								/>
+								<div class="team-user-search-result">
+								<User :avatar-size="24" :user="user" class="m-0" />
+								<div class="team-user-search-identity">
+									<span class="team-user-display">{{ user.name?.trim() || user.username }}</span>
+									<small v-if="user.name?.trim()">@{{ user.username }}</small>
+								</div>
+							</div>
 							</template>
 						</Multiselect>
 					</div>
@@ -227,7 +229,10 @@ const showTeamLoading = useDelayedLoading(teamLoading)
 const membersLoading = computed(() => addMemberMutation.isPending.value || removeMemberMutation.isPending.value || toggleAdminMutation.isPending.value)
 const userSearch = ref('')
 const {users: userResults, isFetching: usersLoading} = useUserSearch(userSearch)
-const foundUsers = computed(() => userResults.value.filter(u => u.id !== userInfo.value?.id && !team.value?.members?.some(member => member.id === u.id)))
+const foundUsers = computed(() => userResults.value.filter(u =>
+	u.id !== userInfo.value?.id &&
+	!team.value?.members?.some(member => member.id === u.id),
+))
 const memberToDelete = ref<TeamUser>()
 const newMember = ref<ApiUser | null>(null)
 const showDeleteModal = ref(false)
@@ -279,7 +284,7 @@ function toggleUserType(member: TeamUser) {
 }
 
 function findUser(query: string) {
-	userSearch.value = query
+	userSearch.value = query.trim()
 }
 
 async function leave() {
@@ -303,4 +308,11 @@ async function leave() {
 		padding: 0;
 	}
 }
+</style>
+
+<style scoped lang="scss">
+.team-user-search-result {display:flex;align-items:center;gap:.55rem;min-width:0;}
+.team-user-search-identity {display:flex;flex-direction:column;min-width:0;gap:.1rem;}
+.team-user-display {font-size:.86rem;font-weight:550;overflow-wrap:anywhere;}
+.team-user-search-identity small {font-size:.73rem;color:var(--text-light);}
 </style>

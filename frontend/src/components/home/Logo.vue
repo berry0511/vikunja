@@ -1,60 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useNow } from '@vueuse/core'
-import { useAuthStore } from '@/stores/auth'
-import { useConfigStore } from '@/stores/config'
-import { useColorScheme } from '@/composables/useColorScheme'
+import {computed} from 'vue'
+import {useColorScheme} from '@/composables/useColorScheme'
 
-import LogoFull from '@/assets/logo-full.svg?component'
-import LogoFullPride from '@/assets/logo-full-pride.svg?component'
-import {MILLISECONDS_A_HOUR} from '@/constants/date'
-
-const now = useNow({
-	interval: MILLISECONDS_A_HOUR,
-})
-
-const authStore = useAuthStore()
-const configStore = useConfigStore()
-const { isDark } = useColorScheme()
-
-const Logo = computed(() => configStore.allow_icon_changes
-	&& authStore.settings.frontend_settings.allow_icon_changes
-	&& now.value.getMonth() === 5
-	? LogoFullPride
-	: LogoFull)
-
-const CustomLogo = computed(() => {
-	const lightLogo = window.CUSTOM_LOGO_URL
-	const darkLogo = window.CUSTOM_LOGO_URL_DARK
-
-	if (!lightLogo && !darkLogo) return ''
-	if (!darkLogo) return lightLogo
-	if (!lightLogo) return darkLogo
-
-	return isDark.value ? darkLogo : lightLogo
+const {isDark} = useColorScheme()
+const customLogo = computed(() => {
+	const light = window.CUSTOM_LOGO_URL
+	const dark = window.CUSTOM_LOGO_URL_DARK
+	return (isDark.value ? dark || light : light || dark) || '/images/kty-logo.svg'
 })
 </script>
 
 <template>
-	<div>
-		<Logo
-			v-if="!CustomLogo"
-			alt="Vikunja"
-			class="logo"
-		/>
-		<img
-			v-else
-			:src="CustomLogo"
-			alt="Vikunja"
-			class="logo"
-		>
+	<div class="kty-brand">
+		<img :src="customLogo" class="kty-brand-mark" alt="" aria-hidden="true">
+		<span class="kty-brand-name">开天眼项目管理</span>
 	</div>
 </template>
 
-<style lang="scss" scoped>
-.logo {
-	color: var(--logo-text-color);
-	max-inline-size: 168px;
-	max-block-size: 48px;
+<style scoped lang="scss">
+.kty-brand {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: .6rem;
+	inline-size: max-content;
+	max-inline-size: 100%;
+	min-block-size: 45px;
+}
+.kty-brand-mark {
+	inline-size: 42px;
+	block-size: 42px;
+	flex: none;
+	object-fit: contain;
+}
+.kty-brand-name {
+	font-size: 1.04rem;
+	font-weight: 780;
+	letter-spacing: .012em;
+	color: var(--text-strong);
+	white-space: nowrap;
+}
+@media screen and (max-width: $tablet) {
+	.kty-brand-mark {inline-size: 36px; block-size: 36px;}
+	.kty-brand-name {font-size: .95rem;}
 }
 </style>

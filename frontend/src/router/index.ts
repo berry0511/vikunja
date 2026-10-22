@@ -390,6 +390,11 @@ const router = createRouter({
 			}),
 		},
 		{
+			path: '/admin/organization',
+			name: 'admin.organization',
+			component: () => import('@/views/admin/OrganizationTasks.vue'),
+		},
+		{
 			path: '/teams',
 			name: 'teams.index',
 			component: () => import('@/views/teams/ListTeams.vue'),
@@ -401,6 +406,12 @@ const router = createRouter({
 			meta: {
 				showAsModal: true,
 			},
+		},
+		{
+			path: '/teams/:id/workspace',
+			name: 'teams.workspace',
+			component: () => import('@/views/teams/TeamWorkspace.vue'),
+			props: true,
 		},
 		{
 			path: '/teams/:id/edit',
@@ -447,6 +458,11 @@ const router = createRouter({
 			path: '/daily-worklogs',
 			name: 'daily-worklogs',
 			component: () => import('@/views/time-tracking/DailyWorklogs.vue'),
+		},
+		{
+			path: '/issues',
+			name: 'issues.index',
+			component: () => import('@/views/issues/Issues.vue'),
 		},
 		// Retired the legacy time-tracking page. Old bookmarks go to
 		// the sole maintained manual-worklog report.
@@ -606,14 +622,12 @@ router.beforeEach(async (to, from) => {
 		// so awaiting it here doesn't deadlock the initial navigation.
 		const baseStore = useBaseStore()
 		await baseStore.appReady
-		const configStore = useConfigStore()
-		const featureOn = configStore.isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL)
 		// isAdmin comes from /user, not the JWT; force-fetch in case checkAuth() was debounced.
 		if (authStore.info?.is_admin === undefined) {
 			await authStore.refreshUserInfo()
 		}
 		const isAdmin = authStore.info?.is_admin === true
-		if (!featureOn || !isAdmin) {
+		if (!isAdmin) {
 			return {name: 'not-found'}
 		}
 	}

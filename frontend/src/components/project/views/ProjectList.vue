@@ -359,8 +359,12 @@ onBeforeUnmount(() => {
 }
 
 .tasks {
-	padding: .5rem;
+	padding: .45rem .65rem .75rem;
+	list-style: none;
 }
+.tasks :deep(.single-task) {max-inline-size: 100%;}
+.list-view__add-task {border-bottom: 1px solid var(--card-border-color);}
+.list-view :deep(.card) {background: transparent; border: 0; box-shadow: none;}
 
 .task-ghost {
 	border-radius: $radius;
