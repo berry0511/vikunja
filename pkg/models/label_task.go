@@ -196,7 +196,7 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 	}
 	err = query.Find(&labels)
 	if err != nil {
-		log.Errorf("labels.list database query failed: caller_id=%d err=%v", a.GetID(), err)
+		log.Errorf("labels.by_task database query failed: task_ids=%v err=%v", taskIDs, err)
 		return nil, 0, 0, err
 	}
 
@@ -206,7 +206,7 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 
 	err = addLabelCreators(s, labels)
 	if err != nil {
-		log.Errorf("labels.list creator hydration failed: caller_id=%d count=%d err=%v", a.GetID(), len(labels), err)
+		log.Errorf("labels.by_task creator hydration failed: task_ids=%v count=%d err=%v", taskIDs, len(labels), err)
 		return nil, 0, 0, err
 	}
 
