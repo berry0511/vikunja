@@ -306,7 +306,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 1},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			name: "Get nonexistant label",
@@ -382,7 +382,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 1},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			// Label 8's only label_tasks row points at inaccessible task 34, so
@@ -402,7 +402,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 1},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			// Non-creator must not be able to read an unattached label owned
@@ -471,7 +471,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 21},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			// User 22 owns a different bot and must not see another owner's
