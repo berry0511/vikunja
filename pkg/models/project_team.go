@@ -220,14 +220,18 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 
 	limit, start := getLimitFromPageIndex(page, perPage)
 
+	// isInstanceAdmin performs a database query using this same session.
+	// Resolve it BEFORE constructing the team query: otherwise its Get resets
+	// the pending XORM statement and silently drops the project/name filters.
+	searchReadableTeamsOnly := search != "" && !isInstanceAdmin(s, a)
+
 	// Get the teams
 	teamRows := []*Team{}
 	query := s.
 		Table("teams").
 		Join("INNER", "team_projects", "team_projects.team_id = teams.id").
 		Where("team_projects.project_id = ?", tl.ProjectID).
-		Where(db.ILIKE("teams.name", search))
-	searchReadableTeamsOnly := search != "" && !isInstanceAdmin(s, a)
+		And(db.ILIKE("teams.name", search))
 	if searchReadableTeamsOnly {
 		query = query.And(readableTeamSearchCond(a))
 	}
@@ -286,7 +290,7 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 		Table("teams").
 		Join("INNER", "team_projects", "team_projects.team_id = teams.id").
 		Where("team_projects.project_id = ?", tl.ProjectID).
-		Where(db.ILIKE("teams.name", search))
+		And(db.ILIKE("teams.name", search))
 	if searchReadableTeamsOnly {
 		countQuery = countQuery.And(readableTeamSearchCond(a))
 	}
