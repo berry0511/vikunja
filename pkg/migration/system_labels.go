@@ -25,7 +25,7 @@ func ensureSystemLabelCatalog(x *xorm.Engine) error {
         if err != nil {
             return fmt.Errorf("open database for system labels: %w", err)
         }
-        defer x.Close()
+        // CreateDBEngine returns Vikunja's shared engine; do not close it here.
     }
 
     session := x.NewSession()
