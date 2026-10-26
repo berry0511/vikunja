@@ -224,7 +224,7 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 	all := []*TeamWithPermission{}
 	query := s.
 		Table("teams").
-		Join("INNER", "team_projects", "team_id = teams.id").
+		Join("INNER", "team_projects", "team_projects.team_id = teams.id").
 		Where("team_projects.project_id = ?", tl.ProjectID).
 		Where(db.ILIKE("teams.name", search))
 	searchReadableTeamsOnly := search != "" && !isInstanceAdmin(s, a)
@@ -234,6 +234,7 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 	if limit > 0 {
 		query = query.Limit(limit, start)
 	}
+	query = query.Select("teams.*, team_projects.permission AS permission")
 	err = query.Find(&all)
 	if err != nil {
 		return nil, 0, 0, err
@@ -273,7 +274,7 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 	if searchReadableTeamsOnly {
 		countQuery = countQuery.Where(readableTeamSearchCond(a))
 	}
-	totalItems, err = countQuery.Count(&TeamWithPermission{})
+	totalItems, err = countQuery.Count(&Team{})
 	if err != nil {
 		return nil, 0, 0, err
 	}
