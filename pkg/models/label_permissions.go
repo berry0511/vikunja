@@ -33,7 +33,7 @@ func (l *Label) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
 
 // CanDelete checks if a user can delete a label
 func (l *Label) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	return false, nil // Only instance admins manage shared labels
+	return false, nil // System-defined labels are immutable
 }
 
 // CanRead checks if a user can read a label
@@ -43,12 +43,8 @@ func (l *Label) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
 
 // CanCreate checks if the user can create a label
 // Currently a dummy.
-func (l *Label) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
-	if _, is := a.(*LinkSharing); is {
-		return false, nil
-	}
-
-	return isInstanceAdmin(s, a), nil
+func (l *Label) CanCreate(_ *xorm.Session, _ web.Auth) (bool, error) {
+	return false, nil // Only the database initializer defines catalog labels.
 }
 
 func (l *Label) isLabelOwner(s *xorm.Session, a web.Auth) (bool, error) {
