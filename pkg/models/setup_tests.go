@@ -42,6 +42,12 @@ func SetupTests() {
 		log.Fatal(err)
 	}
 
+	// Models tests use Sync2 rather than the migration runner. Mirror the public
+	// label catalog schema here so label ACL queries work in test databases.
+	if _, err = x.Exec("CREATE TABLE IF NOT EXISTS global_labels (label_id BIGINT PRIMARY KEY)"); err != nil {
+		log.Fatal(err)
+	}
+
 	err = db.CreateParadeDBIndexes()
 	if err != nil {
 		log.Fatal(err)
