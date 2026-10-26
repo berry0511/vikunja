@@ -138,6 +138,10 @@ func TestTaskAttachment_ImmutableHistory(t *testing.T) {
 	files.InitTestFileFixtures(t)
 	actor := &user.User{ID: 1}
 	content := []byte("audit attachment bytes")
+	baselineSession := db.NewSession()
+	_, baseline, err := ListHistory(baselineSession, "task", 1, 1, 50)
+	require.NoError(t, err)
+	require.NoError(t, baselineSession.Close())
 
 	s := db.NewSession()
 	attachment := &TaskAttachment{TaskID: 1, Source: "task"}
@@ -148,8 +152,8 @@ func TestTaskAttachment_ImmutableHistory(t *testing.T) {
 	reader := db.NewSession()
 	rows, total, err := ListHistory(reader, "task", 1, 1, 50)
 	require.NoError(t, err)
-	require.Equal(t, int64(1), total)
-	require.Len(t, rows, 1)
+	require.Equal(t, baseline+1, total)
+	require.Len(t, rows, int(baseline)+1)
 	assert.Equal(t, "upload", rows[0].Action)
 	assert.Equal(t, "attachment", rows[0].Field)
 	assert.Equal(t, actor.ID, rows[0].ActorID)
@@ -167,8 +171,8 @@ func TestTaskAttachment_ImmutableHistory(t *testing.T) {
 	defer reader.Close()
 	rows, total, err = ListHistory(reader, "task", 1, 1, 50)
 	require.NoError(t, err)
-	require.Equal(t, int64(2), total)
-	require.Len(t, rows, 2)
+	require.Equal(t, baseline+2, total)
+	require.Len(t, rows, int(baseline)+2)
 	assert.Equal(t, "delete", rows[0].Action)
 	assert.Equal(t, "attachment", rows[0].Field)
 	assert.Contains(t, rows[0].OldValue, "audit-archive.zip")
