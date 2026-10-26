@@ -229,7 +229,7 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 		Where(db.ILIKE("teams.name", search))
 	searchReadableTeamsOnly := search != "" && !isInstanceAdmin(s, a)
 	if searchReadableTeamsOnly {
-		query = query.Where(readableTeamSearchCond(a))
+		query = query.And(readableTeamSearchCond(a))
 	}
 	if limit > 0 {
 		query = query.Limit(limit, start)
@@ -284,11 +284,11 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 
 	countQuery := s.
 		Table("teams").
-		Join("INNER", "team_projects", "team_id = teams.id").
+		Join("INNER", "team_projects", "team_projects.team_id = teams.id").
 		Where("team_projects.project_id = ?", tl.ProjectID).
 		Where(db.ILIKE("teams.name", search))
 	if searchReadableTeamsOnly {
-		countQuery = countQuery.Where(readableTeamSearchCond(a))
+		countQuery = countQuery.And(readableTeamSearchCond(a))
 	}
 	totalItems, err = countQuery.Count(&Team{})
 	if err != nil {
