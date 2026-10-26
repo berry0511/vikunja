@@ -42,15 +42,18 @@ func TestChangeHistoryAppendOnlyAndRollback(t *testing.T) {
 	actor := &user.User{ID: 1}
 	const taskID int64 = 1
 	s := db.NewSession()
-	err := saveHistoryChanges(s, "task", taskID, actor, []historyField{
+	baselineRows, baselineCount, err := ListHistory(s, "task", taskID, 1, 50)
+	require.NoError(t, err)
+	_ = baselineRows
+	err = saveHistoryChanges(s, "task", taskID, actor, []historyField{
 		{"title", "Old", "New"},
 		{"priority", "1", "1"}, // no-op must not create a row
 	})
 	require.NoError(t, err)
 	rows, count, err := ListHistory(s, "task", taskID, 1, 50)
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), count)
-	assert.Len(t, rows, 1)
+	assert.Equal(t, baselineCount+1, count)
+	assert.Len(t, rows, int(baselineCount)+1)
 	assert.Equal(t, "New", rows[0].NewValue)
 	require.NoError(t, s.Rollback())
 	require.NoError(t, s.Close())
@@ -59,5 +62,5 @@ func TestChangeHistoryAppendOnlyAndRollback(t *testing.T) {
 	defer read.Close()
 	_, count, err = ListHistory(read, "task", taskID, 1, 50)
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), count, "aborted transaction must not leave orphan history")
+	assert.Equal(t, baselineCount, count, "aborted transaction must not leave orphan history")
 }
