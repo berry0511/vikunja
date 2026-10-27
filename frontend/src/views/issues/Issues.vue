@@ -260,7 +260,7 @@ async function setIssueStatus(task: TaskResponse, event: Event) {
 .issue-form, .issue-form label {display:flex; flex-direction:column; gap:.45rem}
 .issue-form {gap:1.05rem}
 .issue-form label, .issue-filter-bar label {font-size:.87rem; font-weight:650; color:var(--text-strong)}
-.issue-fields,.issue-filter-bar {display:grid; grid-template-columns:repeat(auto-fit,minmax(195px,1fr)); gap:1rem}
+.issue-fields,.issue-filter-bar {display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,195px),1fr)); gap:1rem}
 .issue-form input,.issue-form select,.issue-form textarea,.issue-filter-bar input,.issue-filter-bar select,.issue-table select {
 	width:100%; padding:.7rem .8rem; background:var(--white); border:1px solid var(--card-border-color);
 	border-radius:9px; color:var(--text); font:inherit; font-weight:400;
@@ -277,7 +277,7 @@ async function setIssueStatus(task: TaskResponse, event: Event) {
 .issue-metrics div {display:flex; flex-direction:column; gap:.35rem; padding:1rem; background:var(--grey-50); border:1px solid var(--card-border-color); border-radius:10px}
 .issue-metrics strong {font-size:1.6rem; line-height:1.1; color:var(--text-strong); font-variant-numeric:tabular-nums}
 .issue-metrics span {color:var(--text-light); font-size:.8rem}
-.issue-table-wrap {inline-size:100%; overflow-x:auto; border:1px solid var(--card-border-color); border-radius:10px}
+.issue-table-wrap {inline-size:100%; max-inline-size:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--card-border-color); border-radius:10px}
 .issue-table {inline-size:100%; min-inline-size:830px; border-collapse:collapse; font-size:.87rem}
 .issue-table th {text-align:start; white-space:nowrap; background:var(--grey-50); font-size:.78rem; font-weight:750; color:var(--text-strong); padding:.9rem}
 .issue-table td {vertical-align:middle; padding:.9rem; border-block-start:1px solid var(--card-border-color)}
