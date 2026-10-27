@@ -225,9 +225,9 @@ function barStyle(task: OrganizationTask) {
 .organization-header {padding:1rem 1.25rem; border:1px solid var(--card-border-color); border-radius:10px; background:var(--white); margin-block-end:1rem;}
 .organization-header h1 {font-size:1.5rem; font-weight:600;}
 .organization-header p {color:var(--text-light); font-size:.85rem;}
-.organization-filters {display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; background:var(--white); border:1px solid var(--card-border-color); border-radius:10px; padding:1rem;}
+.organization-filters {display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:.8rem; background:var(--white); border:1px solid var(--card-border-color); border-radius:10px; padding:1rem;}
 .organization-filters label {display:flex; flex-direction:column; gap:.35rem; font-size:.8rem;}
-.organization-filters input,.organization-filters select {padding:.5rem; border:1px solid var(--card-border-color); border-radius:6px; background:var(--white); color:var(--text);}
+.organization-filters input,.organization-filters select {min-inline-size:0; inline-size:100%; padding:.5rem; border:1px solid var(--card-border-color); border-radius:6px; background:var(--white); color:var(--text);}
 .organization-toolbar,.organization-pagination {display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 0;}
 .organization-view-switch {display:flex; border:1px solid var(--card-border-color); border-radius:6px; overflow:hidden;}
 .organization-view-switch button,.organization-pagination button {padding:.4rem .7rem; border:1px solid var(--card-border-color); border-radius:5px; background:var(--white); color:var(--text); cursor:pointer;}
@@ -245,7 +245,7 @@ function barStyle(task: OrganizationTask) {
 @media(max-width:720px){.organization-row{grid-template-columns:1.5rem 1fr;}.organization-row span:nth-last-child(-n+2){display:none;}}
 
 .gantt-hint {font-size:.77rem;color:var(--text-light);margin:.45rem 0 1rem;}
-.gantt-scroll {overflow-x:auto;}
+.gantt-scroll {max-inline-size:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .gantt-grid {display:grid;grid-template-columns:minmax(175px,240px) minmax(650px,1fr);align-items:stretch;}
 .gantt-title-head,.gantt-scale {min-height:2.8rem;border-bottom:1px solid var(--card-border-color);font-size:.78rem;color:var(--text-light);padding:.7rem .55rem;}
 .gantt-scale {position:relative;}
@@ -266,5 +266,5 @@ function barStyle(task: OrganizationTask) {
 .team-identity small {color:var(--text-light);font-size:.72rem;}
 .team-stat {font-size:.78rem;}
 .team-filter {border:1px solid var(--card-border-color);border-radius:6px;background:var(--white);padding:.35rem .6rem;font-size:.78rem;cursor:pointer;color:var(--text);}
-@media(max-width:720px){.organization-team-row{flex-wrap:wrap;}.team-filter{margin-left:auto;}}
+@media(max-width:720px){.organization-toolbar,.organization-pagination{flex-wrap:wrap;}.organization-team-row{flex-wrap:wrap;}.team-filter{margin-left:auto;}.organization-list,.organization-gantt,.organization-team-summary{padding:.6rem;}.organization-filters{padding:.75rem;}.gantt-grid{grid-template-columns:130px minmax(520px,1fr);}}
 </style>
