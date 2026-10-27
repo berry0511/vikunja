@@ -165,5 +165,5 @@ function ganttStyle(task: {start_date?: string | null, end_date?: string | null,
 .team-gantt-line a {overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .team-gantt-track {background:var(--grey-50); block-size:1.3rem; border-radius:4px;}
 .team-gantt-bar {background:var(--primary); block-size:100%; border-radius:4px;}
-@media(max-width:720px){.team-gantt-line {grid-template-columns:7rem 1fr;}.team-task-list li{flex-direction:column;}}
+@media(max-width:720px){.team-workspace{padding:.6rem;}.team-workspace-heading,.team-workspace-panel{padding:.75rem;}.team-task-heading,.team-member-list li,.team-shared-projects li{flex-wrap:wrap;}.team-gantt-line {grid-template-columns:minmax(0,7rem) minmax(0,1fr);}.team-task-list li{flex-direction:column;}}
 </style>
