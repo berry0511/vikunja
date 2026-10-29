@@ -142,10 +142,10 @@
 			</nav>
 		</template>
 
-		<PoweredByLink
-			class="mbs-auto"
-			utm-medium="navigation"
-		/>
+		<div class="sidebar-app-footer mbs-auto" aria-label="开天眼项目管理">
+			<strong>开天眼项目管理</strong>
+			<small>内部项目协作平台</small>
+		</div>
 
 		<div
 			v-if="!isMobile"
@@ -160,7 +160,6 @@
 import {computed} from 'vue'
 
 import {SHORTCUTS} from '@/constants/shortcuts'
-import PoweredByLink from '@/components/home/PoweredByLink.vue'
 import Logo from '@/components/home/Logo.vue'
 import Loading from '@/components/misc/Loading.vue'
 
@@ -317,4 +316,8 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 	.top-menu .menu-list>.workspace-nav-heading {padding-block-start:.75rem;}
 }
 @media(prefers-reduced-motion:reduce){.menu-container{transition:none;}}
+
+.sidebar-app-footer {display:flex;flex-direction:column;gap:.2rem;align-items:center;border-block-start:1px solid var(--card-border-color);margin-block-start:1.2rem;padding:.95rem .3rem .45rem;text-align:center;}
+.sidebar-app-footer strong {color:var(--text-light);font-size:.75rem;font-weight:650;}
+.sidebar-app-footer small {color:var(--grey-400);font-size:.68rem;}
 </style>
