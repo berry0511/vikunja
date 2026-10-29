@@ -127,14 +127,16 @@
 					<dl class="workspace-preview-fields">
 						<dt>状态</dt><dd><span class="workspace-preview-status" :class="{'is-done': previewTask.done}">{{ previewTask.done ? '已完成' : '待处理' }}</span></dd>
 						<dt>负责人</dt><dd>{{ (previewTask.assignees ?? []).map(a => a.name || a.username).join('、') || '尚未指派' }}</dd>
-						<dt>截止日期</dt><dd>{{ previewTask.due_date ? new Date(previewTask.due_date).toLocaleDateString() : '未设置' }}</dd>
-						<dt>优先级</dt><dd>{{ previewTask.priority ?? 0 }}</dd>
+						<dt>截止日期</dt><dd>{{ previewTask.due_date ? previewDateText(previewTask.due_date) : '未设置' }}</dd>
+						<dt>优先级</dt><dd>{{ previewPriorityText(previewTask.priority) }}</dd>
 						<dt>标签</dt><dd>
 							<span v-if="!(previewTask.labels?.length)">无标签</span>
 							<span v-for="label in previewTask.labels ?? []" :key="label.id" class="workspace-preview-tag">{{ label.title }}</span>
 						</dd>
 						<dt>附件</dt><dd>{{ previewTask.attachments?.length ?? 0 }} 个</dd>
+						<dt>完成进度</dt><dd><progress class="workspace-preview-progress" :value="Math.round((previewTask.percent_done ?? 0) * 100)" max="100">{{ Math.round((previewTask.percent_done ?? 0) * 100) }}%</progress></dd>
 					</dl>
+					<section v-if="previewPlainDescription" class="workspace-preview-description"><h3>描述摘录</h3><p>{{ previewPlainDescription }}</p></section>
 					<p class="workspace-preview-note">评论、附件、工时和历史记录请在完整任务详情中查看与编辑。</p>
 					<div class="workspace-preview-footer">
 						<button type="button" class="workspace-preview-secondary" @click="closeQuickPreview">返回列表</button>
@@ -197,10 +199,20 @@ function closeQuickPreview() {
 	nextTick(() => previewTrigger?.focus())
 }
 
+function previewDateText(value: string | null | undefined): string {
+	if (!value) return '未设置'
+	const date = new Date(value)
+	return Number.isFinite(date.getTime()) && date.getFullYear() >= 2000 ? date.toLocaleDateString() : '未设置'
+}
+
+function previewPriorityText(priority: number | null | undefined): string {
+	return ['未设置', '低', '普通', '高', '紧急', '最高'][priority ?? 0] ?? String(priority)
+}
+
 function trapQuickPreviewFocus(event: KeyboardEvent) {
 	const panel = previewPanel.value
 	if (!panel) return
-	const elements = [...panel.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])')]
+	const elements = Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
 	if (!elements.length) {
 		event.preventDefault()
 		panel.focus()
@@ -252,6 +264,9 @@ const tasks = computed({
 	set: value => { dragTasks.value = value },
 })
 const previewTask = computed(() => tasks.value.find(task => task.id === previewTaskId.value) ?? null)
+const previewPlainDescription = computed(() =>
+	(previewTask.value?.description ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 320),
+)
 watch([projectId, () => props.viewId], () => {
 	dragTasks.value = null
 	previewTaskId.value = null
@@ -486,6 +501,10 @@ onBeforeUnmount(() => {
 .workspace-preview-status { display: inline-flex; padding: .23rem .6rem; border-radius: 999px; background: var(--grey-100); }
 .workspace-preview-status.is-done { color: #1a7f37; background: color-mix(in srgb, #1a7f37 12%, var(--white)); }
 .workspace-preview-tag { display: inline-block; border: 1px solid var(--card-border-color); border-radius: 5px; padding: .15rem .4rem; margin: 0 .3rem .3rem 0; }
+.workspace-preview-description { padding: 0 1.5rem 1.25rem; }
+.workspace-preview-description h3 { font-size: .78rem; font-weight: 700; color: var(--text-light); margin-block-end: .5rem; }
+.workspace-preview-description p { font-size: .85rem; line-height: 1.6; overflow-wrap: anywhere; color: var(--text); margin: 0; }
+.workspace-preview-progress { inline-size: 100%; block-size: .55rem; accent-color: var(--primary); }
 .workspace-preview-note { color: var(--text-light); font-size: .81rem; line-height: 1.6; margin: auto 1.5rem 1rem; }
 .workspace-preview-footer { display: flex; justify-content: flex-end; gap: .6rem; border-block-start: 1px solid var(--card-border-color); padding: 1rem 1.5rem; }
 .workspace-preview-footer a, .workspace-preview-footer button { display: inline-flex; align-items: center; padding: .6rem .85rem; border-radius: 6px; font-size: .85rem; text-decoration: none; cursor: pointer; }
