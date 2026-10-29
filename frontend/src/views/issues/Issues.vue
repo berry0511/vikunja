@@ -75,6 +75,10 @@
 					<input v-model.trim="searchText" type="search" placeholder="标题或Bug编号" />
 				</label>
 			</div>
+			<div class="issue-results-toolbar">
+				<span aria-live="polite">当前显示 <strong>{{ shownIssues.length }}</strong> / {{ allIssues.length }} 个 Bug</span>
+				<button type="button" class="issue-reset-filters" @click="resetIssueFilters">清除筛选</button>
+			</div>
 			<div class="issue-metrics">
 				<div><strong>{{ allIssues.length }}</strong><span>Bug 总数</span></div>
 				<div><strong>{{ allIssues.filter(t => issueStatus(t) === 'working').length }}</strong><span>处理中</span></div>
@@ -166,6 +170,12 @@ watch(selectedProjectId, id => {
 })
 const statusFilter = ref('all')
 const searchText = ref('')
+function resetIssueFilters() {
+	projectId.value = 0
+	statusFilter.value = 'all'
+	searchText.value = ''
+}
+
 const changingId = ref(0)
 const scope = computed(() => ({
 	project: projectId.value || null,
@@ -357,4 +367,23 @@ async function setIssueStatus(task: TaskResponse, event: Event) {
 	.issue-metrics div:nth-child(3) { border-inline-start: 0; border-block-start: 1px solid var(--issue-border); }
 	.issue-metrics div:nth-child(4) { border-block-start: 1px solid var(--issue-border); }
 }
+
+.issue-center>.issue-header {
+	background:var(--white);border:1px solid var(--card-border-color);
+	border-radius:9px;padding:1rem 1.2rem;margin-block-end:1rem;
+}
+.issue-header h1 {font-size:clamp(1.3rem,2.4vw,1.75rem);}
+.issue-results-toolbar {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.65rem;margin-block:.65rem;color:var(--text-light);font-size:.8rem;}
+.issue-results-toolbar strong {color:var(--text-strong);font-variant-numeric:tabular-nums;}
+.issue-reset-filters {border:1px solid var(--card-border-color);border-radius:6px;background:var(--white);color:var(--text-strong);padding:.38rem .65rem;font-size:.78rem;cursor:pointer;}
+.issue-reset-filters:hover {background:var(--grey-50);color:var(--primary);}
+.issue-reset-filters:focus-visible {outline:2px solid var(--primary);outline-offset:2px;}
+.issue-filter-bar {gap:.7rem;align-items:end;}
+.issue-metrics {margin-block:.75rem 1rem;}
+.issue-metrics strong {font-variant-numeric:tabular-nums;}
+.issue-table-wrap {max-inline-size:100%;}
+.issue-table tr:focus-within {background:var(--grey-50);}
+.issue-table .issue-title {font-weight:550;line-height:1.45;}
+.issue-form label {min-inline-size:0;}
+@media (max-width:$tablet) {.issue-center>.issue-header{padding:.8rem;}.issue-filter-bar{padding:.6rem;}.issue-table td{padding:.6rem;}}
 </style>

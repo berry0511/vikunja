@@ -32,6 +32,12 @@
 				</ul>
 				<RouterLink :to="{name: 'projects.index'}">查看所有我有权限的项目 →</RouterLink>
 			</div>
+			<div class="team-progress-strip" aria-label="当前团队可见任务进度">
+				<div><strong>{{ sharedProjects.length }}</strong><span>共享项目</span></div>
+				<div><strong>{{ teamTasks.length }}</strong><span>可见任务</span></div>
+				<div><strong>{{ completedTeamTasks }}</strong><span>已完成</span></div>
+				<div class="team-progress-meter"><span>任务完成比例</span><progress :value="completedTeamTasks" :max="Math.max(1, teamTasks.length)">{{ teamTasks.length ? Math.round(completedTeamTasks / teamTasks.length * 100) : 0 }}%</progress></div>
+			</div>
 			<div class="team-task-board">
 				<div class="team-task-heading">
 					<h2>团队任务 <small>({{ teamTasks.length }})</small></h2>
@@ -110,6 +116,7 @@ const teamTasks = computed(() => {
 	const ids = new Set(sharedProjects.value.map(project => project.id))
 	return (tasksQuery.data.value ?? []).filter(task => ids.has(task.project_id))
 })
+const completedTeamTasks = computed(() => teamTasks.value.filter(task => task.done).length)
 function span(task: {start_date?: string | null, end_date?: string | null, due_date?: string | null}) {
 	const start = task.start_date ? new Date(task.start_date) : null
 	const end = task.end_date || task.due_date ? new Date(task.end_date || task.due_date || '') : null
@@ -166,4 +173,20 @@ function ganttStyle(task: {start_date?: string | null, end_date?: string | null,
 .team-gantt-track {background:var(--grey-50); block-size:1.3rem; border-radius:4px;}
 .team-gantt-bar {background:var(--primary); block-size:100%; border-radius:4px;}
 @media(max-width:720px){.team-workspace{padding:.6rem;}.team-workspace-heading,.team-workspace-panel{padding:.75rem;}.team-task-heading,.team-member-list li,.team-shared-projects li{flex-wrap:wrap;}.team-gantt-line {grid-template-columns:minmax(0,7rem) minmax(0,1fr);}.team-task-list li{flex-direction:column;}}
+
+.team-progress-strip {display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(130px,2fr);gap:.6rem;margin-block:1.1rem;border:1px solid var(--card-border-color);border-radius:8px;padding:.75rem;background:var(--grey-50);}
+.team-progress-strip>div {display:flex;flex-direction:column;justify-content:center;gap:.35rem;min-inline-size:0;}
+.team-progress-strip strong {color:var(--text-strong);font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums;}
+.team-progress-strip span {color:var(--text-light);font-size:.75rem;}
+.team-progress-meter progress {inline-size:100%;block-size:.5rem;accent-color:var(--primary);}
+.team-task-heading {flex-wrap:wrap;}
+.team-view-switch button {font-size:.8rem;min-block-size:2.3rem;}
+.team-view-switch button[aria-pressed="true"] {color:var(--primary);background:color-mix(in srgb,var(--primary) 9%,var(--white));}
+.team-view-switch button:focus-visible {outline:2px solid var(--primary);outline-offset:-2px;}
+.team-task-list li {align-items:center;font-size:.84rem;}
+.team-task-list li>a {min-inline-size:0;overflow-wrap:anywhere;color:var(--text-strong);}
+.team-task-list li>a:hover {color:var(--primary);}
+.team-gantt-track {overflow:hidden;}
+.team-workspace-manage {background:var(--white);font-size:.84rem;}
+@media(max-width:720px){.team-progress-strip{grid-template-columns:repeat(3,minmax(0,1fr));}.team-progress-meter{grid-column:1/-1;}.team-workspace{max-inline-size:100%;}.team-gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;}}
 </style>

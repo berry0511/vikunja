@@ -38,6 +38,12 @@
 			</label>
 			<label>搜索<input v-model.trim="search" type="search" placeholder="任务标题" /></label>
 		</div>
+		<div class="organization-summary-bar">
+			<div class="organization-summary-stat"><strong>{{ taskResult?.items.length ?? 0 }}</strong><span>本页任务</span></div>
+			<div class="organization-summary-stat"><strong>{{ taskResult?.items.filter(t => t.done).length ?? 0 }}</strong><span>本页已完成</span></div>
+			<div class="organization-summary-stat"><strong>{{ taskResult?.items.filter(t => !t.done).length ?? 0 }}</strong><span>本页未完成</span></div>
+			<button type="button" class="organization-reset-filters" @click="resetOrganizationFilters">重置筛选</button>
+		</div>
 		<div class="organization-toolbar">
 			<p>共 {{ taskResult?.total ?? 0 }} 条任务</p>
 			<div class="organization-view-switch" role="group" aria-label="视图">
@@ -114,6 +120,16 @@ const ownerId = ref(0)
 const done = ref('all')
 const search = ref('')
 const view = ref<'list' | 'gantt'>('list')
+function resetOrganizationFilters() {
+	teamId.value = 0
+	projectId.value = 0
+	assigneeId.value = 0
+	ownerId.value = 0
+	done.value = 'all'
+	search.value = ''
+	page.value = 1
+}
+
 
 async function getAdminData<T>(path: string, params: Record<string, string>): Promise<Page<T>> {
 	const token = getToken()
@@ -267,4 +283,25 @@ function barStyle(task: OrganizationTask) {
 .team-stat {font-size:.78rem;}
 .team-filter {border:1px solid var(--card-border-color);border-radius:6px;background:var(--white);padding:.35rem .6rem;font-size:.78rem;cursor:pointer;color:var(--text);}
 @media(max-width:720px){.organization-toolbar,.organization-pagination{flex-wrap:wrap;}.organization-team-row{flex-wrap:wrap;}.team-filter{margin-left:auto;}.organization-list,.organization-gantt,.organization-team-summary{padding:.6rem;}.organization-filters{padding:.75rem;}.gantt-grid{grid-template-columns:130px minmax(520px,1fr);}}
+
+.organization-center {max-inline-size:1520px;}
+.organization-header {border-radius:8px;}
+.organization-header h1 {font-weight:700;}
+.organization-summary-bar {
+	display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;
+	gap:.65rem;align-items:stretch;margin-block:.85rem;
+}
+.organization-summary-stat {display:flex;flex-direction:column;gap:.2rem;padding:.7rem .95rem;border:1px solid var(--card-border-color);border-radius:8px;background:var(--white);}
+.organization-summary-stat strong {font-size:1.35rem;color:var(--text-strong);font-weight:700;font-variant-numeric:tabular-nums;}
+.organization-summary-stat span {font-size:.74rem;color:var(--text-light);}
+.organization-reset-filters {align-self:center;justify-self:end;padding:.5rem .8rem;background:var(--white);border:1px solid var(--card-border-color);border-radius:6px;color:var(--text);font-size:.8rem;cursor:pointer;}
+.organization-reset-filters:hover {background:var(--grey-50);color:var(--primary);}
+.organization-view-switch button[aria-pressed="true"] {background:color-mix(in srgb,var(--primary) 9%,var(--white));color:var(--primary);}
+.organization-view-switch button:focus-visible,.organization-reset-filters:focus-visible {outline:2px solid var(--primary);outline-offset:2px;}
+.organization-row {gap:.75rem;padding:.65rem .55rem;}
+.organization-row:hover,.organization-team-row:hover {background:var(--grey-50);}
+.organization-row a {color:var(--text-strong);overflow-wrap:anywhere;}
+.organization-row a:hover {color:var(--primary);}
+.organization-gantt {max-inline-size:100%;}
+@media(max-width:720px){.organization-summary-bar{grid-template-columns:repeat(3,minmax(0,1fr));}.organization-summary-stat{padding:.55rem;}.organization-summary-stat strong{font-size:1.1rem;}.organization-reset-filters{grid-column:1/-1;justify-self:stretch;}.organization-center{padding:.6rem;}}
 </style>
