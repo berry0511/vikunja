@@ -118,6 +118,7 @@
 					:aria-label="`任务预览：${previewTask.title}`"
 					tabindex="-1"
 					@keydown.esc.prevent.stop="closeQuickPreview"
+					@keydown.tab="trapQuickPreviewFocus"
 				>
 					<div class="workspace-preview-head">
 						<div><span class="workspace-preview-overline">任务快速预览 · #{{ previewTask.id }}</span><h2>{{ previewTask.title }}</h2></div>
@@ -194,6 +195,26 @@ let previewTrigger: HTMLElement | null = null
 function closeQuickPreview() {
 	previewTaskId.value = null
 	nextTick(() => previewTrigger?.focus())
+}
+
+function trapQuickPreviewFocus(event: KeyboardEvent) {
+	const panel = previewPanel.value
+	if (!panel) return
+	const elements = [...panel.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])')]
+	if (!elements.length) {
+		event.preventDefault()
+		panel.focus()
+		return
+	}
+	const first = elements[0]
+	const last = elements[elements.length - 1]
+	if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+		event.preventDefault()
+		last.focus()
+	} else if (!event.shiftKey && document.activeElement === last) {
+		event.preventDefault()
+		first.focus()
+	}
 }
 
 function openQuickPreview(id: number, event: MouseEvent) {

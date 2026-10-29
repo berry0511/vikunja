@@ -19,6 +19,7 @@
 				/>
 			</RouterLink>
 			<menu class="menu-list other-menu-items">
+				<li class="workspace-nav-heading" aria-hidden="true">工作区</li>
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.overview"
@@ -76,6 +77,7 @@
 						{{ $t('team.title') }}
 					</RouterLink>
 				</li>
+				<li class="workspace-nav-heading workspace-nav-divider" aria-hidden="true">团队协作</li>
 				<li v-if="authStore.info?.is_admin && !authStore.isLinkShareAuth">
 					<RouterLink :to="{name: 'admin.organization'}">
 						<span class="menu-item-icon icon"><Icon icon="users" /></span>
@@ -298,4 +300,21 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 	color: var(--text-light);
 	padding: 0 .85rem .55rem;
 }
+
+/* Consistent compact navigation, without changing permission-gated entries. */
+.top-menu .menu-list>.workspace-nav-heading {
+	padding:.85rem .8rem .3rem;margin:0;
+	font-size:.69rem;font-weight:700;letter-spacing:.07em;color:var(--text-light);
+	text-transform:uppercase;user-select:none;
+}
+.top-menu .menu-list>.workspace-nav-divider {margin-block-start:.7rem;border-block-start:1px solid var(--card-border-color);}
+.menu-container .top-menu .menu-list>li>a {border-radius:7px;min-block-size:2.45rem;font-size:.86rem;padding:.55rem .75rem;}
+.menu-container .top-menu .menu-list>li>a:focus-visible {outline:2px solid var(--primary);outline-offset:1px;}
+.menu-container .top-menu .menu-list>li>a.router-link-active {box-shadow:inset 3px 0 0 var(--primary);}
+.menu-container .sidebar-projects-section {border-block-start:1px solid var(--card-border-color);padding-block-start:.65rem;}
+@media screen and (max-width:$tablet){
+	.menu-container {inline-size:min(85vw,340px);max-inline-size:100vw;overscroll-behavior:contain;}
+	.top-menu .menu-list>.workspace-nav-heading {padding-block-start:.75rem;}
+}
+@media(prefers-reduced-motion:reduce){.menu-container{transition:none;}}
 </style>
