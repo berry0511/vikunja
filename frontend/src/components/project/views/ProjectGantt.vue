@@ -46,6 +46,7 @@
 				</div>
 			</Card>
 
+			<p class="gantt-view-help">沿时间轴查看任务进度。手机上可左右滑动浏览，修改任务仍遵循项目权限。</p>
 			<div class="gantt-chart-container">
 				<Card
 					:has-content="false"
@@ -222,4 +223,11 @@ const dateRange = computed({
 		font-size: .9rem;
 	}
 }
+
+.gantt-view-help{color:var(--text-light);font-size:.78rem;margin:.15rem 0 .75rem;}
+.gantt-chart-container{max-inline-size:100%;min-inline-size:0;}
+.gantt-chart-container :deep(.card){border:1px solid var(--card-border-color);border-radius:9px;box-shadow:none;background:var(--white);}
+.gantt-options{gap:.75rem;flex-wrap:wrap;justify-content:flex-start;}
+.gantt-options :deep(.field){margin-block-end:0;}
+@media screen and (max-width:$tablet){.gantt-options{align-items:stretch;gap:.6rem;}.gantt-options>*{max-inline-size:100%;}}
 </style>

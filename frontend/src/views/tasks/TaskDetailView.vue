@@ -1791,6 +1791,18 @@ h2 .button {
 		display: none;
 	}
 }
+
+/* Clear task metadata hierarchy; keep all existing editors and permission gates. */
+.task-issue-header{border-radius:8px;box-shadow:0 2px 5px rgba(15,23,42,.03);}
+.task-view .details{gap:.55rem;margin-inline:0;padding:.65rem .75rem;border:1px solid var(--card-border-color);border-radius:8px;background:var(--white);}
+.task-view .details>.column{min-inline-size:0;padding:.45rem .65rem;}
+.task-view .details .detail-title{font-size:.76rem;font-weight:650;color:var(--text-light);margin-block-end:.4rem;}
+.task-view .detail-content>.description,.task-view .detail-content>.attachments{border-radius:8px;}
+.task-view :deep(.comments-container){max-inline-size:100%;}
+.task-view .action-buttons{min-inline-size:0;}
+.task-view .action-buttons :deep(.button){min-block-size:2.4rem;}
+.task-view :deep(input),.task-view :deep(textarea),.task-view :deep(select){max-inline-size:100%;}
+@media screen and (max-width:$tablet){.task-view{padding-inline:.25rem;}.task-view .details{padding:.45rem;}.task-view .details>.column{padding:.5rem;}.task-view .action-buttons{margin-block-start:.8rem;}}
 </style>
 
 <style lang="scss">

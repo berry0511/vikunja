@@ -25,6 +25,7 @@
 			<span class="project-card-kicker"><Icon :icon="project.id < -1 ? 'filter' : 'folder'" /> {{ project.id < -1 ? $t('filters.title') : $t('project.projects') }}</span>
 			<div class="project-title">{{ getProjectTitle(project) }}</div>
 			<p v-if="textOnlyDescription" class="project-card-description">{{ textOnlyDescription }}</p>
+			<span class="project-card-enter">进入项目 <span aria-hidden="true">→</span></span>
 		</div>
 		<BaseButton
 			class="project-button"
@@ -119,4 +120,12 @@ const textOnlyDescription = computed(() => {
 .is-archived {background:var(--grey-100);color:var(--text);}
 .background-fade-in {opacity:0;transition:opacity .2s ease;}
 .background-fade-in.is-visible {opacity:1;}
+
+.project-card{min-block-size:150px;justify-content:flex-start;}
+.project-card-heading{flex:1;gap:.5rem;}
+.project-card-enter{font-size:.74rem;color:var(--primary);font-weight:650;margin-block-start:auto;padding-block-start:.7rem;}
+.has-background .project-card-enter{color:#fff;}
+.project-title{font-weight:650;}
+@media(max-width:720px){.project-card{min-block-size:126px;padding:.85rem;}.project-card-heading{gap:.35rem;}}
+@media(prefers-reduced-motion:reduce){.project-card{transition:none;transform:none!important;}}
 </style>
