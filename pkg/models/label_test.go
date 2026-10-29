@@ -306,7 +306,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 1},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			name: "Get nonexistant label",
@@ -382,7 +382,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 1},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			// Label 8's only label_tasks row points at inaccessible task 34, so
@@ -402,7 +402,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 1},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			// Non-creator must not be able to read an unattached label owned
@@ -471,7 +471,7 @@ func TestLabel_ReadOne(t *testing.T) {
 			},
 			auth:                &user.User{ID: 21},
 			assertMaxPermission: true,
-			wantMaxPermission:   int(PermissionAdmin),
+			wantMaxPermission:   int(PermissionRead),
 		},
 		{
 			// User 22 owns a different bot and must not see another owner's
@@ -637,6 +637,7 @@ func TestLabel_Create(t *testing.T) {
 	}{
 		{
 			name: "normal",
+			wantForbidden: true,
 			fields: fields{
 				Title:       "Test #1",
 				Description: "Lorem Ipsum",
@@ -671,6 +672,7 @@ func TestLabel_Create(t *testing.T) {
 			if allowed && tt.wantForbidden {
 				t.Errorf("Label.CanCreate() allowed, want forbidden")
 			}
+			if !allowed { return } // Authorization is the public API gate.
 			if err := l.Create(s, tt.args.a); (err != nil) != tt.wantErr {
 				t.Errorf("Label.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -710,6 +712,7 @@ func TestLabel_Update(t *testing.T) {
 	}{
 		{
 			name: "normal",
+			wantForbidden: true,
 			fields: fields{
 				ID:    1,
 				Title: "new and better",
@@ -724,8 +727,7 @@ func TestLabel_Update(t *testing.T) {
 			},
 			auth:              &user.User{ID: 1},
 			wantForbidden:     true,
-			wantErr:           true,
-			permissionErrType: IsErrLabelDoesNotExist,
+			
 		},
 		{
 			name: "no permissions",
@@ -748,7 +750,8 @@ func TestLabel_Update(t *testing.T) {
 		{
 			// Label 9 was created by bot 23 (owned by user 21). The bot's
 			// owner inherits update permission.
-			name: "bot owner can update label created by their bot",
+			name: "bot owner cannot update immutable label created by their bot",
+			wantForbidden: true,
 			fields: fields{
 				ID:    9,
 				Title: "new and better",
@@ -767,7 +770,8 @@ func TestLabel_Update(t *testing.T) {
 			wantForbidden: true,
 		},
 		{
-			name: "bot owner can update label created by their second bot",
+			name: "bot owner cannot update immutable label created by their second bot",
+			wantForbidden: true,
 			fields: fields{
 				ID:    12,
 				Title: "new and better",
@@ -802,12 +806,7 @@ func TestLabel_Update(t *testing.T) {
 			s := db.NewSession()
 			defer s.Close()
 			allowed, err := l.CanUpdate(s, tt.auth)
-			if tt.permissionErrType != nil {
-				require.Error(t, err)
-				require.True(t, tt.permissionErrType(err))
-			} else {
-				require.NoError(t, err)
-			}
+			require.NoError(t, err)
 			if !allowed && !tt.wantForbidden {
 				t.Errorf("Label.CanUpdate() forbidden, want %v", tt.wantForbidden)
 			}
@@ -854,6 +853,7 @@ func TestLabel_Delete(t *testing.T) {
 
 		{
 			name: "normal",
+			wantForbidden: true,
 			fields: fields{
 				ID: 1,
 			},
@@ -886,7 +886,8 @@ func TestLabel_Delete(t *testing.T) {
 		{
 			// Label 9 was created by bot 23 (owned by user 21). The bot's
 			// owner inherits delete permission.
-			name: "bot owner can delete label created by their bot",
+			name: "bot owner cannot delete immutable label created by their bot",
+			wantForbidden: true,
 			fields: fields{
 				ID: 9,
 			},

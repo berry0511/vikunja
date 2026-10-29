@@ -16,12 +16,14 @@
 			@change="uploadNewAttachment()"
 		>
 
-		<ProgressBar
-			v-if="uploadBatch !== null"
-			:value="uploadProgress"
-			:aria-label="$t('task.attachment.upload')"
-			is-primary
-		/>
+		<div v-if="uploadBatch !== null" class="attachment-upload-progress" role="status">
+			<span>正在上传 {{ uploadBatch.completed + 1 }} / {{ uploadBatch.total }}：{{ uploadProgress === undefined ? "准备中…" : Math.round(uploadProgress) + "%" }}</span>
+			<ProgressBar
+				:value="uploadProgress"
+				:aria-label="$t('task.attachment.upload')"
+				is-primary
+			/>
+		</div>
 
 		<div
 			v-if="attachments.length > 0"
@@ -68,15 +70,18 @@
 							:show-username="false"
 							:is-inline="true"
 						/>
-						<span>
-							{{ getHumanSize(a.file?.size ?? 0) }}
-						</span>
+						<span class="attachment-uploader">上传人：{{ getDisplayName(a.created_by ?? {}) }}</span>
+						<span v-if="a.created" class="attachment-created">上传时间：{{ formatDateLong(a.created) }}</span>
+						<span class="attachment-size">{{ getHumanSize(a.file?.size ?? 0) }}</span>
 					</p>
 					<AudioPreview
 						v-if="canPreviewAudio(a)"
 						:ref="el => setAudioPlayerRef(a, el)"
 						:attachment="a"
 					/>
+
+				</div>
+				<div class="attachment-row-actions">
 					<p class="attachment-actions">
 						<BaseButton
 							v-tooltip="$t('task.attachment.downloadTooltip')"
@@ -98,7 +103,7 @@
 							v-if="editEnabled"
 							v-tooltip="$t('task.attachment.deleteTooltip')"
 							:aria-label="$t('task.attachment.deleteTooltip')"
-							class="attachment-info-meta-button"
+							class="attachment-info-meta-button attachment-delete-action"
 							@click.prevent.stop="setAttachmentToDelete(a)"
 						>
 							<Icon icon="trash-alt" />
@@ -236,6 +241,8 @@ import Loading from '@/components/misc/Loading.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 import {useUploadAttachmentsMutation, useDeleteAttachmentMutation} from '@/client/queries/attachments'
+import {useConfigStore} from '@/stores/config'
+import {uploadSizeError} from '@/helpers/uploadSize'
 import {canPreviewAudio, canPreviewImage, previewKind, type PreviewKind} from '@/helpers/attachmentPreview'
 import {getDisplayName} from '@/helpers/user'
 import type {TaskAttachment as IAttachment} from '@/client/generated'
@@ -287,17 +294,22 @@ function eventTargetsEditor(event: Event | null | undefined): boolean {
 const updateTask = useUpdateTaskMutation()
 const {t} = useI18n({useScope: 'global'})
 
-const attachments = computed(() => props.task.attachments ?? [])
+// Comment uploads are real task-owned files for authorization/storage, but
+// appear as links within their originating comment rather than twice in the
+// task's general attachment panel. Older files default to task context.
+const attachments = computed(() => (props.task.attachments ?? [])
+	.filter(a => (a as IAttachment & {source?: string}).source !== 'comment'))
+const configStore = useConfigStore()
 const uploadMutation = useUploadAttachmentsMutation()
 const deleteMutation = useDeleteAttachmentMutation()
 const uploadBatch = ref<{
 	completed: number,
 	total: number,
+	currentPercent?: number,
 } | null>(null)
 // the fetch client reports no byte progress, so the first file can only be shown as indeterminate
-const uploadProgress = computed(() => uploadBatch.value === null || uploadBatch.value.completed === 0
-	? undefined
-	: (uploadBatch.value.completed / uploadBatch.value.total) * 100)
+const uploadProgress = computed(() => uploadBatch.value === null ? undefined
+	: ((uploadBatch.value.completed + (uploadBatch.value.currentPercent ?? 0) / 100) / uploadBatch.value.total) * 100)
 const loading = computed(() => uploadBatch.value !== null
 	|| uploadMutation.isPending.value
 	|| deleteMutation.isPending.value
@@ -456,8 +468,16 @@ async function uploadFilesToTask(files: File[] | FileList) {
 		total: batch.length,
 	}
 	for (const [index, file] of batch.entries()) {
+		const sizeMessage = uploadSizeError(file, configStore.max_file_size)
+		if (sizeMessage) {
+			error(new Error(sizeMessage))
+			uploadBatch.value = {completed: index + 1, total: batch.length}
+			continue
+		}
 		try {
-			const result = await uploadMutation.mutateAsync({taskId, files: [file]})
+			const result = await uploadMutation.mutateAsync({taskId, files: [file], onProgress: (loaded, total) => {
+				if (uploadBatch.value !== null && total > 0) uploadBatch.value = {...uploadBatch.value, currentPercent: Math.min(100, loaded / total * 100)}
+			}})
 			for (const err of result.errors ?? []) error(err)
 		} catch {
 			// mutation already toasts; keep uploading the remaining files
@@ -614,6 +634,10 @@ defineExpose({openFilePicker})
 </script>
 
 <style lang="scss" scoped>
+.attachment-upload-progress {display:flex; align-items:center; gap:.6rem; margin-block:.4rem .8rem; font-size:.8rem;}
+.attachment-upload-progress > span {white-space:nowrap;}
+.attachment-upload-progress :deep(progress) {inline-size:100%;}
+
 .attachments {
 	input[type="file"] {
 		display: none;
@@ -631,18 +655,22 @@ defineExpose({openFilePicker})
 }
 
 .attachment {
+	@media screen and (max-width: $tablet) {
+		grid-template-columns: 2rem minmax(0, 1fr);
+		gap: .5rem;
+	}
 	display: grid;
-	grid-template-columns: 9rem 1fr;
+	grid-template-columns: 2.25rem minmax(0, 1fr);
 	align-items: center;
 	inline-size: 100%;
 	
-	padding: .5rem;
-	
-	transition: background-color $transition;
-	background-color: transparent;
-	
-	border: transparent;
-	border-radius: $radius;
+	gap: .55rem;
+	padding: .35rem .55rem;
+	margin-block: .25rem;
+	transition: background-color $transition, border-color $transition;
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 7px;
 
 	&:hover {
 		background-color: var(--grey-200);
@@ -667,8 +695,9 @@ defineExpose({openFilePicker})
 .filename {
 	display: flex;
 	align-items: center;
-	font-weight: bold;
-	min-block-size: 2rem;
+	font-weight: 500;
+	font-size: .82rem;
+	min-block-size: 1.1rem;
 	color: var(--text);
 	text-align: start;
 	word-break: break-all;
@@ -678,13 +707,14 @@ defineExpose({openFilePicker})
 .attachment-info-meta,
 .attachment-actions {
 	color: var(--grey-500);
-	font-size: .9rem;
+	font-size: .79rem;
 }
 
 .attachment-actions {
 	display: flex;
-	margin-block-start: .25rem;
+	margin-block-start: .1rem;
 	margin-block-end: 0;
+	gap: .3rem;
 }
 
 .dropzone {
@@ -742,7 +772,11 @@ defineExpose({openFilePicker})
 .attachment-info-meta {
 	display: flex;
 	align-items: center;
-	margin-block: 0;
+	flex-wrap: wrap;
+	gap: .35rem .55rem;
+	margin-block: .15rem 0;
+	font-size: .73rem;
+	color: var(--text-light);
 
 	> span {
 		padding: 0 .25rem;
@@ -750,6 +784,22 @@ defineExpose({openFilePicker})
 
 	:deep(.avatar-wrapper) {
 		margin-inline-end: 0;
+	}
+}
+
+.attachment-uploader {font-weight: 500; color: var(--text-strong);}
+.attachment-created {font-variant-numeric: tabular-nums;}
+.attachment-size {
+	padding: .15rem .45rem !important;
+	background: var(--grey-50);
+	border: 1px solid var(--card-border-color);
+	border-radius: 6px;
+}
+.attachment-delete-action {
+	border-radius: 6px;
+	&:hover, &:focus-visible {
+		background: color-mix(in srgb, var(--danger) 12%, var(--white));
+		color: var(--danger);
 	}
 }
 
@@ -785,8 +835,8 @@ defineExpose({openFilePicker})
 }
 
 .preview-column {
-	max-inline-size: 8rem;
-	block-size: 5.2rem;
+	max-inline-size: 2.25rem;
+	block-size: 2.25rem;
 }
 
 // Redundant mouse-only click target; the real control is button.attachment-open.
@@ -843,5 +893,66 @@ defineExpose({openFilePicker})
 	padding: .25rem .35rem;
 	border-radius: 4px;
 	font-size: .75rem;
+}
+
+/* GitHub-like attachment rows with compact metadata and inline actions. */
+.files {
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	overflow: hidden;
+	margin-block-end: .75rem;
+}
+.files .attachment {
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	padding: .4rem .65rem;
+	min-block-size: 3rem;
+}
+.files .attachment + .attachment {
+	border-block-start: 1px solid var(--card-border-color);
+}
+.files .attachment:hover {
+	background: var(--grey-50);
+}
+.attachment-info-column {
+	overflow: hidden;
+}
+.attachment-info-meta {
+	gap: .15rem .45rem;
+	margin: .1rem 0 0;
+}
+.attachment-actions {
+	gap: .2rem;
+}
+.attachment-info-meta-button {
+	border-radius: 5px;
+	min-inline-size: 1.5rem;
+	min-block-size: 1.5rem;
+}
+.attachment-info-meta-button:hover,
+.attachment-info-meta-button:focus-visible {
+	background: var(--grey-100);
+}
+
+/* File list: filename and metadata on the left, stable controls on the right. */
+.files .attachment {
+	grid-template-columns: 2rem minmax(0, 1fr) auto;
+	gap: .6rem;
+	padding: .4rem .65rem;
+	min-block-size: 3rem;
+}
+.preview-column {inline-size: 2rem; block-size: 2rem; max-inline-size: 2rem; min-inline-size: 0; overflow: hidden;}
+.attachment-preview {display: block; inline-size: 100%; block-size: 100%; max-inline-size: 100%; max-block-size: 100%; overflow: hidden; object-fit: contain;}
+.attachment-info-column {align-self: center; min-inline-size: 0;}
+.filename {display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: normal; font-size: .84rem; line-height: 1.25;}
+.attachment-info-meta {font-size: .7rem; line-height: 1.3; gap: .1rem .35rem;}
+.attachment-row-actions {display:flex; align-items:center; justify-content:flex-end; flex-shrink:0;}
+.attachment-row-actions .attachment-actions {display:flex; align-items:center; flex-wrap:nowrap; gap:.1rem; margin:0;}
+.attachment-info-meta-button {display:inline-flex; align-items:center; justify-content:center; min-inline-size:1.8rem; min-block-size:1.8rem; padding:.2rem; color:var(--text-light);}
+.attachment-delete-action {color:var(--danger);}
+@media screen and (max-width: $tablet) {
+	.files .attachment {grid-template-columns: 1.8rem minmax(0, 1fr);}
+	.attachment-row-actions {grid-column: 2; justify-content:flex-start;}
 }
 </style>

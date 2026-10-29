@@ -17,6 +17,7 @@
 package models
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -64,9 +65,10 @@ func (*LabelTask) TableName() string {
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/{task}/labels/{label} [delete]
 func (lt *LabelTask) Delete(s *xorm.Session, auth web.Auth) (err error) {
-	_, err = s.Delete(&LabelTask{LabelID: lt.LabelID, TaskID: lt.TaskID})
-	if err != nil {
-		return err
+	deleted, err := s.Delete(&LabelTask{LabelID: lt.LabelID, TaskID: lt.TaskID})
+	if err != nil { return err }
+	if deleted > 0 {
+		if err := saveHistoryChanges(s, "task", lt.TaskID, auth, []historyField{{"label", fmt.Sprint(lt.LabelID), ""}}); err != nil { return err }
 	}
 
 	// Bump task and project updated times so delta syncs and the CalDAV ctag
@@ -111,9 +113,8 @@ func (lt *LabelTask) Create(s *xorm.Session, auth web.Auth) (err error) {
 
 	lt.ID = 0
 	_, err = s.Insert(lt)
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
+	if err := saveHistoryChanges(s, "task", lt.TaskID, auth, []historyField{{"label", "", fmt.Sprint(lt.LabelID)}}); err != nil { return err }
 
 	// Bump the task updated time so delta syncs pick up the label change.
 	err = updateTaskLastUpdated(s, &Task{ID: lt.TaskID})
@@ -195,6 +196,7 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 	}
 	err = query.Find(&labels)
 	if err != nil {
+		log.Errorf("labels.by_task database query failed: task_ids=%v err=%v", taskIDs, err)
 		return nil, 0, 0, err
 	}
 
@@ -204,6 +206,7 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 
 	err = addLabelCreators(s, labels)
 	if err != nil {
+		log.Errorf("labels.by_task creator hydration failed: task_ids=%v count=%d err=%v", taskIDs, len(labels), err)
 		return nil, 0, 0, err
 	}
 
@@ -230,6 +233,13 @@ func GetLabelsByTaskIDs(s *xorm.Session, taskIDs []int64, search []string, page 
 
 // GetLabelsForUser returns every label the caller can see.
 func GetLabelsForUser(s *xorm.Session, a web.Auth, search []string, page, perPage int) (ls []*LabelWithTaskID, resultCount int, totalEntries int64, err error) {
+	defer func() {
+		if err != nil {
+			log.Errorf("labels.list failed: caller_id=%d page=%d per_page=%d err=%v", a.GetID(), page, perPage, err)
+		} else {
+			log.Debugf("labels.list succeeded: caller_id=%d page=%d count=%d total=%d", a.GetID(), page, resultCount, totalEntries)
+		}
+	}()
 
 	if _, isLinkShareAuth := a.(*LinkSharing); !isLinkShareAuth {
 		caller, err := user.GetFromAuth(a)
@@ -325,7 +335,11 @@ func labelSearchCond(searches []string) builder.Cond {
 func addLabelCreators(s *xorm.Session, labels []*LabelWithTaskID) (err error) {
 	useridSet := make(map[int64]struct{}, len(labels))
 	for _, l := range labels {
-		useridSet[l.CreatedByID] = struct{}{}
+		// Built-in labels are created by the system (creator ID 0).
+		// Never try to hydrate a nonexistent user 0.
+		if l.CreatedByID > 0 {
+			useridSet[l.CreatedByID] = struct{}{}
+		}
 	}
 	if len(useridSet) == 0 {
 		return nil

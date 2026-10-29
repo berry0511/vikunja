@@ -51,6 +51,16 @@ func (tc *TaskComment) canUserModifyTaskComment(s *xorm.Session, a web.Auth) (bo
 
 // CanDelete checks if a user can delete a comment
 func (tc *TaskComment) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
+	// Instance admins can remove abusive or accidentally exposed comments even
+	// when another user authored them. Validate task-comment ownership first,
+	// and re-read the caller's admin status from the database, never just JWT.
+	if isInstanceAdmin(s, a) {
+		stored := &TaskComment{ID: tc.ID, TaskID: tc.TaskID}
+		if err := getTaskCommentSimple(s, stored); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
 	return tc.canUserModifyTaskComment(s, a)
 }
 

@@ -39,6 +39,7 @@
 			v-if="projectList.hasProjects"
 			:key="showTasksKey"
 			:label-ids="labelIds"
+			:assigned-to-me="true"
 			class="show-tasks"
 			@tasksLoaded="tasksLoaded = true"
 			@clearLabelFilter="handleClearLabelFilter"

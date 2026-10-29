@@ -480,7 +480,7 @@ func initDefaultConfig() {
 	RateLimitBasicAuthLimit.setDefault(10)
 	// Files
 	FilesBasePath.setDefault("files")
-	FilesMaxSize.setDefault("20MB")
+	FilesMaxSize.setDefault("5GB")
 	FilesType.setDefault("local")
 	// S3 Configuration
 	FilesS3Endpoint.setDefault("")

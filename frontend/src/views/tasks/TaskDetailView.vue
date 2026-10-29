@@ -12,6 +12,7 @@
 			v-if="visible"
 			class="task-view"
 		>
+			<header class="task-issue-header">
 			<BaseButton
 				v-if="!isModal"
 				class="back-button mbs-2"
@@ -60,6 +61,8 @@
 					:can-write="canWrite"
 				/>
 			</nav>
+
+			</header>
 
 			<ChecklistSummary :task="task" />
 
@@ -339,6 +342,14 @@
 						/>
 					</div>
 
+					<!-- Bug status is shared with the Bug list, not a separate task state. -->
+					<div v-if="isBugTask" class="details bug-status-field">
+						<label for="bug-detail-status">Bug 状态</label>
+						<select id="bug-detail-status" :value="issueStatus(task)" :disabled="!canWrite || changingBugStatus" @change="changeBugStatus">
+							<option v-for="(label, status) in ISSUE_STATUS_LABELS" :key="status" :value="status">{{ label }}</option>
+						</select>
+					</div>
+
 					<!-- Description -->
 					<div class="details content description">
 						<Description
@@ -358,7 +369,7 @@
 
 					<!-- Attachments -->
 					<div
-						v-show="activeFields.attachments || hasAttachments"
+						v-show="activeFields.attachments || hasAttachments || isBugTask"
 						class="content attachments"
 					>
 						<Attachments
@@ -417,6 +428,13 @@
 							</div>
 						</div>
 					</div>
+
+					<!-- Transactional, read-only modification history -->
+					<ChangeHistory
+						v-if="task.id > 0 && !authStore.isLinkShareAuth"
+						kind="task"
+						:entity-id="task.id"
+					/>
 
 					<!-- Comments -->
 					<Comments
@@ -587,7 +605,7 @@
 							v-shortcut="SHORTCUTS.taskDetail.delete"
 							icon="trash-alt"
 							:shadow="false"
-							class="is-danger is-outlined has-no-border"
+							class="is-danger is-outlined task-delete-action"
 							@click="showDeleteModal = true"
 						>
 							{{ $t('task.detail.actions.delete') }}
@@ -646,6 +664,7 @@ import {klona} from 'klona/lite'
 
 import {useTask} from '@/composables/useTask'
 import {getHexColor} from '@/helpers/task'
+import {issueKind, issueStatus, statusTaskPatch, ISSUE_STATUS_LABELS, type IssueStatus} from '@/helpers/issues'
 import {createTaskDraft, mergeTask} from '@/helpers/task'
 
 import type {Task as ITask} from '@/client/generated'
@@ -660,6 +679,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 // partials
 import Attachments from '@/components/tasks/partials/Attachments.vue'
 import TaskDailyWorklogs from '@/components/time-tracking/TaskDailyWorklogs.vue'
+import ChangeHistory from '@/components/history/ChangeHistory.vue'
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import ColorPicker from '@/components/input/ColorPicker.vue'
 import Comments from '@/components/tasks/partials/Comments.vue'
@@ -788,6 +808,25 @@ const endDateInput = computed({
 	},
 })
 const hasAttachments = computed(() => (task.value.attachments?.length ?? 0) > 0)
+const isBugTask = computed(() => issueKind(task.value) === 'bug')
+const changingBugStatus = ref(false)
+async function changeBugStatus(event: Event) {
+	const control = event.target as HTMLSelectElement
+	const previous = issueStatus(task.value)
+	const status = control.value as IssueStatus
+	if (!canWrite.value || changingBugStatus.value || status === previous) return
+	changingBugStatus.value = true
+	try {
+		const patch = statusTaskPatch(status)
+		await saveTask({...klona(task.value), ...patch})
+	} catch (cause) {
+		control.value = previous
+		error(cause)
+	} finally {
+		changingBugStatus.value = false
+	}
+}
+
 const remindersDefaultRelativeTo = computed(() => {
 	if (parseDateOrNull(task.value.due_date)) {
 		return REMINDER_PERIOD_RELATIVE_TO_TYPES.DUEDATE
@@ -1240,6 +1279,146 @@ function setRelatedTasksActive() {
 </script>
 
 <style lang="scss" scoped>
+/* One contained header for task and Bug detail views. */
+.task-issue-header {
+	padding: 1rem 1.2rem .85rem;
+	margin-block-end: 1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
+	background: var(--white);
+	box-shadow: 0 1px 2px rgba(15,23,42,.035);
+}
+.task-issue-header :deep(.heading) { border-bottom: 0; padding-block: .35rem .5rem; }
+.task-issue-header .subtitle { margin: 0; padding: .45rem 0 0; border-top: 1px solid var(--card-border-color); border-bottom: 0; }
+.task-issue-header .back-button { margin-block: 0 .5rem; }
+@media screen and (max-width: $tablet) {
+	.task-issue-header { padding: .75rem; border-radius: 8px; }
+}
+
+/* Shared, compact task/Bug description surface. */
+.task-view .detail-content > .description {
+	padding: .85rem 1rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	background: var(--white);
+	box-shadow: none;
+}
+.task-view .detail-content > .description :deep(.task-section-title) {
+	margin-block-end: .65rem;
+}
+.task-view .detail-content > .description :deep(.tiptap__editor) {
+	min-block-size: 0;
+	padding: .35rem .1rem;
+}
+.task-view .detail-content > .attachments {
+	margin-block: .7rem 1.15rem;
+}
+
+
+/* Issue properties: lightweight GitHub-style sidebar sections. */
+.task-view .action-buttons {
+	background: transparent;
+}
+.task-view .action-buttons :deep(.detail-title),
+.task-view .action-buttons :deep(.action-button-label) {
+	color: var(--text-light);
+	font-size: .78rem;
+	font-weight: 650;
+}
+.task-view .action-buttons :deep(.button) {
+	min-block-size: 2.15rem;
+	border: 1px solid var(--card-border-color);
+	background: var(--white);
+	color: var(--text);
+	font-size: .8rem;
+	font-weight: 450;
+	justify-content: flex-start;
+	padding-inline: .65rem;
+	transition: background-color .12s ease, border-color .12s ease;
+}
+.task-view .action-buttons :deep(.button:hover),
+.task-view .action-buttons :deep(.button:focus-visible) {
+	border-color: var(--grey-400);
+	background: var(--grey-50);
+}
+.task-view .action-buttons .task-delete-action {
+	border-color: var(--danger) !important;
+	color: var(--danger) !important;
+}
+.task-view .action-buttons .task-delete-action:hover,
+.task-view .action-buttons .task-delete-action:focus-visible {
+	background: var(--danger) !important;
+	color: var(--white) !important;
+}
+
+
+/* GitHub issue-style detail layout. Keep existing task interactions and permissions. */
+.task-view {
+	max-inline-size: 1500px;
+	margin-inline: auto;
+}
+.task-view :deep(.task-section-title) {
+	font-size: 1rem;
+	font-weight: 550;
+	border-bottom: 1px solid var(--card-border-color);
+	padding-block-end: .7rem;
+	margin-block-end: 1rem;
+}
+.task-view .subtitle {
+	background: transparent;
+	border-bottom: 1px solid var(--card-border-color);
+	border-radius: 0;
+	padding: .6rem 0 .9rem;
+	margin-block-end: 1.3rem;
+}
+.task-view .detail-content {
+	min-inline-size: 0;
+}
+.task-view .detail-content > .details,
+.task-view .detail-content > .content {
+	margin-block-end: 1.25rem;
+}
+.task-view .action-buttons {
+	border-inline-start: 1px solid var(--card-border-color);
+	padding-inline-start: 1.25rem;
+}
+.task-view .action-buttons :deep(.button) {
+	border-radius: 6px;
+	box-shadow: none;
+}
+.task-view .action-buttons .task-delete-action {
+	border: 1px solid var(--danger) !important;
+}
+@media screen and (max-width: $desktop) {
+	.task-view .action-buttons {
+		border-inline-start: 0;
+		border-block-start: 1px solid var(--card-border-color);
+		padding-inline-start: .75rem;
+		padding-block-start: 1rem;
+	}
+}
+
+.bug-status-field {
+	display: flex;
+	align-items: center;
+	gap: .75rem;
+	padding: .65rem .85rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	background: var(--white);
+	label {font-weight: 650; white-space: nowrap;}
+	select {min-inline-size: 9rem; padding: .4rem .6rem; border: 1px solid var(--card-border-color); border-radius: 6px; background: var(--white); color: var(--text);}
+}
+
+.task-delete-action {
+	border: 1px solid var(--danger) !important;
+	border-radius: 8px;
+	&:hover, &:focus-visible {
+		background: var(--danger) !important;
+		color: var(--white) !important;
+	}
+}
+
 .task-view-container {
 	// simulate sass lighten($primary, 30) by increasing lightness 30% to 73%
 	--primary-light: hsla(var(--primary-h), var(--primary-s), 73%, var(--primary-a));
@@ -1612,6 +1791,18 @@ h2 .button {
 		display: none;
 	}
 }
+
+/* Clear task metadata hierarchy; keep all existing editors and permission gates. */
+.task-issue-header{border-radius:8px;box-shadow:0 2px 5px rgba(15,23,42,.03);}
+.task-view .details{gap:.55rem;margin-inline:0;padding:.65rem .75rem;border:1px solid var(--card-border-color);border-radius:8px;background:var(--white);}
+.task-view .details>.column{min-inline-size:0;padding:.45rem .65rem;}
+.task-view .details .detail-title{font-size:.76rem;font-weight:650;color:var(--text-light);margin-block-end:.4rem;}
+.task-view .detail-content>.description,.task-view .detail-content>.attachments{border-radius:8px;}
+.task-view :deep(.comments-container){max-inline-size:100%;}
+.task-view .action-buttons{min-inline-size:0;}
+.task-view .action-buttons :deep(.button){min-block-size:2.4rem;}
+.task-view :deep(input),.task-view :deep(textarea),.task-view :deep(select){max-inline-size:100%;}
+@media screen and (max-width:$tablet){.task-view{padding-inline:.25rem;}.task-view .details{padding:.45rem;}.task-view .details>.column{padding:.5rem;}.task-view .action-buttons{margin-block-start:.8rem;}}
 </style>
 
 <style lang="scss">

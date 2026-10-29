@@ -14,11 +14,12 @@
 				:aria-label="$t('navigation.home')"
 			>
 				<Logo
-					width="164"
+					width="220"
 					height="48"
 				/>
 			</RouterLink>
 			<menu class="menu-list other-menu-items">
+				<li class="workspace-nav-heading" aria-hidden="true">工作区</li>
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.overview"
@@ -45,7 +46,7 @@
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.projects"
 						:to="{ name: 'projects.index'}"
-						:class="{'nav-muted-active': $route.name === 'projects.index' && $route.query.status === 'archived'}"
+						
 					>
 						<span class="menu-item-icon icon">
 							<Icon icon="layer-group" />
@@ -53,12 +54,7 @@
 						{{ $t('project.projects') }}
 					</RouterLink>
 				</li>
-				<li>
-					<RouterLink :to="{name: 'projects.index', query: {status: 'archived'}}" :class="{'nav-muted-active': $route.name !== 'projects.index' || $route.query.status !== 'archived'}">
-						<span class="menu-item-icon icon"><Icon icon="archive" /></span>
-						{{ $t('project.directory.archiveNav') }}
-					</RouterLink>
-				</li>
+
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.labels"
@@ -79,6 +75,19 @@
 							<Icon icon="users" />
 						</span>
 						{{ $t('team.title') }}
+					</RouterLink>
+				</li>
+				<li class="workspace-nav-heading workspace-nav-divider" aria-hidden="true">团队协作</li>
+				<li v-if="authStore.info?.is_admin && !authStore.isLinkShareAuth">
+					<RouterLink :to="{name: 'admin.organization'}">
+						<span class="menu-item-icon icon"><Icon icon="users" /></span>
+						组织任务中心
+					</RouterLink>
+				</li>
+				<li v-if="!authStore.isLinkShareAuth">
+					<RouterLink :to="{name: 'issues.index'}">
+						<span class="menu-item-icon icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 6 4M16 7l2-3M4 10h3M17 10h3M4 15h3M17 15h3M8 20l-2 2M16 20l2 2"/><rect x="7" y="7" width="10" height="13" rx="5"/><path d="M9 4h6M12 10v8"/></svg></span>
+						Bug 管理
 					</RouterLink>
 				</li>
 				<li v-if="!authStore.isLinkShareAuth">
@@ -121,9 +130,10 @@
 			</nav>
 
 			<nav
-				class="menu"
+				class="menu sidebar-projects-section"
 				:aria-label="$t('project.projects')"
 			>
+				<div class="sidebar-projects-heading">项目列表</div>
 				<ProjectsNavigation
 					:model-value="projects"
 					:can-edit-order="true"
@@ -132,10 +142,10 @@
 			</nav>
 		</template>
 
-		<PoweredByLink
-			class="mbs-auto"
-			utm-medium="navigation"
-		/>
+		<div class="sidebar-app-footer mbs-auto" aria-label="开天眼项目管理">
+			<strong>开天眼项目管理</strong>
+			<small>内部项目协作平台</small>
+		</div>
 
 		<div
 			v-if="!isMobile"
@@ -150,7 +160,6 @@
 import {computed} from 'vue'
 
 import {SHORTCUTS} from '@/constants/shortcuts'
-import PoweredByLink from '@/components/home/PoweredByLink.vue'
 import Logo from '@/components/home/Logo.vue'
 import Loading from '@/components/misc/Loading.vue'
 
@@ -278,4 +287,37 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
 }
+.sidebar-projects-section {
+	margin-block-start: .75rem;
+	padding-block-start: .8rem !important;
+	border-block-start: 1px solid var(--card-border-color);
+}
+.sidebar-projects-heading {
+	font-size: .72rem;
+	font-weight: 550;
+	letter-spacing: .02em;
+	color: var(--text-light);
+	padding: 0 .85rem .55rem;
+}
+
+/* Consistent compact navigation, without changing permission-gated entries. */
+.top-menu .menu-list>.workspace-nav-heading {
+	padding:.85rem .8rem .3rem;margin:0;
+	font-size:.69rem;font-weight:700;letter-spacing:.07em;color:var(--text-light);
+	text-transform:uppercase;user-select:none;
+}
+.top-menu .menu-list>.workspace-nav-divider {margin-block-start:.7rem;border-block-start:1px solid var(--card-border-color);}
+.menu-container .top-menu .menu-list>li>a {border-radius:7px;min-block-size:2.45rem;font-size:.86rem;padding:.55rem .75rem;}
+.menu-container .top-menu .menu-list>li>a:focus-visible {outline:2px solid var(--primary);outline-offset:1px;}
+.menu-container .top-menu .menu-list>li>a.router-link-active {box-shadow:inset 3px 0 0 var(--primary);}
+.menu-container .sidebar-projects-section {border-block-start:1px solid var(--card-border-color);padding-block-start:.65rem;}
+@media screen and (max-width:$tablet){
+	.menu-container {inline-size:min(85vw,340px);max-inline-size:100vw;overscroll-behavior:contain;}
+	.top-menu .menu-list>.workspace-nav-heading {padding-block-start:.75rem;}
+}
+@media(prefers-reduced-motion:reduce){.menu-container{transition:none;}}
+
+.sidebar-app-footer {display:flex;flex-direction:column;gap:.2rem;align-items:center;border-block-start:1px solid var(--card-border-color);margin-block-start:1.2rem;padding:.95rem .3rem .45rem;text-align:center;}
+.sidebar-app-footer strong {color:var(--text-light);font-size:.75rem;font-weight:650;}
+.sidebar-app-footer small {color:var(--grey-400);font-size:.68rem;}
 </style>

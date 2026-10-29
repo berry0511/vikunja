@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"code.vikunja.io/api/pkg/models"
+	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/web/handler"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -97,10 +98,12 @@ func labelsList(ctx context.Context, in *struct {
 	}
 	result, _, total, err := handler.DoReadAll(ctx, &models.Label{}, a, in.Q, in.Page, in.PerPage)
 	if err != nil {
+		log.Errorf("api.labels GET /labels failed: caller_id=%d page=%d per_page=%d err=%v", a.GetID(), in.Page, in.PerPage, err)
 		return nil, translateDomainError(err)
 	}
 	items, ok := result.([]*models.LabelWithTaskID)
 	if !ok {
+		log.Errorf("api.labels unexpected list result type: caller_id=%d type=%T", a.GetID(), result)
 		return nil, fmt.Errorf("labels.ReadAll returned unexpected type %T (expected []*models.LabelWithTaskID)", result)
 	}
 	for _, l := range items {

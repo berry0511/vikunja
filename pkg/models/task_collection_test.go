@@ -130,6 +130,7 @@ func TestTaskCollection_ReadAll(t *testing.T) {
 			{
 				ID:          1,
 				TaskID:      1,
+				Source:      "task",
 				FileID:      1,
 				CreatedByID: 1,
 				CreatedBy:   user1,
@@ -145,6 +146,7 @@ func TestTaskCollection_ReadAll(t *testing.T) {
 			{
 				ID:          2,
 				TaskID:      1,
+				Source:      "task",
 				FileID:      9999,
 				CreatedByID: 1,
 				CreatedBy:   user1,
@@ -153,6 +155,7 @@ func TestTaskCollection_ReadAll(t *testing.T) {
 			{
 				ID:          3,
 				TaskID:      1,
+				Source:      "task",
 				FileID:      1,
 				CreatedByID: -2,
 				CreatedBy:   linkShareUser2,

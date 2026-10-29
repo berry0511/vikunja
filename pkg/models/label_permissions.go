@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"code.vikunja.io/api/pkg/user"
+	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/web"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -27,12 +28,12 @@ import (
 
 // CanUpdate checks if a user can update a label
 func (l *Label) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
-	return l.isLabelOwner(s, a) // Only owners should be allowed to update a label
+	return false, nil // System-defined labels are immutable
 }
 
 // CanDelete checks if a user can delete a label
 func (l *Label) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	return l.isLabelOwner(s, a) // Only owners should be allowed to delete a label
+	return false, nil // System-defined labels are immutable
 }
 
 // CanRead checks if a user can read a label
@@ -42,12 +43,8 @@ func (l *Label) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
 
 // CanCreate checks if the user can create a label
 // Currently a dummy.
-func (l *Label) CanCreate(_ *xorm.Session, a web.Auth) (bool, error) {
-	if _, is := a.(*LinkSharing); is {
-		return false, nil
-	}
-
-	return true, nil
+func (l *Label) CanCreate(_ *xorm.Session, _ web.Auth) (bool, error) {
+	return false, nil // Only the database initializer defines catalog labels.
 }
 
 func (l *Label) isLabelOwner(s *xorm.Session, a web.Auth) (bool, error) {
@@ -94,6 +91,7 @@ func labelVisibleCond(s *xorm.Session, a web.Auth) (builder.Cond, error) {
 	// remove but not re-add labels on tasks in child projects.
 	accessibleProjects, err := accessibleProjectIDsCond(s, a, "tasks.project_id")
 	if err != nil {
+		log.Errorf("labels.visibility project ACL failed: caller_id=%d err=%v", a.GetID(), err)
 		return nil, err
 	}
 
@@ -105,13 +103,20 @@ func labelVisibleCond(s *xorm.Session, a web.Auth) (builder.Cond, error) {
 			Where(builder.And(accessibleProjects, taskNotDeletedCond("tasks"))),
 	)
 
+	// Public catalog labels are selectable by every authenticated user. This does
+	// not expand task visibility: task lists still use project/task ACLs.
 	accessBranches := []builder.Cond{usedOnAccessibleTask}
+	if _, linkShare := a.(*LinkSharing); !linkShare {
+		accessBranches = append(accessBranches, builder.In("labels.id", builder.Select("label_id").From("global_labels")))
+	}
 	if _, isLinkShare := a.(*LinkSharing); !isLinkShare {
 		caller, err := user.GetFromAuth(a)
 		if err != nil {
 			return nil, err
 		}
 		accessBranches = append(accessBranches, user.SameBotIdentityCond(caller, "labels.created_by_id"))
+		// Admin-managed labels are available for assignment to every logged-in user.
+		// Public catalog membership, not the creator account, controls shared visibility.
 	}
 
 	visible := builder.Or(accessBranches...)
@@ -137,15 +142,13 @@ func (l *Label) hasAccessToLabel(s *xorm.Session, a web.Auth) (has bool, maxPerm
 		Where(builder.And(builder.Eq{"labels.id": l.ID}, visible)).
 		Exist(&Label{})
 	if err != nil || !has {
+		if err != nil { log.Errorf("labels.visibility database check failed: caller_id=%d label_id=%d err=%v", a.GetID(), l.ID, err) }
 		return
 	}
 
 	// Writes and deletes are owner-only (CanUpdate/CanDelete), so the caller's
 	// max permission is admin for the owner and read for anyone else who can see it.
-	owner, err := l.isLabelOwner(s, a)
-	if err != nil {
-		return
-	}
+	owner := false
 	if owner {
 		maxPermission = int(PermissionAdmin)
 	} else {

@@ -24,10 +24,17 @@
 				{{ $t('user.settings.general.externalUserNameChange', {provider: authStore.info?.auth_provider}) }}
 			</p>
 			<FormField
-				:label="$t('user.settings.general.defaultProject')"
+				label="快速添加任务的默认项目"
 				layout="two-col"
 			>
-				<ProjectSearch v-model="defaultProject" />
+				<div class="default-project-setting">
+					<ProjectSearch v-model="defaultProject" :filter="isEligibleDefaultProject" />
+					<p class="help">只用于首页快速添加任务时选择归属项目，不代表任务自动分配给你，也不改变团队共享权限。建议选择自己的个人项目；团队共享项目请在项目内创建任务。</p>
+					<div class="inline-save-actions">
+						<XButton :disabled="!isDirty || loading" :loading="loading" @click="updateSettings()">保存设置</XButton>
+						<span v-if="!isDirty" class="help">设置已保存</span>
+					</div>
+				</div>
 			</FormField>
 		</div>
 	</Card>
@@ -292,8 +299,8 @@
 	<div class="sticky-save">
 		<CustomTransition name="fade">
 			<XButton
-				v-if="isDirty"
 				v-cy="'saveGeneralSettings'"
+				:disabled="!isDirty || loading"
 				:loading="loading"
 				class="is-fullwidth"
 				@click="updateSettings()"
@@ -325,6 +332,7 @@ import FormField from '@/components/input/FormField.vue'
 import FormInput from '@/components/input/FormInput.vue'
 import FormSelect from '@/components/input/FormSelect.vue'
 import FormCheckbox from '@/components/input/FormCheckbox.vue'
+import XButton from '@/components/input/Button.vue'
 
 import {SUPPORTED_LOCALES, setLanguage} from '@/i18n'
 import {error} from '@/message'
@@ -503,6 +511,10 @@ const {
 const isExternalUser = computed(() => authStore.info?.is_local_user === false)
 
 const projectList = useProjects()
+// Do not let a team-shared project become the implicit destination for personal quick-add.
+const isEligibleDefaultProject = (project: {id: number, owner?: {id?: number} | null, is_archived?: boolean}) =>
+	project.id > 0 && !project.is_archived && project.owner?.id === authStore.info?.id
+
 const defaultProject = computed({
 	get: () => projectList.projects[settings.value.default_project_id],
 	set(l) {
@@ -564,4 +576,8 @@ async function updateSettings() {
 	inset-block-end: 0;
 	padding: .25rem 1rem 1rem;
 }
+.default-project-setting {display:flex;flex-direction:column;gap:.4rem;min-width:0;}
+.default-project-setting .help {font-size:.78rem;color:var(--text-light);line-height:1.5;}
+.inline-save-actions {display:flex;align-items:center;gap:.8rem;margin-block-start:.35rem;}
+.sticky-save {z-index:2;background:var(--white);border-top:1px solid var(--card-border-color);}
 </style>

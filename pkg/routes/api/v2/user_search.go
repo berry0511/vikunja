@@ -19,6 +19,7 @@ package apiv2
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/models"
@@ -76,6 +77,33 @@ func usersSearch(ctx context.Context, in *struct {
 	if err != nil {
 		_ = s.Rollback()
 		return nil, translateDomainError(err)
+	}
+	// SearchUsers retains its discoverability and privacy rules. For partial
+	// matches, discover candidate usernames but re-check every candidate through
+	// that same policy-aware search instead of returning raw database user rows.
+	needle := strings.ToLower(strings.TrimSpace(in.Q))
+	if len([]rune(needle)) >= 2 {
+		type candidateRow struct { Username string `xorm:"'username'"` }
+		candidates := []candidateRow{}
+		pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(needle) + "%"
+		if err := s.SQL("SELECT username FROM users WHERE LOWER(username) LIKE ? ESCAPE '!' OR (discoverable_by_name = ? AND LOWER(name) LIKE ? ESCAPE '!') LIMIT 40", pattern, true, pattern).Find(&candidates); err != nil {
+			_ = s.Rollback()
+			return nil, translateDomainError(err)
+		}
+		seen := make(map[int64]bool, len(users))
+		for _, match := range users { seen[match.ID] = true }
+		for _, candidate := range candidates {
+			matches, searchErr := user.SearchUsers(s, candidate.Username, currentUser)
+			if searchErr != nil {
+				_ = s.Rollback()
+				return nil, translateDomainError(searchErr)
+			}
+			for _, match := range matches {
+				if !strings.EqualFold(match.Username, candidate.Username) || seen[match.ID] { continue }
+				seen[match.ID] = true
+				users = append(users, match)
+			}
+		}
 	}
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)

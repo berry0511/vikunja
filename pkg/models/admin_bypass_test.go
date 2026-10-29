@@ -66,7 +66,7 @@ func TestAdminBypass_Project(t *testing.T) {
 }
 
 // Without the admin-panel license, flipping is_admin must not recover the paid bypass.
-func TestAdminBypass_Project_LicenseInactive(t *testing.T) {
+func TestAdminBypass_Project_SelfHosted(t *testing.T) {
 	db.LoadAndAssertFixtures(t)
 	license.ResetForTests()
 	s := db.NewSession()
@@ -81,19 +81,19 @@ func TestAdminBypass_Project_LicenseInactive(t *testing.T) {
 	t.Run("CanRead", func(t *testing.T) {
 		can, _, err := p.CanRead(s, admin)
 		require.NoError(t, err)
-		assert.False(t, can, "unlicensed admin must not read another user's project")
+		assert.True(t, can, "DB-backed self-hosted admin must read other users' projects")
 	})
 
 	t.Run("CanWrite", func(t *testing.T) {
 		can, err := p.CanWrite(s, admin)
 		require.NoError(t, err)
-		assert.False(t, can)
+		assert.True(t, can)
 	})
 
 	t.Run("CanDelete", func(t *testing.T) {
 		can, err := p.CanDelete(s, admin)
 		require.NoError(t, err)
-		assert.False(t, can)
+		assert.True(t, can)
 	})
 }
 

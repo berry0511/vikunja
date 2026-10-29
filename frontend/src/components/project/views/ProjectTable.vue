@@ -97,7 +97,7 @@
 					:padding="false"
 					:has-content="false"
 				>
-					<div class="has-horizontal-overflow">
+					<div class="has-horizontal-overflow" role="region" tabindex="0" aria-label="任务表格，左右滑动查看全部字段">
 						<table class="table has-actions is-hoverable is-fullwidth mbe-0">
 							<thead>
 								<tr>
@@ -483,4 +483,15 @@ const taskDetailRoutes = computed(() => Object.fromEntries(
 	border: none;
 	box-shadow: none;
 }
+
+.has-horizontal-overflow {max-inline-size:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--card-border-color);border-radius:8px;}
+.has-horizontal-overflow:focus-visible {outline:2px solid var(--primary);outline-offset:2px;}
+.has-horizontal-overflow .table {min-inline-size:100%;inline-size:max-content;font-size:.825rem;}
+.has-horizontal-overflow .table th {background:var(--grey-50);color:var(--text-light);font-size:.75rem;font-weight:650;padding:.7rem .85rem;border-block-end:1px solid var(--card-border-color);}
+.has-horizontal-overflow .table td {padding:.67rem .85rem;border-block-end:1px solid var(--card-border-color);vertical-align:middle;}
+.has-horizontal-overflow .table tbody tr:hover {background:var(--grey-50);}
+.has-horizontal-overflow .table td a {color:var(--text-strong);font-weight:500;}
+.has-horizontal-overflow .table td a:hover {color:var(--primary);text-decoration:underline;}
+.has-horizontal-overflow .table th,.has-horizontal-overflow .table td {white-space:nowrap;}
+@media screen and (max-width:$tablet){.has-horizontal-overflow .table th,.has-horizontal-overflow .table td{padding:.6rem .65rem;}}
 </style>

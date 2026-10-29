@@ -36,7 +36,7 @@
 				v-for="c in comments"
 				:id="`comment-${c.id}`"
 				:key="c.id"
-				class="media comment"
+				class="media comment posted-comment"
 			>
 				<figure class="media-left is-hidden-mobile">
 					<UserAvatar
@@ -99,6 +99,13 @@
 								{{ $t('misc.saved') }}
 							</span>
 						</CustomTransition>
+						<ChangeHistory
+							v-if="c.id > 0 && c.created && c.updated && +new Date(c.created) !== +new Date(c.updated) && !authStore.isLinkShareAuth"
+							kind="comment"
+							:entity-id="c.id"
+							:task-id="taskId"
+							compact
+						/>
 					</div>
 					<Editor
 						:model-value="commentDrafts[c.id] ?? c.comment"
@@ -107,6 +114,7 @@
 						:upload-enabled="true"
 						:bottom-actions="actions[c.id]"
 						:show-save="true"
+						:show-cancel="true"
 						:enable-discard-shortcut="true"
 						:enable-mentions="true"
 						:project-id="projectId"
@@ -116,6 +124,7 @@
 							captureEditDraft(c)
 							editComment(taskId)
 						}"
+						@discard="discardCommentEdit(c)"
 					/>
 					<Reactions 
 						:model-value="c.reactions"
@@ -137,7 +146,7 @@
 
 			<div
 				v-if="canWrite"
-				class="media comment d-print-none"
+				class="media comment comment-composer d-print-none"
 				:class="{'new-comment-top': commentSortOrder === 'desc'}"
 			>
 				<figure class="media-left is-hidden-mobile">
@@ -151,6 +160,7 @@
 					</figcaption>
 				</figure>
 				<div class="media-content">
+					<p class="composer-label"><Icon :icon="['far', 'comments']" /> 编写新评论</p>
 					<div class="form">
 						<CustomTransition name="fade">
 							<span
@@ -180,7 +190,7 @@
 								@save="addComment()"
 							/>
 						</div>
-						<div class="field comment-attachment-row">
+						<div class="field comment-composer-actions">
 							<input
 								ref="commentFilesInput"
 								type="file"
@@ -191,6 +201,14 @@
 							>
 							<XButton
 								type="button"
+								:loading="loading && !isCommentEdit"
+								:disabled="!newCommentText || creating || commentUploadPending"
+								@click="addComment()"
+							>
+								{{ $t('task.comment.comment') }}
+							</XButton>
+							<XButton
+								type="button"
 								variant="secondary"
 								icon="paperclip"
 								:loading="commentUploadPending"
@@ -199,18 +217,8 @@
 							>
 								{{ $t('task.attachment.upload') }}
 							</XButton>
-							<span class="comment-attachment-hint">PDF、文档、照片、视频等文件将作为任务附件，并在评论中加入链接。</span>
-							<p v-if="commentUploadError" class="help is-danger" role="alert">{{ commentUploadError }}</p>
 						</div>
-						<div class="field">
-							<XButton
-								:loading="loading && !isCommentEdit"
-								:aria-disabled="newCommentText === '' || creating"
-								@click="addComment()"
-							>
-								{{ $t('task.comment.comment') }}
-							</XButton>
-						</div>
+						<p v-if="commentUploadError" class="help is-danger" role="alert">{{ commentUploadError }}</p>
 					</div>
 				</div>
 			</div>
@@ -260,6 +268,8 @@ import type {Task as ITask} from '@/client/generated'
 
 import {generateAttachmentUrl} from '@/helpers/attachments'
 import {useUploadAttachmentsMutation} from '@/client/queries/attachments'
+import ChangeHistory from '@/components/history/ChangeHistory.vue'
+import {getErrorText} from '@/message'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
 import {clearEditorDraft} from '@/helpers/editorDraftStorage'
 import {getDisplayName} from '@/helpers/user'
@@ -321,14 +331,15 @@ const actions = computed(() => {
 		return {}
 	}
 	return Object.fromEntries(comments.value.map((comment) => {
-		const list: {action: () => void, title: string}[] = [{
+		const list: {action: () => void, title: string, danger?: boolean}[] = [{
 			action: () => startReplyTo(comment),
 			title: t('task.comment.reply'),
 		}]
-		if (comment.author?.id === currentUserId.value) {
+		if (comment.author?.id === currentUserId.value || authStore.info?.is_admin === true) {
 			list.push({
 				action: () => toggleDelete(comment.id),
 				title: t('misc.delete'),
+				danger: true,
 			})
 		}
 		return [comment.id, list]
@@ -412,7 +423,7 @@ async function uploadFilesFromComment(event: Event) {
 	commentUploadPending.value = true
 	try {
 		for (const file of files) {
-			const result = await uploadAttachments.mutateAsync({taskId, files: [file]})
+			const result = await uploadAttachments.mutateAsync({taskId, files: [file], source: 'comment'})
 			if (props.taskId !== taskId) return
 			const attachment = result.success?.[0]
 			if (!attachment?.id) {
@@ -431,8 +442,8 @@ async function uploadFilesFromComment(event: Event) {
 				newCommentText.value = html
 			}
 		}
-	} catch {
-		if (props.taskId === taskId) commentUploadError.value = '附件上传失败，请检查权限、容量和网络。'
+	} catch (cause) {
+		if (props.taskId === taskId) commentUploadError.value = getErrorText(cause) || '评论附件上传失败，请检查权限、容量和网络。'
 	} finally {
 		commentUploadPending.value = false
 	}
@@ -442,10 +453,15 @@ async function uploadFilesFromComment(event: Event) {
 const uploadAttachments = useUploadAttachmentsMutation(() => false)
 
 function attachmentUpload(files: File[] | FileList): Promise<string[]> {
+	commentUploadError.value = ''
 	return Promise.all(Array.from(files).map(async file => {
 		const result = await uploadAttachments.mutateAsync({
 			taskId: props.taskId,
 			files: [file],
+			source: 'comment',
+		}).catch((cause: unknown) => {
+			commentUploadError.value = getErrorText(cause) || '评论附件上传失败'
+			throw cause
 		})
 		const [uploaded] = result.success ?? []
 		// forwarded verbatim: the editor's toast translates the error code, which a rewrapped message would lose
@@ -481,9 +497,7 @@ async function toggleSortOrder() {
 	currentPage.value = 1
 }
 
-watch(() => props.taskId, (_taskId, previousTaskId) => {
-	// Reads the pending draft, so it has to run before the resets below drop it.
-	flushPendingEdit(previousTaskId)
+watch(() => props.taskId, () => {
 	currentPage.value = 1
 	newCommentText.value = ''
 	commentUploadError.value = ''
@@ -523,9 +537,18 @@ function captureEditDraft(comment: CommentResponse) {
 }
 
 function changeComment(comment: CommentResponse, text: string) {
+	// Comment edits are explicit-save only. An automatic 5 s save would make
+	// "取消编辑" unable to guarantee that the draft is discarded.
 	commentDrafts.value[comment.id] = text
 	captureEditDraft(comment)
-	editCommentWithDelay()
+}
+
+function discardCommentEdit(comment: CommentResponse) {
+	// TipTap has already restored its original content without emitting an
+	// editor change. Remove the reactive draft so preview shows the server copy.
+	delete commentDrafts.value[comment.id]
+	if (commentEdit.value?.id === comment.id) commentEdit.value = null
+	isCommentEdit.value = false
 }
 
 function toggleDelete(id: number) {
@@ -533,29 +556,10 @@ function toggleDelete(id: number) {
 	showDeleteModal.value = true
 }
 
-const changeTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 let savedTimeout: ReturnType<typeof setTimeout> | undefined
 onBeforeUnmount(() => {
-	flushPendingEdit(props.taskId)
 	clearTimeout(savedTimeout)
 })
-
-function cancelPendingEdit() {
-	if (changeTimeout.value === null) return
-	clearTimeout(changeTimeout.value)
-	changeTimeout.value = null
-}
-
-function flushPendingEdit(taskId: number) {
-	if (changeTimeout.value === null) return
-	cancelPendingEdit()
-	void editComment(taskId)
-}
-
-function editCommentWithDelay() {
-	cancelPendingEdit()
-	changeTimeout.value = setTimeout(() => editComment(props.taskId), 5000)
-}
 
 async function editComment(taskId: number) {
 	const draft = commentEdit.value
@@ -563,7 +567,6 @@ async function editComment(taskId: number) {
 		isCommentEdit.value = false
 		return
 	}
-	cancelPendingEdit()
 	saving.value = draft.id
 	try {
 		await updateMutation.mutateAsync({taskId, id: draft.id, comment: draft.comment})
@@ -605,16 +608,112 @@ function getCommentUrl(commentId: string) {
 </script>
 
 <style lang="scss" scoped>
-.comment-attachment-row {
+// Each saved comment and the editor are visually independent surfaces.
+// This prevents an attachment link and the composer below it from reading as
+// part of the same comment.
+.comments-container {
+	min-inline-size: 0;
+}
+.comments {
+	gap: .9rem;
+}
+.comments > .media.comment {
+	margin: 0 !important;
+	padding: .65rem .9rem .8rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
+	background: var(--white);
+	box-shadow: 0 1px 3px rgba(15,23,42,.04);
+	transition: border-color .15s ease, box-shadow .15s ease;
+}
+.comments > .posted-comment {
+	border-color: var(--grey-300);
+}
+.comments > .posted-comment .comment-info {
+	background: var(--grey-50);
+	border: 1px solid var(--card-border-color);
+	border-radius: 7px;
+	padding: .62rem .8rem;
+	margin-bottom: .85rem;
+	min-block-size: 2.8rem;
+}
+.comments > .posted-comment .media-content {
+	min-inline-size: 0;
+}
+.comments > .posted-comment :deep(.tiptap__editor) {
+	padding-inline: .55rem;
+	line-height: 1.65;
+}
+.comments > .posted-comment :deep(.tiptap__editor-actions) {
+	margin-block-start: .55rem;
+	padding-block: .6rem .1rem;
+	border-top: 1px solid var(--card-border-color);
+}
+.comments > .posted-comment :deep(.tiptap__editor-actions .danger-action) {
+	color: var(--danger);
+}
+.comments > .posted-comment :deep(.tiptap__editor-actions .danger-action:hover) {
+	background: var(--danger);
+	color: var(--white);
+}
+.comments > .posted-comment:hover {
+	border-color: color-mix(in srgb, var(--primary) 22%, var(--card-border-color));
+	box-shadow: 0 4px 12px rgba(15, 23, 42, .055);
+}
+.comments > .comment-composer {
+	margin-block-start: 1.15rem !important;
+	border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--card-border-color));
+	background: var(--grey-50);
+	box-shadow: 0 3px 14px rgba(15, 23, 42, .05);
+}
+.comment-composer:focus-within {
+	border-color: var(--primary);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.composer-label {
+	display: flex;
+	align-items: center;
+	gap: .4rem;
+	margin: 0 0 .8rem;
+	color: var(--text-strong);
+	font-size: .86rem;
+	font-weight: 550;
+}
+.comment-info {
+	padding-block-end: .6rem;
+	margin-block-end: .7rem;
+	border-block-end: 1px solid var(--card-border-color);
+}
+.comment-info strong {color: var(--text-strong); font-weight: 600;}
+.comment-composer :deep(.tiptap),
+.comment-composer :deep(.tiptap__editor) {
+	border-radius: 8px;
+}
+@media screen and (max-width: $tablet) {
+	.comments > .media.comment { padding: .85rem; }
+}
+
+.comment-composer-actions {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: .65rem;
+	margin-top: .85rem;
+	margin-bottom: 0;
 }
-.comment-attachment-hint {
-	font-size: .85rem;
-	color: var(--text-light);
+.comment-composer :deep(.tiptap__wrapper) {
+	border: 1px solid var(--grey-300);
+	border-radius: 10px;
+	background: var(--white);
+	transition: border-color .15s ease, box-shadow .15s ease;
+	&:hover { border-color: var(--grey-500); }
+	&:focus-within {
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
+	}
 }
+.comment-info > .comment-history-compact { margin-inline-start: auto; }
+
 
 .media {
 	align-items: flex-start;
@@ -726,5 +825,102 @@ function getCommentUrl(commentId: string) {
 .media.comment.comment-highlight {
 	background-color: hsla(var(--primary-hsl), 0.18);
 	transition: background-color .15s ease-in;
+}
+
+/* GitHub-inspired discussion timeline: avatars outside bordered conversation cards. */
+.comments-container {
+	--discussion-border: var(--card-border-color);
+	--discussion-surface: var(--white);
+}
+.comments {
+	position: relative;
+	gap: 1rem;
+}
+.comments::before {
+	content: '';
+	position: absolute;
+	z-index: 0;
+	inset-block: 1rem 2rem;
+	inset-inline-start: 24px;
+	inline-size: 2px;
+	background: var(--discussion-border);
+	pointer-events: none;
+}
+.comments > .media.comment {
+	position: relative;
+	z-index: 1;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	overflow: visible;
+	gap: .65rem;
+}
+.comments > .media.comment > .media-left {
+	margin: 0 !important;
+	flex: 0 0 48px;
+	background: var(--white);
+	border-radius: 50%;
+}
+.comments > .media.comment > .media-content {
+	overflow: visible;
+	min-inline-size: 0;
+	inline-size: auto;
+	background: var(--discussion-surface);
+	border: 1px solid var(--discussion-border);
+	border-radius: 8px;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.comments > .posted-comment .comment-info {
+	position: relative;
+	margin: 0;
+	padding: .65rem .85rem;
+	border: 0;
+	border-bottom: 1px solid var(--discussion-border);
+	border-radius: 7px 7px 0 0;
+	background: var(--grey-50);
+	min-block-size: 2.5rem;
+	flex-wrap: wrap;
+}
+.comments > .posted-comment .comment-info::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: -7px;
+	inset-block-start: 16px;
+	inline-size: 12px;
+	block-size: 12px;
+	transform: rotate(45deg);
+	background: var(--grey-50);
+	border-inline-start: 1px solid var(--discussion-border);
+	border-block-end: 1px solid var(--discussion-border);
+}
+.comments > .posted-comment .media-content > :not(.comment-info) {
+	margin-inline: .85rem;
+}
+.comments > .posted-comment .media-content > :last-child {
+	margin-block-end: .75rem;
+}
+.comments > .posted-comment :deep(.tiptap__editor) {
+	padding: .85rem .1rem;
+	line-height: 1.65;
+}
+.comments > .comment-composer {
+	margin-block-start: .75rem !important;
+}
+.comments > .comment-composer .media-content {
+	padding: .85rem;
+}
+.comment-composer :deep(.tiptap__wrapper) {
+	border-radius: 6px;
+}
+.comment-composer-actions {
+	padding-block-start: .65rem;
+	border-top: 1px solid var(--discussion-border);
+}
+@media screen and (max-width: $tablet) {
+	.comments::before { display: none; }
+	.comments > .media.comment > .media-left { display: none; }
+	.comments > .posted-comment .comment-info::before { display: none; }
+	.comments > .posted-comment .media-content > :not(.comment-info) { margin-inline: .6rem; }
 }
 </style>
