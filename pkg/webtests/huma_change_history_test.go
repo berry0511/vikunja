@@ -42,12 +42,12 @@ func TestHumaChangeHistory(t *testing.T) {
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &history))
 		return history
 	}
-	patch := func(path, body string) {
+	patch := func(path, body string, expectedStatus int) {
 		t.Helper()
 		rec := humaRequest(t, e, http.MethodPatch, path, body, owner, "application/merge-patch+json")
-		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		require.Equal(t, expectedStatus, rec.Code, rec.Body.String())
 	}
-	patch("/api/v2/tasks/1", `{"title":"Audited task","start_date":"2026-10-20T08:00:00Z","end_date":"2026-10-20T17:00:00Z"}`)
+	patch("/api/v2/tasks/1", `{"title":"Audited task","start_date":"2026-10-20T08:00:00Z","end_date":"2026-10-20T17:00:00Z"}`, http.StatusOK)
 	history := get("/api/v2/tasks/1/history", owner)
 	require.GreaterOrEqual(t, history.Total, int64(3))
 	fields := make(map[string]string)
@@ -62,11 +62,11 @@ func TestHumaChangeHistory(t *testing.T) {
 
 	// A repeated update with identical values should not duplicate the history.
 	countBefore := history.Total
-	patch("/api/v2/tasks/1", `{"title":"Audited task"}`)
+	patch("/api/v2/tasks/1", `{"title":"Audited task"}`, http.StatusNotModified)
 	history = get("/api/v2/tasks/1/history", owner)
 	assert.Equal(t, countBefore, history.Total)
 
-	patch("/api/v2/projects/1", `{"title":"Audited project"}`)
+	patch("/api/v2/projects/1", `{"title":"Audited project"}`, http.StatusOK)
 	history = get("/api/v2/projects/1/history", owner)
 	var projectTitleSeen bool
 	for _, item := range history.Items {

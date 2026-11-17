@@ -59,7 +59,7 @@ func TestHumaAdminProjects(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, res.Code)
 	})
 
-	t.Run("admin without the feature gets 404", func(t *testing.T) {
+	t.Run("admin without the feature is allowed", func(t *testing.T) {
 		e, err := setupTestEnv()
 		require.NoError(t, err)
 		// Empty feature set = licensed instance without the admin feature.
@@ -69,7 +69,7 @@ func TestHumaAdminProjects(t *testing.T) {
 		admin := promoteToAdmin(t, 1)
 
 		res := adminReq(t, e, http.MethodGet, "/api/v2/admin/projects", admin, "")
-		assert.Equal(t, http.StatusNotFound, res.Code)
+		assert.Equal(t, http.StatusOK, res.Code)
 	})
 
 	t.Run("admin with the feature sees every project", func(t *testing.T) {

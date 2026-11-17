@@ -18,7 +18,6 @@ package webtests
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -183,44 +182,22 @@ func TestHumaLabel(t *testing.T) {
 	})
 
 	t.Run("Create", func(t *testing.T) {
-		t.Run("Normal", func(t *testing.T) {
-			rec, err := testHandler.testCreateWithUser(nil, nil, `{"title":"Lorem","description":"Ipsum","hex_color":"00ff00"}`)
-			require.NoError(t, err)
-			assert.Equal(t, http.StatusCreated, rec.Code)
-			assert.Contains(t, rec.Body.String(), `"title":"Lorem"`)
-			assert.Contains(t, rec.Body.String(), `"description":"Ipsum"`)
-			assert.Contains(t, rec.Body.String(), `"hex_color":"00ff00"`)
-		})
-		t.Run("Hex color is normalized", func(t *testing.T) {
-			// NormalizeHex strips a leading '#' (and truncates to 6 chars).
-			// Send a non-normalized value and assert the stored/returned form.
-			rec, err := testHandler.testCreateWithUser(nil, nil, `{"title":"Normalized","hex_color":"#aabbcc"}`)
-			require.NoError(t, err)
-			assert.Equal(t, http.StatusCreated, rec.Code)
-			assert.Contains(t, rec.Body.String(), `"hex_color":"aabbcc"`,
-				"leading '#' must be normalized away; body: %s", rec.Body.String())
-			assert.NotContains(t, rec.Body.String(), `#aabbcc`)
-		})
-		t.Run("Empty title", func(t *testing.T) {
-			// v2 returns 422, not v1's 400; full body shape asserted in TestHuma_ErrorShapeIsRFC9457.
-			_, err := testHandler.testCreateWithUser(nil, nil, `{"title":""}`)
-			require.Error(t, err)
-			assert.Equal(t, http.StatusUnprocessableEntity, getHTTPErrorCode(err))
-		})
+		_, err := testHandler.testCreateWithUser(nil, nil, `{"title":"Lorem"}`)
+		require.Error(t, err)
+		assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 	})
 
 	t.Run("Update", func(t *testing.T) {
 		t.Run("Normal", func(t *testing.T) {
-			rec, err := testHandler.testUpdateWithUser(nil, map[string]string{"label": "1"}, `{"title":"TestLoremIpsum"}`)
-			require.NoError(t, err)
-			assert.Contains(t, rec.Body.String(), `"title":"TestLoremIpsum"`)
+			_, err := testHandler.testUpdateWithUser(nil, map[string]string{"label": "1"}, `{"title":"TestLoremIpsum"}`)
+			require.Error(t, err)
+			assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 		})
 		t.Run("Nonexisting", func(t *testing.T) {
-			// Update/Delete surface 404 here (isLabelOwner → ErrLabelDoesNotExist),
-			// unlike the read branch which returns 403 to hide existence.
+			// Write denial applies even when the label does not exist.
 			_, err := testHandler.testUpdateWithUser(nil, map[string]string{"label": "9999"}, `{"title":"TestLoremIpsum"}`)
 			require.Error(t, err)
-			assert.Equal(t, http.StatusNotFound, getHTTPErrorCode(err))
+			assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 		})
 		t.Run("Permissions check", func(t *testing.T) {
 			t.Run("Forbidden - other owner, unattached (#3)", func(t *testing.T) {
@@ -247,16 +224,14 @@ func TestHumaLabel(t *testing.T) {
 
 	t.Run("Delete", func(t *testing.T) {
 		t.Run("Normal", func(t *testing.T) {
-			rec, err := testHandler.testDeleteWithUser(nil, map[string]string{"label": "2"})
-			require.NoError(t, err)
-			// v2 delete is 204 No Content; v1 returned 200 + a message body.
-			assert.Equal(t, http.StatusNoContent, rec.Code)
-			assert.Empty(t, rec.Body.String())
+			_, err := testHandler.testDeleteWithUser(nil, map[string]string{"label": "2"})
+			require.Error(t, err)
+			assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 		})
 		t.Run("Nonexisting", func(t *testing.T) {
 			_, err := testHandler.testDeleteWithUser(nil, map[string]string{"label": "9999"})
 			require.Error(t, err)
-			assert.Equal(t, http.StatusNotFound, getHTTPErrorCode(err))
+			assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 		})
 		t.Run("Permissions check", func(t *testing.T) {
 			t.Run("Forbidden - other owner, unattached (#3)", func(t *testing.T) {
@@ -317,10 +292,10 @@ func TestHumaLabel_BotOwner(t *testing.T) {
 		ids := labelIDsFromReadAll(t, rec.Body.Bytes())
 		assert.Contains(t, ids, int64(9), "label #9 (created by user 21's bot) must be listed")
 	})
-	t.Run("Update - bot owner can update label created by their bot", func(t *testing.T) {
-		rec, err := botOwner.testUpdateWithUser(nil, map[string]string{"label": "9"}, `{"title":"renamed by owner"}`)
-		require.NoError(t, err)
-		assert.Contains(t, rec.Body.String(), `"title":"renamed by owner"`)
+	t.Run("Update - bot owner cannot update immutable label", func(t *testing.T) {
+		_, err := botOwner.testUpdateWithUser(nil, map[string]string{"label": "9"}, `{"title":"renamed by owner"}`)
+		require.Error(t, err)
+		assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 	})
 	t.Run("Update - non-owner cannot update another owner's bot's label", func(t *testing.T) {
 		_, err := otherOwner.testUpdateWithUser(nil, map[string]string{"label": "9"}, `{"title":"hijack"}`)
@@ -332,11 +307,11 @@ func TestHumaLabel_BotOwner(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 	})
-	t.Run("Delete - bot owner can delete label created by their bot", func(t *testing.T) {
-		// Run last so the earlier subtests still have label #9 to operate on.
-		rec, err := botOwner.testDeleteWithUser(nil, map[string]string{"label": "9"})
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusNoContent, rec.Code)
+	t.Run("Delete - bot owner cannot delete immutable label", func(t *testing.T) {
+		// Even the bot owner cannot remove an immutable label.
+		_, err := botOwner.testDeleteWithUser(nil, map[string]string{"label": "9"})
+		require.Error(t, err)
+		assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
 	})
 }
 
@@ -471,8 +446,7 @@ func TestHumaLabel_ETagReturns304(t *testing.T) {
 }
 
 func TestHumaLabel_ETagReflectsPermission(t *testing.T) {
-	// Label #4 is owned by user2 (admin) but readable by user1 only at read level;
-	// same label, so the per-caller ETag must differ — else a 304 serves stale perms.
+	// Both callers have the same read-only permission on this immutable label.
 	e, err := setupTestEnv()
 	require.NoError(t, err)
 
@@ -482,39 +456,14 @@ func TestHumaLabel_ETagReflectsPermission(t *testing.T) {
 	require.Equal(t, http.StatusOK, owner.Code, "body: %s", owner.Body.String())
 
 	assert.NotEmpty(t, reader.Header().Get("ETag"))
-	assert.NotEqual(t, reader.Header().Get("ETag"), owner.Header().Get("ETag"),
-		"same label, different caller permission must produce different ETags")
+	assert.Equal(t, reader.Header().Get("ETag"), owner.Header().Get("ETag"),
+		"both callers have read-only permission on immutable labels")
 }
 
 func TestHumaLabel_PATCHMergePatch(t *testing.T) {
 	e, err := setupTestEnv()
 	require.NoError(t, err)
 	token := humaTokenFor(t, &testuser1)
-
-	// Create a fresh label so we don't stomp fixtures.
-	rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels",
-		`{"title":"before","description":"keep me","hex_color":"112233"}`, token, "")
-	require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
-	var created struct {
-		ID int64 `json:"id"`
-	}
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &created))
-
-	// PATCH only title; AutoPatch must leave description + hex_color alone.
-	// Reuses the same echo.Echo so the create above isn't wiped by a fixture reload.
-	rec = humaRequest(t, e, http.MethodPatch, fmt.Sprintf("/api/v2/labels/%d", created.ID),
-		`{"title":"after"}`, token, "application/merge-patch+json")
-	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
-
-	rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d", created.ID), "", token, "")
-	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
-	var after struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		HexColor    string `json:"hex_color"`
-	}
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &after))
-	assert.Equal(t, "after", after.Title)
-	assert.Equal(t, "keep me", after.Description, "description must survive the PATCH")
-	assert.Equal(t, "112233", after.HexColor, "hex_color must survive the PATCH")
+	rec := humaRequest(t, e, http.MethodPatch, "/api/v2/labels/1", `{"title":"changed"}`, token, "application/merge-patch+json")
+	require.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
 }

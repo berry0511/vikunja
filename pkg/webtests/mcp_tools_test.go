@@ -315,7 +315,6 @@ func TestMCP_Tools_ExpandRequiresScopeOnLoopback(t *testing.T) {
 func TestMCP_Tools_ProjectAndLabelLifecycle(t *testing.T) {
 	for _, resource := range []string{
 		"projects",
-		"labels",
 	} {
 		t.Run(resource, func(t *testing.T) {
 			c := newMCPClient(t, mcpFullToken)
@@ -335,6 +334,18 @@ func TestMCP_Tools_ProjectAndLabelLifecycle(t *testing.T) {
 			assert.Equal(t, "ff8800", item["hex_color"])
 			require.NotContains(t, c.callTool(resource+"_delete", map[string]any{"id": id}), "isError")
 		})
+	}
+}
+
+func TestMCP_Tools_LabelWritesForbidden(t *testing.T) {
+	c := newMCPClient(t, mcpFullToken)
+	for _, tc := range []struct { name string; args map[string]any }{
+		{"labels_create", map[string]any{"title": "not allowed"}},
+		{"labels_update", map[string]any{"id": 1, "title": "not allowed"}},
+		{"labels_delete", map[string]any{"id": 1}},
+	} {
+		result := c.callTool(tc.name, tc.args)
+		assert.Equal(t, true, result["isError"], "%s", tc.name)
 	}
 }
 

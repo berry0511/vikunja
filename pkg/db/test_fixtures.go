@@ -77,6 +77,11 @@ func LoadFixtures() error {
 	if err != nil {
 		return err
 	}
+	// The append-only journal has no fixture rows, so the fixture loader does
+	// not reset it. Clear test history to prevent leakage between test cases.
+	if _, err = x.Exec("DELETE FROM change_history"); err != nil {
+		return err
+	}
 
 	// Copied from https://github.com/go-gitea/gitea/blob/master/models/test_fixtures.go#L39
 	// Now if we're running postgres we need to tell it to update the sequences
