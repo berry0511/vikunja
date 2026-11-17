@@ -79,7 +79,7 @@ func TestHumaInviteLinkAdmin(t *testing.T) {
 }
 
 func TestHumaInviteLinkAdminDenied(t *testing.T) {
-	for _, mode := range []string{"non-admin", "no invites", "no admin panel"} {
+	for _, mode := range []string{"non-admin", "no invites"} {
 		t.Run(mode, func(t *testing.T) {
 			e, err := setupTestEnv()
 			require.NoError(t, err)
@@ -91,8 +91,6 @@ func TestHumaInviteLinkAdminDenied(t *testing.T) {
 				admin = &user.User{ID: 2, Username: "user2"}
 			case "no invites":
 				license.SetForTests([]license.Feature{license.FeatureAdminPanel})
-			case "no admin panel":
-				license.SetForTests([]license.Feature{license.FeatureUserInvites})
 			}
 			for _, req := range []struct{ method, path, body string }{
 				{http.MethodGet, "/api/v2/admin/invite-links", ""},
@@ -105,6 +103,16 @@ func TestHumaInviteLinkAdminDenied(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHumaInviteLinkAdminWithoutPanelLicense(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	license.SetForTests([]license.Feature{license.FeatureUserInvites})
+	defer license.ResetForTests()
+	admin := promoteToAdmin(t, 1)
+	res := adminReq(t, e, http.MethodGet, "/api/v2/admin/invite-links", admin, "")
+	require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 }
 
 func TestHumaInviteLinkPublic(t *testing.T) {

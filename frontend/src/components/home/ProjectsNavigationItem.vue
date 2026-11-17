@@ -41,7 +41,7 @@
 						<Icon icon="filter" />
 					</span>
 					<span
-						v-if="canEditOrder && project.id > 0 && typeof project.max_permission === 'number' && project.max_permission > PERMISSIONS.READ"
+						v-if="canEditOrder && project.id > 0"
 						class="icon menu-item-icon handle drag-handle"
 						@mousedown.stop
 						@click.stop.prevent

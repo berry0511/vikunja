@@ -23,6 +23,10 @@
 					{{ $t('project.directory.all') }} <span>{{ allProjects.length }}</span>
 				</button>
 			</div>
+			<label class="directory-search">
+				<Icon icon="search" />
+				<input v-model.trim="searchText" type="search" aria-label="搜索当前项目列表" placeholder="搜索项目名称…" />
+			</label>
 			<p class="directory-view-hint">{{ status === 'archived' ? $t('project.directory.archiveHint') : $t('project.directory.openHint') }}</p>
 		</div>
 		<div v-if="projects.length === 0 && !loading" class="directory-empty">
@@ -35,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import ProjectCardGrid from '@/components/project/partials/ProjectCardGrid.vue'
 import {useTitle} from '@/composables/useTitle'
@@ -52,13 +56,18 @@ const loading = useDelayedLoading(() => projectList.isLoading)
 const allProjects = computed(() => projectList.projectsArray.filter(p => p.id > 0))
 const activeProjects = computed(() => allProjects.value.filter(p => !p.is_archived))
 const archivedProjects = computed(() => allProjects.value.filter(p => p.is_archived))
+const searchText = ref('')
 type ProjectStatus = 'active' | 'archived' | 'all'
 const status = computed<ProjectStatus>(() =>
 	route.query.status === 'archived' || route.query.status === 'all' ? route.query.status : 'active',
 )
-const projects = computed(() => status.value === 'archived'
-	? archivedProjects.value
-	: status.value === 'all' ? allProjects.value : activeProjects.value)
+const projects = computed(() => {
+	const source = status.value === 'archived'
+		? archivedProjects.value
+		: status.value === 'all' ? allProjects.value : activeProjects.value
+	const term = searchText.value.toLocaleLowerCase()
+	return term ? source.filter(project => project.title.toLocaleLowerCase().includes(term)) : source
+})
 function setStatus(next: ProjectStatus) {
 	if (next === status.value) return
 	void router.replace({name: 'projects.index', query: {...route.query, status: next === 'active' ? undefined : next}})
@@ -163,4 +172,15 @@ function setStatus(next: ProjectStatus) {
 	.directory-actions { inline-size: 100%; }
 	.directory-view-hint { padding-inline: .35rem; }
 }
+
+.directory-header {padding:1.1rem 1.2rem;background:var(--white);border:1px solid var(--card-border-color);border-radius:9px;margin-block-end:.85rem;}
+.directory-header h1 {font-size:clamp(1.35rem,2.3vw,1.85rem);}
+.directory-toolbar {border-radius:8px;gap:.75rem;margin-block-end:1rem;}
+.directory-search {display:flex;align-items:center;gap:.5rem;min-inline-size:180px;max-inline-size:300px;flex:1;background:var(--white);border:1px solid var(--card-border-color);border-radius:7px;padding:.42rem .7rem;color:var(--text-light);}
+.directory-search input {border:0;background:transparent;min-inline-size:0;inline-size:100%;font:inherit;font-size:.84rem;color:var(--text);outline:none;}
+.directory-search:focus-within {outline:2px solid var(--primary);outline-offset:1px;}
+.directory-tabs {border:1px solid var(--card-border-color);}
+.directory-tabs button.is-active {color:var(--primary);}
+.directory-view-hint {max-inline-size:260px;font-size:.75rem;}
+@media(max-width:$tablet){.directory-header{padding:.85rem;}.directory-toolbar{align-items:stretch;}.directory-search{min-inline-size:100%;max-inline-size:100%;}.directory-view-hint{max-inline-size:none;}}
 </style>

@@ -38,6 +38,7 @@ type taskAttachmentListBody struct {
 
 type taskAttachmentUploadInput struct {
 	TaskID int64 `path:"task" doc:"The id of the task to attach the files to."`
+	Source string `query:"source" enum:"task,comment" default:"task" doc:"Origin of the uploaded files: task attachment panel or comment editor."`
 	// Accept any upload; the byte-level mime detection happens in files.CreateWithSession,
 	// so there is no part content-type allow-list to enforce here (unlike the avatar endpoint).
 	RawBody huma.MultipartFormFiles[struct {
@@ -71,7 +72,7 @@ func RegisterTaskAttachmentRoutes(api huma.API) {
 	Register(api, withUploadLimits(huma.Operation{
 		OperationID: "task-attachments-upload",
 		Summary:     "Upload task attachments",
-		Description: "Uploads one or more files as attachments to a task via multipart/form-data under the \"files\" field. Requires write access to the task. Each file is processed independently: a file that fails (for example, exceeding the configured size limit) is reported in the errors list while the others still succeed, so the request returns 201 even on a partial upload. The max size per file is the server's configured file size limit.",
+		Description: "Uploads one or more files as attachments to a task via multipart/form-data under the \"files\" field. Requires write access to the task. Each file is processed independently: a file that fails (for example, exceeding the configured size limit) is reported in the errors list while the others still succeed, so the request returns 201 even on a partial upload. The max size per file is the server's configured file size limit. Set source=comment to keep the uploaded file in comment context instead of the task attachment panel.",
 		Method:      http.MethodPost,
 		Path:        "/tasks/{task}/attachments",
 		Tags:        tags,
@@ -144,7 +145,7 @@ func taskAttachmentsUpload(ctx context.Context, in *taskAttachmentUploadInput) (
 	formFiles := in.RawBody.Data().Files
 	uploads := make([]*models.AttachmentToUpload, 0, len(formFiles))
 	for _, file := range formFiles {
-		uploads = append(uploads, &models.AttachmentToUpload{Reader: file, Filename: file.Filename, Size: uint64(file.Size)})
+		uploads = append(uploads, &models.AttachmentToUpload{Reader: file, Filename: file.Filename, Size: uint64(file.Size), Source: in.Source})
 	}
 
 	success, failures, err := models.UploadTaskAttachments(s, a, in.TaskID, uploads)

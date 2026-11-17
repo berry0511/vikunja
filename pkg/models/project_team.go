@@ -220,23 +220,44 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 
 	limit, start := getLimitFromPageIndex(page, perPage)
 
+	// isInstanceAdmin performs a database query using this same session.
+	// Resolve it BEFORE constructing the team query: otherwise its Get resets
+	// the pending XORM statement and silently drops the project/name filters.
+	searchReadableTeamsOnly := search != "" && !isInstanceAdmin(s, a)
+
 	// Get the teams
-	all := []*TeamWithPermission{}
+	teamRows := []*Team{}
 	query := s.
 		Table("teams").
-		Join("INNER", "team_projects", "team_id = teams.id").
+		Join("INNER", "team_projects", "team_projects.team_id = teams.id").
 		Where("team_projects.project_id = ?", tl.ProjectID).
-		Where(db.ILIKE("teams.name", search))
-	searchReadableTeamsOnly := search != "" && !isInstanceAdmin(s, a)
+		And(db.ILIKE("teams.name", search))
 	if searchReadableTeamsOnly {
-		query = query.Where(readableTeamSearchCond(a))
+		query = query.And(readableTeamSearchCond(a))
 	}
 	if limit > 0 {
 		query = query.Limit(limit, start)
 	}
-	err = query.Find(&all)
+	// Fetch team fields only. Fetch the share permission separately to avoid
+	// xorm extending TeamWithPermission into a non-existent teams.permission
+	// column during its automatic column mapping.
+	err = query.Select("teams.*").Find(&teamRows)
 	if err != nil {
 		return nil, 0, 0, err
+	}
+
+	shares := []*TeamProject{}
+	err = s.Where("project_id = ?", tl.ProjectID).Find(&shares)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	permissionByTeam := make(map[int64]Permission, len(shares))
+	for _, share := range shares {
+		permissionByTeam[share.TeamID] = share.Permission
+	}
+	all := make([]*TeamWithPermission, 0, len(teamRows))
+	for _, team := range teamRows {
+		all = append(all, &TeamWithPermission{Team: *team, Permission: permissionByTeam[team.ID]})
 	}
 
 	// Keep legacy relations visible while scrubbing unreadable team details.
@@ -267,13 +288,13 @@ func (tl *TeamProject) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 
 	countQuery := s.
 		Table("teams").
-		Join("INNER", "team_projects", "team_id = teams.id").
+		Join("INNER", "team_projects", "team_projects.team_id = teams.id").
 		Where("team_projects.project_id = ?", tl.ProjectID).
-		Where(db.ILIKE("teams.name", search))
+		And(db.ILIKE("teams.name", search))
 	if searchReadableTeamsOnly {
-		countQuery = countQuery.Where(readableTeamSearchCond(a))
+		countQuery = countQuery.And(readableTeamSearchCond(a))
 	}
-	totalItems, err = countQuery.Count(&TeamWithPermission{})
+	totalItems, err = countQuery.Count(&Team{})
 	if err != nil {
 		return nil, 0, 0, err
 	}

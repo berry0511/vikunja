@@ -107,30 +107,30 @@ func TestHumaRichText_Read(t *testing.T) {
 	require.NoError(t, err)
 	token := humaTokenFor(t, &testuser1)
 
-	// Store a label with HTML directly (no format → verbatim).
-	rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels",
+	// Store a task with HTML directly (no format → verbatim).
+	rec := humaRequest(t, e, http.MethodPost, "/api/v2/projects/1/tasks",
 		`{"title":"rt","description":"<p>Hello <strong>world</strong></p>","hex_color":"112233"}`, token, "")
 	require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
 	id, _ := decodeLabel(t, rec.Body.Bytes())
 
 	t.Run("read as markdown converts html", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d?format=markdown", id), "", token, "")
+		rec := humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d?format=markdown", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, desc := decodeLabel(t, rec.Body.Bytes())
 		assert.Equal(t, "Hello **world**", desc)
 	})
 
 	t.Run("read without param keeps html", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d", id), "", token, "")
+		rec := humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, desc := decodeLabel(t, rec.Body.Bytes())
 		assert.Equal(t, "<p>Hello <strong>world</strong></p>", desc)
 	})
 
 	t.Run("list converts every item", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodGet, "/api/v2/labels?format=markdown", "", token, "")
+		rec := humaRequest(t, e, http.MethodGet, "/api/v2/projects/1/tasks?format=markdown", "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
-		// The freshly created label's HTML must not appear; its markdown must.
+		// The freshly created task's HTML must not appear; its markdown must.
 		assert.NotContains(t, rec.Body.String(), "<strong>world</strong>")
 		assert.Contains(t, rec.Body.String(), "Hello **world**")
 	})
@@ -163,7 +163,6 @@ func TestHumaRichText_EveryEntity(t *testing.T) {
 		readPath   string // fmt verb %d for the created id
 		field      string
 	}{
-		{"label", "/api/v2/labels", `{"title":"e-label","description":"a **bold** note"}`, "/api/v2/labels/%d", "description"},
 		{"project", "/api/v2/projects", `{"title":"e-project","description":"a **bold** note"}`, "/api/v2/projects/%d", "description"},
 		{"team", "/api/v2/teams", `{"name":"e-team","description":"a **bold** note"}`, "/api/v2/teams/%d", "description"},
 		{"saved filter", "/api/v2/filters", `{"title":"e-filter","description":"a **bold** note","filters":{"filter":"done = true"}}`, "/api/v2/filters/%d", "description"},
@@ -253,72 +252,72 @@ func TestHumaRichText_Write(t *testing.T) {
 	token := humaTokenFor(t, &testuser1)
 
 	t.Run("markdown write is stored as html", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels?format=markdown",
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/projects/1/tasks?format=markdown",
 			`{"title":"w1","description":"Hello **world**","hex_color":"112233"}`, token, "")
 		require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
 		id, _ := decodeLabel(t, rec.Body.Bytes())
 
 		// Read back without format → canonical HTML.
-		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d", id), "", token, "")
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, desc := decodeLabel(t, rec.Body.Bytes())
 		assert.Equal(t, "<p>Hello <strong>world</strong></p>", desc)
 	})
 
 	t.Run("default write stores body verbatim", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels",
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/projects/1/tasks",
 			`{"title":"w2","description":"Hello **world**","hex_color":"112233"}`, token, "")
 		require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
 		id, _ := decodeLabel(t, rec.Body.Bytes())
 
-		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d", id), "", token, "")
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, desc := decodeLabel(t, rec.Body.Bytes())
 		assert.Equal(t, "Hello **world**", desc, "without the param the body is stored unconverted")
 	})
 
 	t.Run("mention is rebuilt on markdown write", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels?format=markdown",
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/projects/1/tasks?format=markdown",
 			`{"title":"w3","description":"ping @user1","hex_color":"112233"}`, token, "")
 		require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
 		id, _ := decodeLabel(t, rec.Body.Bytes())
 
-		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d", id), "", token, "")
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, desc := decodeLabel(t, rec.Body.Bytes())
 		assert.Contains(t, desc, `<mention-user data-id="user1"`)
 	})
 
 	t.Run("markdown round trip is stable", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels?format=markdown",
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/projects/1/tasks?format=markdown",
 			`{"title":"w4","description":"- [x] done\n- [ ] todo","hex_color":"112233"}`, token, "")
 		require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
 		id, _ := decodeLabel(t, rec.Body.Bytes())
 
 		// GET as markdown → PUT it back as markdown → GET as markdown must match.
-		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d?format=markdown", id), "", token, "")
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d?format=markdown", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, md1 := decodeLabel(t, rec.Body.Bytes())
 
 		put := fmt.Sprintf(`{"title":"w4","description":%s,"hex_color":"112233"}`, mustJSON(md1))
-		rec = humaRequest(t, e, http.MethodPut, fmt.Sprintf("/api/v2/labels/%d?format=markdown", id), put, token, "")
+		rec = humaRequest(t, e, http.MethodPut, fmt.Sprintf("/api/v2/tasks/%d?format=markdown", id), put, token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d?format=markdown", id), "", token, "")
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d?format=markdown", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, md2 := decodeLabel(t, rec.Body.Bytes())
 		assert.Equal(t, md1, md2, "markdown projection must be stable across a round trip")
 	})
 
 	t.Run("patch honours markdown via header", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodPost, "/api/v2/labels",
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/projects/1/tasks",
 			`{"title":"w5","description":"<p>old</p>","hex_color":"112233"}`, token, "")
 		require.Equal(t, http.StatusCreated, rec.Code, "body: %s", rec.Body.String())
 		id, _ := decodeLabel(t, rec.Body.Bytes())
 
 		// AutoPatch strips the query string but forwards headers, so PATCH markdown
 		// support rides on X-Vikunja-Format.
-		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v2/labels/%d", id),
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v2/tasks/%d", id),
 			strings.NewReader(`{"description":"new **bold**"}`))
 		req.Header.Set("Content-Type", "application/merge-patch+json")
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -327,7 +326,7 @@ func TestHumaRichText_Write(t *testing.T) {
 		e.ServeHTTP(rec, req)
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/labels/%d", id), "", token, "")
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/tasks/%d", id), "", token, "")
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		_, desc := decodeLabel(t, rec.Body.Bytes())
 		assert.Equal(t, "<p>new <strong>bold</strong></p>", desc)

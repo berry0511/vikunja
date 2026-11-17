@@ -85,7 +85,7 @@ export function projectTeamSharesQuery(projectId: number) {
 
 export function createProjectTeamShareMutationOptions() {
 	return contextMutationOptions({
-		mutationFn: async ({projectId, teamId}: TeamShareInput) => (await projectTeamsCreate({path: {project: projectId}, body: {team_id: teamId}})).data,
+		mutationFn: async ({projectId, teamId}: TeamShareInput) => (await projectTeamsCreate({path: {project: projectId}, body: {team_id: teamId, permission: PERMISSIONS.READ_WRITE}})).data,
 		onSettled: ({projectId}, client) => invalidateShares(client, projectId, 'teams'),
 		successMessage: () => shareSuccess('teams', 'addedSuccess'),
 	})

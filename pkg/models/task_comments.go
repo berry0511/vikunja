@@ -139,6 +139,10 @@ func (tc *TaskComment) Delete(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 
+	if err := saveCommentHistoryDeletion(s, tc, a); err != nil {
+		return err
+	}
+
 	doer, _ := user.GetFromAuth(a)
 	task, err := GetTaskByIDSimple(s, tc.TaskID)
 	if err != nil {
@@ -168,6 +172,14 @@ func (tc *TaskComment) Delete(s *xorm.Session, a web.Auth) error {
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/{taskID}/comments/{commentID} [post]
 func (tc *TaskComment) Update(s *xorm.Session, a web.Auth) error {
+	// Capture the persisted content first, including the URL-bound task id.
+	// This catches edits through v1, v2, PUT and PATCH alike.
+	before := &TaskComment{ID: tc.ID, TaskID: tc.TaskID}
+	if err := getTaskCommentSimple(lockingSession(s), before); err != nil {
+		return err
+	}
+	if tc.TaskID == 0 { tc.TaskID = before.TaskID }
+
 	updated, err := s.
 		ID(tc.ID).
 		Cols("comment").
@@ -191,6 +203,14 @@ func (tc *TaskComment) Update(s *xorm.Session, a web.Auth) error {
 
 	task, err := GetTaskByIDSimple(s, tc.TaskID)
 	if err != nil {
+		return err
+	}
+
+	// The record is committed together with the comment update; failure
+	// aborts the edit rather than silently losing the previous version.
+	if err := saveHistoryChanges(s, "comment", tc.ID, a, []historyField{
+		{name: "comment", oldValue: before.Comment, newValue: tc.Comment},
+	}); err != nil {
 		return err
 	}
 

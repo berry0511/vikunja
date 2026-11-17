@@ -22,7 +22,7 @@
 					v-for="team in teams"
 					:key="team.id"
 				>
-					<RouterLink :to="{name: 'teams.edit', params: {id: team.id}}">
+					<RouterLink :to="{name: 'teams.workspace', params: {id: team.id}}">
 						<p>
 							{{ team.name }}
 						</p>

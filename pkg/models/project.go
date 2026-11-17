@@ -44,6 +44,13 @@ type Project struct {
 	Title string `xorm:"varchar(250) not null" json:"title" valid:"required,runelength(1|250)" minLength:"1" maxLength:"250" doc:"The title of the project. You'll see this in the overview."`
 	// The description of the project.
 	Description string `xorm:"longtext null" json:"description" doc:"The description of the project."`
+	// Project-level planning dates are independent of task scheduling dates.
+	StartDate *time.Time `xorm:"datetime null" json:"start_date" doc:"Optional planned project start date."`
+	EndDate *time.Time `xorm:"datetime null" json:"end_date" doc:"Optional planned project end date."`
+	DueDate *time.Time `xorm:"datetime null" json:"due_date" doc:"Optional final project deadline."`
+	// Explicitly signal a planning-date edit so ordinary project updates preserve dates.
+	UpdatePlanningDates bool `xorm:"-" json:"update_planning_dates,omitempty" doc:"Set to true to update or clear the project planning dates."`
+
 	// The unique project short identifier. Used to build task identifiers.
 	Identifier string `xorm:"varchar(10) null" json:"identifier" valid:"runelength(0|10)" minLength:"0" maxLength:"10" doc:"The unique project short identifier. Used to build task identifiers (e.g. PROJ-123)."`
 	// The hex color of this project
@@ -1194,6 +1201,7 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 	if err != nil {
 		return err
 	}
+	beforeHistory := *storedProject
 
 	err = checkProjectParentBeforeUpdate(s, project, storedProject, auth)
 	if err != nil {
@@ -1237,6 +1245,10 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 	}
 	if project.Description != "" {
 		colsToUpdate = append(colsToUpdate, "description")
+	}
+
+	if project.UpdatePlanningDates {
+		colsToUpdate = append(colsToUpdate, "start_date", "end_date", "due_date")
 	}
 
 	if updateProjectBackground {
@@ -1299,6 +1311,16 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 		if err != nil {
 			return err
 		}
+	}
+
+	// Fetch the effective persisted record. Partial updates and position
+	// normalization must be represented by their actual DB result.
+	current := &Project{}
+	exists, historyErr := s.ID(project.ID).Get(current)
+	if historyErr != nil { return historyErr }
+	if !exists { return fmt.Errorf("project disappeared before history was written: %d", project.ID) }
+	if err := saveHistoryChanges(s, "project", project.ID, auth, projectHistoryDiff(&beforeHistory, current)); err != nil {
+		return err
 	}
 
 	*project = *l
@@ -1549,6 +1571,10 @@ func (p *Project) Delete(s *xorm.Session, a web.Auth) (err error) {
 	_, err = s.ID(p.ID).Delete(&Project{})
 	if err != nil {
 		return
+	}
+
+	if err := saveHistoryDeletion(s, "project", p.ID, a); err != nil {
+		return err
 	}
 
 	events.DispatchOnCommit(s, &ProjectDeletedEvent{

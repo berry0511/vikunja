@@ -1,4 +1,5 @@
 import {useMutation} from '@tanstack/vue-query'
+import {getActivePinia} from 'pinia'
 import {
 	taskAttachmentsDelete,
 	taskAttachmentsDownload,
@@ -9,6 +10,9 @@ import type {
 	TaskAttachmentsDownloadData,
 } from '@/client/generated'
 import {i18n} from '@/i18n'
+import {useConfigStore} from '@/stores/config'
+import {uploadSizeError} from '@/helpers/uploadSize'
+import {uploadProgressFetch} from '@/client/uploadProgressFetch'
 import {expectBlob} from './blobResponse'
 import {contextMutationOptions} from './contextMutation'
 import {
@@ -41,14 +45,33 @@ export async function attachmentBlob(attachment: AttachmentIdentity, size?: Prev
 
 export function uploadAttachmentsMutationOptions(shouldNotify: () => boolean = () => true) {
 	return contextMutationOptions({
-		mutationFn: async ({taskId, files}: {
+		mutationFn: async ({taskId, files, source = 'task', onProgress}: {
 			taskId: number,
 			files: File[],
-		}) =>
-			(await taskAttachmentsUpload({
-				path: {task: taskId},
-				body: {files},
-			})).data,
+			source?: 'task' | 'comment',
+			onProgress?: (loaded: number, total: number) => void,
+		}) => {
+			const limit = getActivePinia() ? useConfigStore().max_file_size : '20MB'
+			for (const file of files) {
+				const reason = uploadSizeError(file, limit)
+				if (reason) throw new Error(reason)
+			}
+			try {
+				return (await taskAttachmentsUpload<true>({
+					path: {task: taskId},
+					query: {source},
+					body: {files},
+					...(onProgress ? {fetch: uploadProgressFetch(onProgress)} : {}),
+				})).data
+			} catch (reason) {
+				// Proxies can close connections instead of returning a readable 413.
+				// Retain structured API errors; only translate fetch transport failures.
+				if (reason instanceof TypeError && /Failed to fetch|NetworkError/i.test(reason.message)) {
+					throw new Error('附件上传连接中断。请检查服务器 files.maxsize、反向代理上传大小限制（例如 Nginx client_max_body_size）和请求超时。', {cause: reason})
+				}
+				throw reason
+			}
+		},
 		onSuccess: (result, {taskId}, client) => {
 			const uploaded = result.success ?? []
 			mapTaskEverywhere(client, taskId, task => ({

@@ -171,25 +171,14 @@ function getBuildConfig(env: Record<string, string>) {
 				injectRegister: false,
 				useCredentials: true,
 				manifest: {
-					name: 'Vikunja',
-					short_name: 'Vikunja',
+					name: '开天眼项目管理',
+					short_name: '开天眼',
 					theme_color: '#1973ff',
 					icons: [
 						{
-							src: './images/icons/android-chrome-192x192.png',
-							sizes: '192x192',
-							type: 'image/png',
-						},
-						{
-							src: './images/icons/android-chrome-512x512.png',
-							sizes: '512x512',
-							type: 'image/png',
-						},
-						{
-							src: './images/icons/icon-maskable.png',
-							sizes: '1024x1024',
-							type: 'image/png',
-							purpose: 'maskable',
+							src: './images/kty-logo.svg',
+							sizes: 'any',
+							type: 'image/svg+xml',
 						},
 					],
 					start_url: '.',

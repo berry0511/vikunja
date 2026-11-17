@@ -76,8 +76,8 @@ func RegisterAdminUserRoutes(api huma.API) {
 
 	Register(api, huma.Operation{
 		OperationID: "admin-overview",
-		Summary:     "Admin overview",
-		Description: "Returns per-instance counts (users, projects, tasks, teams, shares) plus the current license snapshot. Restricted to instance admins on a licensed instance; unlicensed or non-admin callers get a 404, making the endpoint indistinguishable from one that is not registered.",
+		Summary:     "Instance administration overview",
+		Description: "Returns per-instance counts (users, projects, tasks, teams, shares) plus the current license snapshot. Restricted to authenticated instance admins in this self-hosted fork; non-admin callers get a 404.",
 		Method:      http.MethodGet,
 		Path:        "/admin/overview",
 		Tags:        tags,
@@ -86,7 +86,7 @@ func RegisterAdminUserRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "admin-users-list",
 		Summary:     "List users (admin)",
-		Description: "Returns every user on the instance, paginated, with q matched against username and email. Exposes fields hidden from the normal user API (is_admin, status, auth provider). Each call is recorded in the audit log, since the response contains every user's email address. Restricted to instance admins on a licensed instance; unlicensed or non-admin callers get a 404, making the endpoint indistinguishable from one that is not registered.",
+		Description: "Returns every user on the instance, paginated, with q matched against username and email. Exposes fields hidden from the normal user API (is_admin, status, auth provider). Each call is recorded in the audit log, since the response contains every user's email address. Restricted to authenticated instance admins in this self-hosted fork; non-admin callers get a 404.",
 		Method:      http.MethodGet,
 		Path:        "/admin/users",
 		Tags:        tags,
@@ -95,7 +95,7 @@ func RegisterAdminUserRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "admin-users-create",
 		Summary:     "Create a user (admin)",
-		Description: "Creates a local user account, bypassing the public-registration toggle. Honours the admin-only is_admin and skip_email_confirm fields. Restricted to instance admins on a licensed instance.",
+		Description: "Creates a local user account, bypassing the public-registration toggle. Honours the admin-only is_admin and skip_email_confirm fields. Restricted to authenticated instance admins in this self-hosted fork.",
 		Method:      http.MethodPost,
 		Path:        "/admin/users",
 		Tags:        tags,

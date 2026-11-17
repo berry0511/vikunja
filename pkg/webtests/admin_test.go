@@ -72,7 +72,7 @@ func TestAdmin_GateUnlicensed(t *testing.T) {
 	admin := promoteToAdmin(t, 1)
 
 	res := adminReq(t, e, http.MethodGet, "/api/v1/admin/overview", admin, "")
-	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, http.StatusOK, res.Code)
 }
 
 func TestAdmin_GateUnlicensedV2(t *testing.T) {
@@ -83,7 +83,7 @@ func TestAdmin_GateUnlicensedV2(t *testing.T) {
 	admin := promoteToAdmin(t, 1)
 
 	res := adminReq(t, e, http.MethodGet, "/api/v2/admin/overview", admin, "")
-	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, http.StatusOK, res.Code)
 }
 
 func TestAdmin_GateNonAdmin(t *testing.T) {
@@ -514,7 +514,7 @@ func TestAdmin_CreateUser(t *testing.T) {
 	})
 }
 
-// Without the admin-panel license the endpoint must 404 so unlicensed instances cannot mint admins.
+// Instance administrators can create users without the admin-panel license.
 func TestAdmin_CreateUser_LicenseInactive(t *testing.T) {
 	e, err := setupTestEnv()
 	require.NoError(t, err)
@@ -524,7 +524,7 @@ func TestAdmin_CreateUser_LicenseInactive(t *testing.T) {
 
 	body := `{"username":"unlicensed-create","password":"averyl0ngpassword","email":"unlicensed-create@example.com"}`
 	res := adminReq(t, e, http.MethodPost, "/api/v1/admin/users", admin, body)
-	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, http.StatusOK, res.Code)
 }
 
 func TestAdmin_ReassignProjectOwner(t *testing.T) {

@@ -178,6 +178,7 @@ func (l *Label) ReadOne(s *xorm.Session, _ web.Auth) (err error) {
 	}
 	*l = *label
 
+	if l.CreatedByID == 0 { return nil } // Built-in immutable label has no human creator.
 	u, err := user.GetUserByID(s, l.CreatedByID)
 	if err != nil {
 		return
@@ -201,3 +202,5 @@ func GetLabelSimple(s *xorm.Session, l *Label) (*Label, error) {
 	}
 	return l, err
 }
+
+

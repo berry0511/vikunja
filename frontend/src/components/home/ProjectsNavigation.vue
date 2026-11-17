@@ -35,6 +35,7 @@
 
 <script lang="ts" setup>
 import {ref, watch} from 'vue'
+import {useStorage} from '@vueuse/core'
 import {draggableFor} from '@/components/base/Draggable'
 import type {SortableEvent} from 'sortablejs'
 
@@ -66,6 +67,20 @@ const updateMutation = useUpdateProjectMutation()
 // Vue draggable will modify the projects list as it changes their position which will not work on a prop.
 // Hence, we'll clone the prop and work on the clone.
 const availableProjects = ref<ProjectResponse[]>([])
+// A read-only share permits a personal sidebar order, never a project database write.
+const localProjectOrder = useStorage<number[]>('vikunja-sidebar-project-order', [])
+function sortForSidebar(projects: ProjectResponse[]): ProjectResponse[] {
+	const positions = new Map(localProjectOrder.value.map((id, index) => [id, index]))
+	return [...projects].sort((a, b) => {
+		const ai = positions.get(a.id)
+		const bi = positions.get(b.id)
+		if (ai === undefined && bi === undefined) return 0
+		if (ai === undefined) return 1
+		if (bi === undefined) return -1
+		return ai - bi
+	})
+}
+
 // Mid-drag, Sortable has moved the dragged item's DOM node, possibly into another list. Patching
 // the list then anchors on that node, throws NotFoundError and leaves the sidebar half patched.
 let projectsChangedDuringDrag: ProjectResponse[] | null = null
@@ -76,7 +91,7 @@ watch(
 			projectsChangedDuringDrag = projects || []
 			return
 		}
-		availableProjects.value = projects || []
+		availableProjects.value = sortForSidebar(projects || [])
 	},
 	{immediate: true},
 )
@@ -84,7 +99,7 @@ watch(isDraggingProject, dragging => {
 	if (dragging || projectsChangedDuringDrag === null) {
 		return
 	}
-	availableProjects.value = projectsChangedDuringDrag
+	availableProjects.value = sortForSidebar(projectsChangedDuringDrag)
 	projectsChangedDuringDrag = null
 })
 
@@ -106,6 +121,12 @@ async function saveProjectPosition(e: SortableEvent) {
 	const projectId = parseInt(projectIdStr)
 	const project = projectList.projects[projectId]
 	if (!project) return
+	// Persist the user's ordering for shared projects. Do not require write permission.
+	localProjectOrder.value = [...new Set([...projectsActive.map(p => p.id), ...localProjectOrder.value])]
+	if (typeof project.max_permission !== 'number' || project.max_permission <= 0) {
+		emit('update:modelValue', availableProjects.value)
+		return
+	}
 
 	const parentNode = e.to.parentNode as HTMLElement | null
 	const parentProjectIdFromDom = parentNode?.dataset?.projectId ? parseInt(parentNode.dataset.projectId) : 0

@@ -20,6 +20,9 @@
 							/>
 						</template>
 					</FormField>
+					<XButton v-if="hasProjectRange" variant="secondary" @click="applyProjectDateRange">
+						按项目起止时间
+					</XButton>
 					<div
 						v-if="!hasDefaultFilters"
 						class="field"
@@ -43,6 +46,7 @@
 				</div>
 			</Card>
 
+			<p class="gantt-view-help">沿时间轴查看任务进度。手机上可左右滑动浏览，修改任务仍遵循项目权限。</p>
 			<div class="gantt-chart-container">
 				<Card
 					:has-content="false"
@@ -68,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, toRefs} from 'vue'
+import {computed, toRefs, watch, ref} from 'vue'
 import type {RouteLocationNormalized} from 'vue-router'
 
 import {useCurrentProject} from '@/composables/useCurrentProject'
@@ -110,6 +114,27 @@ const {
 	addTask,
 	updateTask,
 } = useGanttFilters(route, projectId, viewId)
+
+type ProjectPlanningDates = {start_date?: string | null, end_date?: string | null, due_date?: string | null}
+const projectDates = computed(() => currentProject.value as (typeof currentProject.value & ProjectPlanningDates))
+const hasProjectRange = computed(() => Boolean(projectDates.value?.start_date && (projectDates.value?.end_date || projectDates.value?.due_date)))
+function applyProjectDateRange() {
+	const start = projectDates.value?.start_date
+	const end = projectDates.value?.end_date || projectDates.value?.due_date
+	if (!start || !end) return
+	const from = new Date(start)
+	const to = new Date(end)
+	if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) return
+	filters.value.dateFrom = from.toISOString()
+	filters.value.dateTo = to.toISOString()
+}
+const initializedProject = ref<number | null>(null)
+watch([currentProject, projectId], ([project, id]) => {
+	if (!project || initializedProject.value === id || !hasProjectRange.value) return
+	initializedProject.value = id
+	if (route.value.query.dateFrom || route.value.query.dateTo) return
+	applyProjectDateRange()
+}, {immediate: true})
 
 const DEFAULT_DATE_RANGE_DAYS = 7
 
@@ -198,4 +223,11 @@ const dateRange = computed({
 		font-size: .9rem;
 	}
 }
+
+.gantt-view-help{color:var(--text-light);font-size:.78rem;margin:.15rem 0 .75rem;}
+.gantt-chart-container{max-inline-size:100%;min-inline-size:0;}
+.gantt-chart-container :deep(.card){border:1px solid var(--card-border-color);border-radius:9px;box-shadow:none;background:var(--white);}
+.gantt-options{gap:.75rem;flex-wrap:wrap;justify-content:flex-start;}
+.gantt-options :deep(.field){margin-block-end:0;}
+@media screen and (max-width:$tablet){.gantt-options{align-items:stretch;gap:.6rem;}.gantt-options>*{max-inline-size:100%;}}
 </style>

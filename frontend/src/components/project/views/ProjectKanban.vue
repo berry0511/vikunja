@@ -1080,4 +1080,16 @@ $filter-container-height: '1rem - #{$switch-view-height}';
 .move-card-leave-active {
 	display: none;
 }
+
+/* Board visual refresh without changing sorting or drag behavior. */
+.project-kanban .kanban{max-inline-size:100%;background:transparent;-webkit-overflow-scrolling:touch;}
+.project-kanban .kanban .bucket{border:1px solid var(--card-border-color);border-radius:10px;background:var(--grey-50);box-shadow:0 1px 3px rgba(15,23,42,.035);}
+.project-kanban .kanban .bucket-header{background:var(--white);border-block-end:1px solid var(--card-border-color);padding:.65rem .8rem;}
+.project-kanban .kanban .bucket-header h2{font-size:.87rem;font-weight:680!important;color:var(--text-strong);}
+.project-kanban .kanban .bucket-header .limit{font-size:.72rem;border-radius:999px;background:var(--grey-100);padding:.18rem .48rem;}
+.project-kanban .kanban .bucket .task-item{padding:.35rem .48rem;background:transparent;}
+.project-kanban .kanban .bucket .task-item:focus-within{z-index:3;}
+.project-kanban .kanban .bucket-footer{background:var(--grey-50);border-block-start:1px solid var(--card-border-color);}
+@supports(height:100dvh){.project-kanban .kanban{max-block-size:calc(100dvh - 8.25rem);}}
+@media(max-width:480px){.project-kanban .kanban .bucket{inline-size:min(85vw,300px);}}
 </style>

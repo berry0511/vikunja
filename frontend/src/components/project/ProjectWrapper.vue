@@ -10,6 +10,21 @@
 			{{ getProjectTitle(currentProject) }}
 		</h1>
 
+		<header v-if="currentProject.id > 0" class="workspace-project-header d-print-none">
+			<nav class="workspace-breadcrumb" aria-label="项目位置">
+				<RouterLink :to="{name: 'projects.index'}">{{ $t('project.projects') }}</RouterLink>
+				<span aria-hidden="true">/</span>
+				<span aria-current="page">{{ getProjectTitle(currentProject) }}</span>
+			</nav>
+			<div class="workspace-project-identity">
+				<span class="workspace-project-symbol" aria-hidden="true"><Icon icon="layer-group" /></span>
+				<div class="workspace-project-copy">
+					<h1>{{ getProjectTitle(currentProject) }}</h1>
+					<p>{{ views.length }} 个视图 · 任务、Bug 和进度统一管理 <span v-if="currentProject.is_archived">· 已归档</span></p>
+				</div>
+			</div>
+		</header>
+
 		<div
 			ref="switchViewContainerRef"
 			class="switch-view-container d-print-none"
@@ -65,6 +80,20 @@
 				>
 					{{ getViewTitle(view) }}
 				</BaseButton>
+			</div>
+			<div v-if="projectId > 0" class="project-bug-links">
+				<RouterLink :to="{name: 'issues.index', query: {project_id: projectId}}" class="project-bug-link">
+					<Icon icon="bug" />
+					Bug
+				</RouterLink>
+				<RouterLink
+					v-if="!currentProject.is_archived && (currentProject.max_permission ?? 0) > 1"
+					:to="{name: 'issues.index', query: {project_id: projectId, create: '1'}}"
+					class="project-bug-link project-bug-create"
+				>
+					<Icon icon="plus" />
+					报告 Bug
+				</RouterLink>
 			</div>
 			<slot name="header" />
 		</div>
@@ -179,6 +208,73 @@ function getViewRoute(view: ProjectView) {
 </script>
 
 <style lang="scss" scoped>
+.workspace-project-header {
+	padding: 1.05rem 1.3rem .95rem;
+	margin-block-end: .9rem;
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 10px;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, .025);
+}
+.workspace-breadcrumb {
+	display: flex;
+	align-items: center;
+	gap: .55rem;
+	min-inline-size: 0;
+	font-size: .75rem;
+	color: var(--text-light);
+	margin-block-end: .6rem;
+}
+.workspace-breadcrumb span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-breadcrumb a { color: var(--text-light); }
+.workspace-breadcrumb a:hover { color: var(--primary); }
+.workspace-project-identity { display: flex; align-items: center; gap: .8rem; min-inline-size: 0; }
+.workspace-project-symbol {
+	inline-size: 2.4rem; block-size: 2.4rem; flex: none;
+	display: inline-flex; align-items: center; justify-content: center;
+	background: color-mix(in srgb, var(--primary) 9%, var(--white));
+	border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--card-border-color));
+	border-radius: 9px; color: var(--primary);
+}
+.workspace-project-copy { min-inline-size: 0; }
+.workspace-project-copy h1 {
+	margin: 0; color: var(--text-strong); font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+	font-weight: 700; line-height: 1.3; overflow-wrap: anywhere;
+}
+.workspace-project-copy p { margin: .25rem 0 0; color: var(--text-light); font-size: .78rem; }
+@media screen and (max-width: $tablet) {
+	.workspace-project-header { padding: .8rem; margin-block-end: .65rem; }
+	.workspace-project-copy p { font-size: .72rem; }
+}
+.project-bug-links {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: .45rem;
+	margin-inline-start: auto;
+}
+.project-bug-link {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	padding: .47rem .75rem;
+	border: 1px solid var(--card-border-color);
+	border-radius: 8px;
+	font-size: .85rem;
+	font-weight: 710;
+	background: var(--white);
+	color: var(--text-strong);
+	white-space: nowrap;
+	&:hover, &.router-link-active {background: var(--grey-50); color: var(--primary); border-color: var(--primary);}
+}
+.project-bug-create {
+	background: color-mix(in srgb, var(--primary) 8%, var(--white));
+	color: var(--primary);
+}
+@media screen and (max-width: $tablet) {
+	.project-bug-links {margin-inline: 0;}
+}
+
 .switch-view-container {
 	position: relative;
 	min-block-size: $switch-view-height;
@@ -200,8 +296,10 @@ function getViewRoute(view: ProjectView) {
 	display: inline-flex;
 	border-radius: $radius;
 	font-size: .75rem;
-	box-shadow: var(--shadow-sm);
-	padding: .5rem;
+	box-shadow: none;
+	border: 1px solid var(--card-border-color);
+	padding: .22rem;
+	gap: .15rem;
 }
 
 .switch-view--hidden {
@@ -229,14 +327,15 @@ function getViewRoute(view: ProjectView) {
 }
 
 .switch-view-button {
-	padding: .25rem .5rem;
+	padding: .42rem .8rem;
+	min-block-size: 2.1rem;
 	display: block;
 	white-space: nowrap;
 	border-radius: $radius;
 	transition: all 100ms;
 
 	&:not(:last-child) {
-		margin-inline-end: .5rem;
+		margin-inline-end: 0;
 	}
 
 	&:hover {
@@ -247,8 +346,8 @@ function getViewRoute(view: ProjectView) {
 	&.is-active {
 		color: var(--switch-view-color);
 		background: var(--switch-view-active-background);
-		font-weight: bold;
-		box-shadow: var(--shadow-xs);
+		font-weight: 650;
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 14%, transparent);
 	}
 }
 

@@ -4,6 +4,7 @@
 		class="loader-container"
 	>
 		<XButton
+			v-if="false"
 			:to="{name:'labels.create'}"
 			class="is-pulled-end"
 			icon="plus"
@@ -21,7 +22,7 @@
 				class="has-text-centered has-text-grey is-italic"
 			>
 				{{ $t('label.newCTA') }}
-				<RouterLink :to="{name:'labels.create'}">
+				<RouterLink v-if="false" :to="{name:'labels.create'}">
 					{{ $t('label.create.title') }}.
 				</RouterLink>
 			</p>
@@ -37,8 +38,9 @@
 					class="tag"
 				>
 					<span>{{ label.title }}</span>
+					<small v-if="label.title === 'Bug' && duplicateBugOwners" class="label-owner">· {{ label.created_by?.username || `#${label.id}` }}</small>
 					<BaseButton
-						v-if="userInfo?.id === label.created_by?.id"
+						v-if="false"
 						class="label-edit-button is-small"
 						:aria-label="$t('label.edit.header')"
 						@click.stop.prevent="editLabel(label)"
@@ -155,6 +157,7 @@ const authStore = useAuthStore()
 const userInfo = computed(() => authStore.info)
 
 const {labels, isPending} = useLabels()
+const duplicateBugOwners = computed(() => new Set(labels.value.filter(label => label.title === 'Bug').map(label => label.created_by?.id)).size > 1)
 const updateLabelMutation = useUpdateLabelMutation()
 const deleteLabelMutation = useDeleteLabelMutation()
 const loading = computed(() => isPending.value || updateLabelMutation.isPending.value || deleteLabelMutation.isPending.value)
@@ -218,4 +221,5 @@ function showDeleteDialoge(label: Label) {
 		block-size: .5rem;
 	}
 }
+.label-owner {font-size:.72rem;font-weight:400;opacity:.85;margin-inline-start:.3rem;}
 </style>

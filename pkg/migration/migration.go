@@ -83,6 +83,12 @@ func Migrate(x *xorm.Engine) {
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+	// Check actual schema state, not just the migration bookkeeping table.
+	// An earlier installation may have reported success without the public
+	// label catalog. Repair it here, before accepting API traffic.
+	if err := ensureSystemLabelCatalog(x); err != nil {
+		log.Fatalf("System label catalog initialization failed: %v", err)
+	}
 	log.Info("Ran all migrations successfully.")
 }
 

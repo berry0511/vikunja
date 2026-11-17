@@ -1,6 +1,10 @@
 <template>
 	<Card :title="$t('navigation.overview')">
 		<div class="admin-overview">
+			<header class="admin-overview-intro">
+				<div><h2>系统运营概览</h2><p>账号、项目、任务及共享关系的当前汇总数据</p></div>
+				<span class="admin-overview-scope">管理员视图</span>
+			</header>
 			<p v-if="loading">
 				{{ $t('misc.loading') }}
 			</p>
@@ -248,4 +252,16 @@ const totalShares = computed<number>(() => {
 	font-size: 0.85em;
 	opacity: 0.7;
 }
+
+.admin-overview-intro {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;margin-block:0 1rem;padding:.5rem .2rem 1rem;border-block-end:1px solid var(--card-border-color);}
+.admin-overview-intro h2 {font-weight:700;color:var(--text-strong);font-size:1.2rem;margin:0 0 .3rem;}
+.admin-overview-intro p {color:var(--text-light);font-size:.83rem;margin:0;}
+.admin-overview-scope {font-size:.73rem;border:1px solid var(--card-border-color);background:var(--grey-50);border-radius:999px;padding:.3rem .65rem;color:var(--text-light);}
+.admin-overview__grid {gap:.7rem;}
+.admin-overview__card {border-color:var(--card-border-color);border-radius:8px;padding:1rem 1.15rem;background:var(--white);}
+.admin-overview__card:not(.admin-overview__card--wide){min-block-size:7rem;}
+.admin-overview__card-title {font-size:.78rem;font-weight:650;text-transform:none;letter-spacing:0;color:var(--text-light);}
+.admin-overview__card-value {font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-strong);}
+.admin-overview__kv {grid-template-columns:minmax(110px,max-content) minmax(0,1fr);}
+@media(max-width:480px){.admin-overview__card {padding:.85rem;}.admin-overview__kv {grid-template-columns:1fr;gap:.3rem;}}
 </style>

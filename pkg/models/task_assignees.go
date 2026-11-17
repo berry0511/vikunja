@@ -17,6 +17,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"code.vikunja.io/api/pkg/db"
@@ -78,8 +79,12 @@ func (t *Task) updateTaskAssignees(s *xorm.Session, assignees []*user.User, doer
 	if len(assignees) == 0 && len(t.Assignees) > 0 {
 		_, err = s.Where("task_id = ?", t.ID).
 			Delete(&TaskAssginee{})
+		if err != nil { return err }
+		for _, old := range t.Assignees {
+			if err := saveHistoryChanges(s, "task", t.ID, doer, []historyField{{"assignee", fmt.Sprint(old.ID), ""}}); err != nil { return err }
+		}
 		t.setTaskAssignees(assignees)
-		return err
+		return nil
 	}
 
 	// If we didn't change anything (from 0 to zero) don't do anything.
@@ -118,6 +123,9 @@ func (t *Task) updateTaskAssignees(s *xorm.Session, assignees []*user.User, doer
 			Delete(&TaskAssginee{})
 		if err != nil {
 			return err
+		}
+		for _, removed := range assigneesToDelete {
+			if err := saveHistoryChanges(s, "task", t.ID, doer, []historyField{{"assignee", fmt.Sprint(removed), ""}}); err != nil { return err }
 		}
 	}
 
@@ -171,9 +179,10 @@ func (t *Task) setTaskAssignees(assignees []*user.User) {
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/{taskID}/assignees/{userID} [delete]
 func (la *TaskAssginee) Delete(s *xorm.Session, a web.Auth) (err error) {
-	_, err = s.Delete(&TaskAssginee{TaskID: la.TaskID, UserID: la.UserID})
-	if err != nil {
-		return err
+	deleted, err := s.Delete(&TaskAssginee{TaskID: la.TaskID, UserID: la.UserID})
+	if err != nil { return err }
+	if deleted > 0 {
+		if err := saveHistoryChanges(s, "task", la.TaskID, a, []historyField{{"assignee", fmt.Sprint(la.UserID), ""}}); err != nil { return err }
 	}
 
 	err = updateProjectByTaskID(s, la.TaskID)
@@ -255,9 +264,8 @@ func (t *Task) addNewAssigneeByID(s *xorm.Session, newAssigneeID int64, project 
 		TaskID: t.ID,
 		UserID: newAssigneeID,
 	})
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
+	if err := saveHistoryChanges(s, "task", t.ID, auth, []historyField{{"assignee", "", fmt.Sprint(newAssigneeID)}}); err != nil { return err }
 
 	err = subscribeUserImplicitly(s, SubscriptionEntityTask, t.ID, newAssignee)
 	if err != nil {

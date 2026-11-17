@@ -75,7 +75,7 @@
 			<h3 class="has-text-centered mbs-6">
 				{{ $t('task.show.noTasks') }}
 			</h3>
-			<LlamaCool class="llama-cool" />
+			<img class="empty-kty-logo" src="/images/kty-logo.svg" alt="开天眼" />
 		</template>
 
 		<Card
@@ -123,7 +123,6 @@ import SingleTaskInProject from '@/components/tasks/partials/SingleTaskInProject
 import DatepickerWithRange from '@/components/date/DatepickerWithRange.vue'
 import XLabel from '@/components/tasks/partials/Label.vue'
 import {DATE_RANGES} from '@/components/date/dateRanges'
-import LlamaCool from '@/assets/llama-cool.svg?component'
 import {useAuthStore} from '@/stores/auth'
 import {useProjects} from '@/composables/useProjects'
 import {useLabels} from '@/composables/useLabels'
@@ -139,12 +138,14 @@ const props = withDefaults(defineProps<{
 	showNulls?: boolean,
 	showOverdue?: boolean,
 	labelIds?: string[],
+	assignedToMe?: boolean,
 }>(), {
 	showNulls: false,
 	showOverdue: false,
 	dateFrom: undefined,
 	dateTo: undefined,
 	labelIds: undefined,
+	assignedToMe: false,
 })
 
 const emit = defineEmits<{
@@ -262,10 +263,19 @@ async function loadPendingTasks(from: Date|string|undefined, to: Date|string|und
 		return
 	}
 
+	// Fail closed on the personal overview until the authenticated username is available.
+	if (props.assignedToMe && !authStore.info?.username) {
+		taskScope.value = null
+		return
+	}
+
 	const params: TaskFilterParams = {
 		sort_by: ['due_date', 'id'],
 		order_by: ['asc', 'desc'],
-		filter: 'done = false',
+		// On Home, list only explicitly assigned tasks; project access alone is not assignment.
+		filter: props.assignedToMe && authStore.info?.username
+			? 'done = false && assignees = ' + JSON.stringify(authStore.info.username)
+			: 'done = false',
 		filter_include_nulls: props.showNulls,
 		q: '',
 		expand: ['comment_count', 'is_unread'],
@@ -311,6 +321,8 @@ watch(
 		() => props.showOverdue,
 		() => props.showNulls,
 		() => props.labelIds,
+		() => props.assignedToMe,
+		() => authStore.info?.username,
 	],
 	([from, to, filterId]) => loadPendingTasks(from, to, filterId),
 	{immediate: true},
@@ -319,6 +331,13 @@ watchEffect(() => setTitle(pageTitle.value))
 </script>
 
 <style lang="scss" scoped>
+/* Match the project list's Microsoft To Do-inspired density in task overview. */
+.title {font-size: clamp(1.25rem, 2vw, 1.6rem); font-weight: 550; letter-spacing: -.02em;}
+.tasks {list-style: none; padding: .5rem .7rem .85rem !important; margin: 0;}
+.tasks > li {list-style: none; margin: 0;}
+.show-tasks-options {padding: .65rem .85rem; background: var(--white); border: 1px solid var(--card-border-color); border-radius: 9px; margin-block: .6rem 1rem;}
+:deep(.single-task) {max-inline-size: 100%;}
+
 .tasks {
 	list-style: none;
 	margin: 0;
@@ -329,9 +348,12 @@ watchEffect(() => setTitle(pageTitle.value))
 	flex-direction: column;
 }
 
-.llama-cool {
-	margin: 3rem auto 0;
+.empty-kty-logo {
 	display: block;
+	inline-size: clamp(96px, 13vw, 160px);
+	block-size: clamp(96px, 13vw, 160px);
+	object-fit: contain;
+	margin: 1.5rem auto 0;
 }
 
 .label-filter-info {
