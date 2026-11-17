@@ -435,6 +435,19 @@ export type Callback = {
     totp_passcode?: string;
 };
 
+export type ChangeHistory = {
+    readonly action?: string;
+    readonly actor_id?: number;
+    readonly created?: string;
+    readonly entity_id?: number;
+    readonly entity_type?: string;
+    readonly field?: string;
+    readonly id?: number;
+    readonly new_value?: string;
+    readonly old_value?: string;
+    readonly username?: string;
+};
+
 export type ColumnMapping = {
     /**
      * The task attribute the column maps to. Use "ignore" to drop the column.
@@ -521,6 +534,52 @@ export type CreateUserBody = {
      */
     skip_email_confirm?: boolean;
     username?: string;
+};
+
+export type DailyWorklogDay = {
+    /**
+     * Minutes logged by this person on this date.
+     */
+    minutes?: number;
+    /**
+     * Project containing these hours.
+     */
+    project_id?: number;
+    /**
+     * Project name.
+     */
+    project_title?: string;
+    /**
+     * Person's user id.
+     */
+    user_id?: number;
+    /**
+     * Person's username.
+     */
+    username?: string;
+    /**
+     * Calendar date in YYYY-MM-DD format.
+     */
+    work_date?: string;
+};
+
+export type DailyWorklogSummary = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Daily totals, grouped by person and calendar date.
+     */
+    days?: Array<DailyWorklogDay> | null;
+    /**
+     * Number of source worklog records.
+     */
+    record_count?: number;
+    /**
+     * Total time in minutes across the filtered records.
+     */
+    total_minutes?: number;
 };
 
 export type DatabaseNotification = {
@@ -1206,6 +1265,18 @@ export type PaginatedBucket = {
     total_pages?: number;
 };
 
+export type PaginatedChangeHistory = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<ChangeHistory> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedDatabaseNotification = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1428,6 +1499,18 @@ export type PaginatedWebhook = {
      */
     readonly $schema?: string;
     items?: Array<Webhook> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedWorklog = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<Worklog> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -2261,6 +2344,10 @@ export type TaskAttachment = {
      * The unique, numeric id of this attachment.
      */
     readonly id?: number;
+    /**
+     * Attachment origin: task or comment. Comment uploads are referenced in comment text and hidden from the task attachment panel.
+     */
+    readonly source?: string;
     /**
      * The id of the task this attachment belongs to. Taken from the URL, not the body.
      */
@@ -3516,6 +3603,57 @@ export type Webhook = {
     readonly user_id?: number;
 };
 
+export type Worklog = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Optional note of what was done, up to 2000 Unicode characters.
+     */
+    comment?: string;
+    /**
+     * Creation timestamp.
+     */
+    readonly created?: string;
+    /**
+     * Unique worklog id.
+     */
+    readonly id?: number;
+    /**
+     * Actual minutes spent on the selected day, from 1 to 1440 per record.
+     */
+    minutes?: number;
+    /**
+     * Historical project attribution. Cannot be changed after creation.
+     */
+    project_id?: number;
+    /**
+     * Project title, resolved at report time.
+     */
+    readonly project_title?: string;
+    /**
+     * Required task id in this project; every new worklog must be attached to a real task.
+     */
+    task_id?: number;
+    /**
+     * Last modification timestamp.
+     */
+    readonly updated?: string;
+    /**
+     * Person who logged the work; assigned by the server.
+     */
+    readonly user_id?: number;
+    /**
+     * Display username, resolved from the user table.
+     */
+    readonly username?: string;
+    /**
+     * Work day, stored as midnight UTC. Clients should send a UTC midnight timestamp for the selected calendar day.
+     */
+    work_date?: string;
+};
+
 export type ApiTokenWritable = {
     /**
      * The date when this key expires.
@@ -3788,6 +3926,21 @@ export type CreateUserBodyWritable = {
     username?: string;
 };
 
+export type DailyWorklogSummaryWritable = {
+    /**
+     * Daily totals, grouped by person and calendar date.
+     */
+    days?: Array<DailyWorklogDay> | null;
+    /**
+     * Number of source worklog records.
+     */
+    record_count?: number;
+    /**
+     * Total time in minutes across the filtered records.
+     */
+    total_minutes?: number;
+};
+
 export type DatabaseNotificationsWritable = {
     /**
      * Set true to mark the notification read, false to mark it unread.
@@ -4041,6 +4194,14 @@ export type PaginatedBucketWritable = {
     total_pages?: number;
 };
 
+export type PaginatedChangeHistoryWritable = {
+    items?: Array<unknown> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedDatabaseNotificationWritable = {
     items?: Array<unknown> | null;
     page?: number;
@@ -4187,6 +4348,14 @@ export type PaginatedUserWithPermissionWritable = {
 
 export type PaginatedWebhookWritable = {
     items?: Array<WebhookWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedWorklogWritable = {
+    items?: Array<WorklogWritable> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -5081,6 +5250,29 @@ export type WebhookWritable = {
      * The target URL where the POST request with the webhook payload will be made.
      */
     target_url?: string;
+};
+
+export type WorklogWritable = {
+    /**
+     * Optional note of what was done, up to 2000 Unicode characters.
+     */
+    comment?: string;
+    /**
+     * Actual minutes spent on the selected day, from 1 to 1440 per record.
+     */
+    minutes?: number;
+    /**
+     * Historical project attribution. Cannot be changed after creation.
+     */
+    project_id?: number;
+    /**
+     * Required task id in this project; every new worklog must be attached to a real task.
+     */
+    task_id?: number;
+    /**
+     * Work day, stored as midnight UTC. Clients should send a UTC midnight timestamp for the selected calendar day.
+     */
+    work_date?: string;
 };
 
 export type AdminInviteLinksListData = {
@@ -7367,6 +7559,46 @@ export type ProjectsBackgroundUploadResponses = {
 
 export type ProjectsBackgroundUploadResponse = ProjectsBackgroundUploadResponses[keyof ProjectsBackgroundUploadResponses];
 
+export type ProjectHistoryListData = {
+    body?: never;
+    path: {
+        project: number;
+    };
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/projects/{project}/history';
+};
+
+export type ProjectHistoryListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectHistoryListError = ProjectHistoryListErrors[keyof ProjectHistoryListErrors];
+
+export type ProjectHistoryListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedChangeHistory;
+};
+
+export type ProjectHistoryListResponse = ProjectHistoryListResponses[keyof ProjectHistoryListResponses];
+
 export type SharesListData = {
     body?: never;
     path: {
@@ -9221,7 +9453,9 @@ export type TaskAttachmentsUploadData = {
         task: number;
     };
     query?: {
-        /** The location that initiated the upload. */
+        /**
+         * Origin of the uploaded files: task attachment panel or comment editor.
+         */
         source?: 'task' | 'comment';
     };
     url: '/tasks/{task}/attachments';
@@ -9538,6 +9772,47 @@ export type TaskCommentsUpdateResponses = {
 
 export type TaskCommentsUpdateResponse = TaskCommentsUpdateResponses[keyof TaskCommentsUpdateResponses];
 
+export type TaskCommentHistoryListData = {
+    body?: never;
+    path: {
+        task: number;
+        commentid: number;
+    };
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/tasks/{task}/comments/{commentid}/history';
+};
+
+export type TaskCommentHistoryListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TaskCommentHistoryListError = TaskCommentHistoryListErrors[keyof TaskCommentHistoryListErrors];
+
+export type TaskCommentHistoryListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedChangeHistory;
+};
+
+export type TaskCommentHistoryListResponse = TaskCommentHistoryListResponses[keyof TaskCommentHistoryListResponses];
+
 export type TasksDuplicateData = {
     body?: never;
     path: {
@@ -9567,6 +9842,46 @@ export type TasksDuplicateResponses = {
 };
 
 export type TasksDuplicateResponse = TasksDuplicateResponses[keyof TasksDuplicateResponses];
+
+export type TaskHistoryListData = {
+    body?: never;
+    path: {
+        task: number;
+    };
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/tasks/{task}/history';
+};
+
+export type TaskHistoryListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TaskHistoryListError = TaskHistoryListErrors[keyof TaskHistoryListErrors];
+
+export type TaskHistoryListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedChangeHistory;
+};
+
+export type TaskHistoryListResponse = TaskHistoryListResponses[keyof TaskHistoryListResponses];
 
 export type TaskLabelsListData = {
     body?: never;
@@ -11764,6 +12079,266 @@ export type WebhooksEventsListResponses = {
 };
 
 export type WebhooksEventsListResponse = WebhooksEventsListResponses[keyof WebhooksEventsListResponses];
+
+export type WorklogsListData = {
+    body?: never;
+    path?: never;
+    query: {
+        project_id: number;
+        user_id?: number;
+        task_id?: number;
+        from_date: string;
+        to_date: string;
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/worklogs';
+};
+
+export type WorklogsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsListError = WorklogsListErrors[keyof WorklogsListErrors];
+
+export type WorklogsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedWorklog;
+};
+
+export type WorklogsListResponse = WorklogsListResponses[keyof WorklogsListResponses];
+
+export type WorklogsCreateData = {
+    body: WorklogWritable;
+    path?: never;
+    query?: never;
+    url: '/worklogs';
+};
+
+export type WorklogsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsCreateError = WorklogsCreateErrors[keyof WorklogsCreateErrors];
+
+export type WorklogsCreateResponses = {
+    /**
+     * Created
+     */
+    201: Worklog;
+};
+
+export type WorklogsCreateResponse = WorklogsCreateResponses[keyof WorklogsCreateResponses];
+
+export type WorklogsExportData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Project id or zero for all accessible projects.
+         */
+        project_id: number;
+        /**
+         * Filter by person. Zero means everyone for project admins, or self for other members.
+         */
+        user_id?: number;
+        /**
+         * Optional task id to filter this project's worklogs; zero includes every task.
+         */
+        task_id?: number;
+        /**
+         * First included calendar day, YYYY-MM-DD.
+         */
+        from_date: string;
+        /**
+         * Last included calendar day, YYYY-MM-DD.
+         */
+        to_date: string;
+    };
+    url: '/worklogs/export';
+};
+
+export type WorklogsExportErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsExportError = WorklogsExportErrors[keyof WorklogsExportErrors];
+
+export type WorklogsExportResponses = {
+    /**
+     * UTF-8 CSV attachment.
+     */
+    200: Blob | File;
+};
+
+export type WorklogsExportResponse = WorklogsExportResponses[keyof WorklogsExportResponses];
+
+export type WorklogsExportSummaryData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Project id or zero for all accessible projects.
+         */
+        project_id: number;
+        /**
+         * Filter by person. Zero means everyone for project admins, or self for other members.
+         */
+        user_id?: number;
+        /**
+         * Optional task id to filter this project's worklogs; zero includes every task.
+         */
+        task_id?: number;
+        /**
+         * First included calendar day, YYYY-MM-DD.
+         */
+        from_date: string;
+        /**
+         * Last included calendar day, YYYY-MM-DD.
+         */
+        to_date: string;
+    };
+    url: '/worklogs/export-summary';
+};
+
+export type WorklogsExportSummaryErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsExportSummaryError = WorklogsExportSummaryErrors[keyof WorklogsExportSummaryErrors];
+
+export type WorklogsExportSummaryResponses = {
+    /**
+     * Daily summary in UTF-8 CSV.
+     */
+    200: Blob | File;
+};
+
+export type WorklogsExportSummaryResponse = WorklogsExportSummaryResponses[keyof WorklogsExportSummaryResponses];
+
+export type WorklogsSummaryData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Project id or zero for all accessible projects.
+         */
+        project_id: number;
+        /**
+         * Filter by person. Zero means everyone for project admins, or self for other members.
+         */
+        user_id?: number;
+        /**
+         * Optional task id to filter this project's worklogs; zero includes every task.
+         */
+        task_id?: number;
+        /**
+         * First included calendar day, YYYY-MM-DD.
+         */
+        from_date: string;
+        /**
+         * Last included calendar day, YYYY-MM-DD.
+         */
+        to_date: string;
+    };
+    url: '/worklogs/summary';
+};
+
+export type WorklogsSummaryErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsSummaryError = WorklogsSummaryErrors[keyof WorklogsSummaryErrors];
+
+export type WorklogsSummaryResponses = {
+    /**
+     * OK
+     */
+    200: DailyWorklogSummary;
+};
+
+export type WorklogsSummaryResponse = WorklogsSummaryResponses[keyof WorklogsSummaryResponses];
+
+export type WorklogsDeleteData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/worklogs/{id}';
+};
+
+export type WorklogsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsDeleteError = WorklogsDeleteErrors[keyof WorklogsDeleteErrors];
+
+export type WorklogsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type WorklogsDeleteResponse = WorklogsDeleteResponses[keyof WorklogsDeleteResponses];
+
+export type WorklogsUpdateData = {
+    body: WorklogWritable;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/worklogs/{id}';
+};
+
+export type WorklogsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type WorklogsUpdateError = WorklogsUpdateErrors[keyof WorklogsUpdateErrors];
+
+export type WorklogsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: Worklog;
+};
+
+export type WorklogsUpdateResponse = WorklogsUpdateResponses[keyof WorklogsUpdateResponses];
 
 export type ReactionsListData = {
     body?: never;
